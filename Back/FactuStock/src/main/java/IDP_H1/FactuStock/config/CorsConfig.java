@@ -1,4 +1,6 @@
-package IDP_H1.FactuStock.config;import org.springframework.context.annotation.Bean;
+package IDP_H1.FactuStock.config;
+
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -11,11 +13,12 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // Permite CORS en todos los endpoints
-                        .allowedOrigins("http://localhost:3000", "https://tudominio.com") // Lista de orígenes permitidos
+                // Permite CORS en todos los endpoints
+                registry.addMapping("/**") 
+                        .allowedOrigins("http://localhost:5173") // Asegúrate de que la URL del frontend es correcta
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Métodos permitidos
                         .allowedHeaders("*") // Headers permitidos
-                        .allowCredentials(true); // Permite credenciales
+                        .allowCredentials(true); // Permite credenciales (si es necesario)
             }
         };
     }

@@ -5,7 +5,7 @@ import lombok.Data;
 
 @Entity
 @Data
-public class Usuario {
+public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,6 +33,3 @@ public class Usuario {
     private Organizacion organizacion;
 }
 
-enum Rol {
-    VENDEDOR, GERENTE, ADMINISTRADOR
-}

@@ -1,4 +1,5 @@
 package IDP_H1.FactuStock.Entities;
 
-public class ROl {
+public enum Rol{
+    Administrador, Gerente, Vendedor
 }

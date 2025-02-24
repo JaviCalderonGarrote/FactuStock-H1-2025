@@ -3,6 +3,8 @@ package IDP_H1.FactuStock.Entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Entity
 @Data
 public class Producto {
@@ -22,6 +24,13 @@ public class Producto {
     @Column(nullable = false)
     private Integer cantidadStock;
 
-    @Column(columnDefinition = "DECIMAL(5,2) DEFAULT 21")
-    private Double iva;
+    @Column(precision = 5, scale = 2)
+    private BigDecimal iva;
+
+    @PrePersist
+    public void prePersist() {
+        if (iva == null) {
+            iva = BigDecimal.valueOf(21.00);
+        }
+    }
 }

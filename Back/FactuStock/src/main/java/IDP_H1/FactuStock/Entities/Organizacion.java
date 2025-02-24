@@ -23,9 +23,5 @@ public class Organizacion {
     @Lob
     private byte[] logo;
 
-    @Column(columnDefinition = "DECIMAL(10,2) DEFAULT 0")
-    private Double gastos;
 
-    @Column(columnDefinition = "DECIMAL(10,2) DEFAULT 0")
-    private Double ingresos;
 }

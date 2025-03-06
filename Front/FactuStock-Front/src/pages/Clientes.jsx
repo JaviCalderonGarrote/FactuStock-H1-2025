@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaPlusCircle, FaSearch } from "react-icons/fa";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -42,6 +42,7 @@ const ClienteComponent = () => {
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [clientesPorPagina] = useState(9);
+    const [searchQuery, setSearchQuery] = useState(""); // Estado para la búsqueda
     const token = localStorage.getItem("authToken");
 
     // Obtener los clientes al montar el componente
@@ -126,6 +127,18 @@ const ClienteComponent = () => {
         currentPage * clientesPorPagina
     );
 
+    // Filtrar clientes por búsqueda
+    const filteredClientes = clientesPaginados.filter(cliente => {
+        return (
+            cliente.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            cliente.nifCif.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            cliente.telefono.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            cliente.direccion.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            cliente.mail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            cliente.tipo.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+    });
+
     return (
         <div className="d-flex">
             <Sidebar />
@@ -137,26 +150,47 @@ const ClienteComponent = () => {
                         <div className="alert alert-danger text-center">{error}</div>
                     ) : (
                         <>
-                            <button
-                                className="btn d-flex align-items-center"
-                                style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
-                                onClick={() => {
-                                    setNuevoCliente({
-                                        id: null,
-                                        nombre: "",
-                                        nifCif: "",
-                                        telefono: "",
-                                        direccion: "",
-                                        web: "",
-                                        mail: "",
-                                        tipo: "CLIENTE"
-                                    });
-                                    setShowModal(true);
-                                }}
-                            >
-                                <FaPlusCircle className="me-2" />
-                                Agregar Cliente
-                            </button>
+                            <div className="d-flex justify-content-between mb-3">
+                                <button
+                                    className="btn d-flex align-items-center"
+                                    style={{ backgroundColor: '#a7c5eb' }}
+                                    onClick={() => {
+                                        setNuevoCliente({
+                                            id: null,
+                                            nombre: "",
+                                            nifCif: "",
+                                            telefono: "",
+                                            direccion: "",
+                                            web: "",
+                                            mail: "",
+                                            tipo: "CLIENTE"
+                                        });
+                                        setShowModal(true);
+                                    }}
+                                >
+                                    <FaPlusCircle className="me-2" />
+                                    Agregar Cliente
+                                </button>
+                                <div className="input-group" style={{ maxWidth: '300px' }}>
+                                    <span className="input-group-text" style={{ backgroundColor: '#a7c5eb' }}>
+                                        <FaSearch />
+                                    </span>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Buscar cliente..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{
+                                            backgroundColor: '#a7c5eb', // Fondo azul suave
+                                            border: '1px solid #ccc',
+                                            borderRadius: '5px',
+                                            padding: '5px',
+                                            boxShadow: '0px 0px 8px rgba(0,0,0,0.1)',
+                                        }}
+                                    />
+                                </div>
+                            </div>
 
                             <div className="table-responsive">
                                 <table className="table">
@@ -166,22 +200,22 @@ const ClienteComponent = () => {
                                         <th>Nombre</th>
                                         <th>NIF/CIF</th>
                                         <th>Email</th>
-                                        <th>Teléfono</th> {/* Nueva columna Teléfono */}
-                                        <th>Dirección</th> {/* Nueva columna Dirección */}
-                                        <th>Tipo</th> {/* Nueva columna Tipo */}
+                                        <th>Teléfono</th>
+                                        <th>Dirección</th>
+                                        <th>Tipo</th>
                                         <th>Acciones</th>
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {clientesPaginados.map((cliente, index) => (
+                                    {filteredClientes.map((cliente, index) => (
                                         <tr key={cliente.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
                                             <td>{cliente.id}</td>
                                             <td>{cliente.nombre || 'N/A'}</td>
                                             <td>{cliente.nifCif || 'N/A'}</td>
                                             <td>{cliente.mail || 'N/A'}</td>
-                                            <td>{cliente.telefono || 'N/A'}</td> {/* Mostrar el teléfono */}
-                                            <td>{cliente.direccion || 'N/A'}</td> {/* Mostrar la dirección */}
-                                            <td>{cliente.tipo || 'N/A'}</td> {/* Mostrar el tipo del cliente */}
+                                            <td>{cliente.telefono || 'N/A'}</td>
+                                            <td>{cliente.direccion || 'N/A'}</td>
+                                            <td>{cliente.tipo || 'N/A'}</td>
                                             <td>
                                                 <button className="btn btn-sm btn-outline-secondary mx-1" onClick={() => handleEditar(cliente)}>✏️</button>
                                                 <button className="btn btn-sm btn-outline-danger mx-1" onClick={() => handleEliminar(cliente.id)}>🗑️</button>
@@ -248,16 +282,13 @@ const ClienteComponent = () => {
                                             <select className="form-control" name="tipo" value={nuevoCliente.tipo} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}>
                                                 <option value="CLIENTE">Cliente</option>
                                                 <option value="PROVEEDOR">Proveedor</option>
-                                                <option value="AMBOS">Ambos</option>
                                             </select>
                                         </div>
-                                        <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%' }}>
-                                            {nuevoCliente.id ? 'Guardar Cambios' : 'Guardar Cliente'}
-                                        </button>
+                                        <div className="modal-footer">
+                                            <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
+                                            <button type="submit" className="btn btn-primary">{nuevoCliente.id ? 'Guardar cambios' : 'Agregar Cliente'}</button>
+                                        </div>
                                     </form>
-                                    <button type="button" className="btn btn-secondary mt-3" onClick={() => setShowModal(false)} style={{ width: '100%' }}>
-                                        Cerrar
-                                    </button>
                                 </div>
                             </div>
                         </div>

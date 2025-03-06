@@ -26,19 +26,21 @@ body {
 
 .wrapper {
     display: flex;
+    min-height: 100vh;  /* Asegura que la altura del contenedor principal sea 100vh */
 }
 
 .main {
-    min-height: 100vh;
-    width: 100%;
+    flex: 1;  /* Hace que el main ocupe el resto del espacio */
+    min-height: 100vh;  /* Asegura que la sección principal ocupe todo el espacio restante */
     overflow: hidden;
     transition: all 0.35s ease-in-out;
     background-color: #fafbfe;
 }
 
 #sidebar {
-    width: 70px;
-    min-width: 70px;
+    width: 75px;  /* Reducido el ancho base */
+    min-width: 60px;  /* Reducido el mínimo */
+    height: 100vh;  /* Asegura que el sidebar ocupe toda la altura de la pantalla */
     z-index: 1000;
     transition: all 0.25s ease-in-out;
     background-color: #0e2238;
@@ -48,8 +50,8 @@ body {
 
 /* Cuando el sidebar tiene hover, se expande */
 #sidebar:hover {
-    width: 260px;
-    min-width: 260px;
+    width: 220px;  /* Reducido el ancho cuando está en hover */
+    min-width: 220px;  /* Reducido el mínimo cuando está en hover */
 }
 
 .toggle-btn {
@@ -109,7 +111,7 @@ a.sidebar-link:hover {
 #sidebar:not(:hover) .sidebar-item .sidebar-dropdown {
     position: absolute;
     top: 0;
-    left: 70px;
+    left: 60px;  /* Ajustado para el nuevo tamaño */
     background-color: #0e2238;
     padding: 0;
     min-width: 15rem;
@@ -122,4 +124,177 @@ a.sidebar-link:hover {
     max-height: 15em;
     width: 100%;
     opacity: 1;
+}
+
+/* Estilos para el Sidebar Footer (Logout) */
+.sidebar-footer {
+    margin-top: auto;  /* Esto empuja el área de footer (logout) al fondo */
+    padding: 1rem 1.5rem;
+    background-color: #1b2d41;
+    border-top: 1px solid #3b7ddd;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s ease-in-out;
+}
+
+.sidebar-footer:hover {
+    background-color: #1a2b38; /* Oscurecer el fondo al pasar el mouse */
+    cursor: pointer;
+    border-top: 1px solid #3b7ddd;  /* Resalta el borde al hacer hover */
+}
+
+/* Estilos del enlace de logout */
+.sidebar-footer a {
+    color: #FFF;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar-footer a:hover {
+    color: #ff4d4d;  /* Resalta el color cuando el mouse pasa por encima */
+    transform: scale(1.05);  /* Ligera animación de escala al hacer hover */
+}
+
+.sidebar-footer a i {
+    margin-right: 0.75rem;
+    font-size: 1.3rem;
+}
+
+.navbar-user {
+    padding: 1rem;
+    background-color: #1b2d41;
+    color: #fff;
+    text-align: center;
+}
+
+.username {
+    font-weight: 600;
+}
+/* Estilo para el modal */
+.modal-dialog {
+    max-width: 600px;
+}
+
+.modal-content {
+    background-color: #f8f9fa;
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    background-color: #007bff;
+    color: white;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Botones */
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* Añadir transiciones suaves para la apertura y cierre del modal */
+.modal.fade .modal-dialog {
+    transform: translate(0, -50px);
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: translate(0, 0);
+}
+/* Estilo para el modal */
+.modal-dialog {
+    max-width: 600px;
+}
+
+.modal-content {
+    background-color: #f8f9fa;
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+    background-color: #007bff;
+    color: white;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+}
+
+/* Botones */
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+
+
+{
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+/* Añadir transiciones suaves para la apertura y cierre del modal */
+.modal.fade .modal-dialog {
+    transform: translate(0, -50px);
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: translate(0, 0);
+}
+.logo-preview {
+    width: 100px;
+    height: auto;
+    transition: transform 0.3s ease;
+}
+
+.logo-preview:hover {
+    transform: scale(1.5);
+    cursor: pointer;
 }

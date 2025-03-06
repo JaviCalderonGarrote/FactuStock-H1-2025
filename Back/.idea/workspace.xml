@@ -1,7 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="bce695d4-e208-49ec-804f-ebf875a0da43" name="Changes" comment="" />
+    <list default="true" id="bce695d4-e208-49ec-804f-ebf875a0da43" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/pages/CategoryGasto.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/pages/CategoryProducts.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/pages/Organizacion.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/pages/Perfil.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/pages/products.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/FactuStock/src/main/java/IDP_H1/FactuStock/Entities/Organizacion.java" beforeDir="false" afterPath="$PROJECT_DIR$/FactuStock/src/main/java/IDP_H1/FactuStock/Entities/Organizacion.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Front/FactuStock-Front/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Front/FactuStock-Front/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Front/FactuStock-Front/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Front/FactuStock-Front/src/App.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/App.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Front/FactuStock-Front/src/assets/styles.css" beforeDir="false" afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/assets/styles.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Front/FactuStock-Front/src/components/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/components/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Front/FactuStock-Front/src/services/authService.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/../Front/FactuStock-Front/src/services/authService.jsx" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -10,9 +24,21 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 4
+  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
+  "lastFilter": {
+    "state": "OPEN",
+    "assignee": "JaviCalderonGarrote"
+  }
 }]]></component>
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/JaviCalderonGarrote/FactuStock-H1-2025.git",
+    "accountId": "0d1b10e6-f599-4542-8823-4a70611b7877"
+  }
+}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
   <component name="ProjectId" id="2saCqltFGBUDvG45l2orknl8Iae" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -21,9 +47,10 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "feature/setup-project-#1",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "22-frontend-view-with-the-product-list",
     "kotlin-language-version-configured": "true",
-    "last_opened_file_path": "C:/Users/a933652/OneDrive - Eviden/Escritorio/FactuStock-H1-2025/FactuStock-H1-2025/Back/FactuStock",
+    "last_opened_file_path": "C:/Users/a933652/OneDrive - Eviden/Escritorio/IDP-JCG/FactuStock-H1-2025/Back",
     "nodejs_package_manager_path": "npm",
     "vue.rearranger.settings.migration": "true"
   }
@@ -31,8 +58,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23339.11" />
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23339.11" />
+        <option value="bundled-jdk-9823dce3aa75-125ca727e0f0-intellij.indexing.shared.core-IU-243.23654.189" />
+        <option value="bundled-js-predefined-d6986cc7102b-822845ee3bb5-JavaScript-IU-243.23654.189" />
       </set>
     </attachedChunks>
   </component>
@@ -45,6 +72,7 @@
       <option name="presentableId" value="Default" />
       <updated>1738684491969</updated>
       <workItem from="1738684492987" duration="22000" />
+      <workItem from="1741189541011" duration="23000" />
     </task>
     <servers />
   </component>

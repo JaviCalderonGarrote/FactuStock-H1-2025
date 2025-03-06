@@ -1,67 +1,109 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
-const Sidebar = ({ username }) => {
+const Sidebar = () => {
+  const navigate = useNavigate();
+  const [username, setUsername] = useState("Usuario"); // Valor por defecto
+
+  useEffect(() => {
+    const storedUsername = localStorage.getItem("username");
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/login");
+  };
+
   return (
-    <aside id="sidebar">
-      <div className="d-flex">
-        <button className="toggle-btn" type="button">
-          <i className="lni lni-grid-alt"></i>
-        </button>
-        <div className="sidebar-logo">
-          <Link to="/">FactuStock</Link>
+      <aside id="sidebar">
+        <div className="d-flex">
+          <button className="toggle-btn" type="button">
+            <i className="fas fa-bars"></i>
+          </button>
+          <div className="sidebar-logo">
+            <Link to="/home">FactuStock</Link>
+          </div>
         </div>
-      </div>
-      <ul className="sidebar-nav">
-        <li className="sidebar-item">
-          <Link to="/profile" className="sidebar-link">
-            <i className="lni lni-user"></i>
-            <span>Profile</span>
+        <ul className="sidebar-nav">
+          <li className="sidebar-item">
+            <Link to="/profile" className="sidebar-link">
+              <i className="fas fa-user"></i>
+              <span>{username}</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/products" className="sidebar-link">
+              <i className="fas fa-box-open"></i>
+              <span>Productos</span>
+            </Link>
+          </li>
+          <li className="sidebar-item has-dropdown">
+            <Link to="#" className="sidebar-link" data-bs-toggle="collapse" data-bs-target="#category" aria-expanded="false">
+              <i className="fas fa-layer-group"></i>
+              <span>Categoría</span>
+            </Link>
+            <ul id="category" className="sidebar-dropdown list-unstyled collapse">
+              <li className="sidebar-item">
+                <Link to="/category-product" className="sidebar-link">Categoría Producto</Link>
+              </li>
+              <li className="sidebar-item">
+                <Link to="/category-expense" className="sidebar-link">Categoría Gasto</Link>
+              </li>
+            </ul>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/tpv" className="sidebar-link">
+              <i className="fas fa-store"></i>
+              <span>TPV</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/invoices" className="sidebar-link">
+              <i className="fas fa-file-invoice"></i>
+              <span>Facturas</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/expenses" className="sidebar-link">
+              <i className="fas fa-money-bill-wave"></i>
+              <span>Gastos</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/income" className="sidebar-link">
+              <i className="fas fa-coins"></i>
+              <span>Ingresos</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/organización" className="sidebar-link">
+              <i className="fas fa-sitemap"></i>
+              <span>Organizacion</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/clients" className="sidebar-link">
+              <i className="fas fa-users"></i>
+              <span>Clientes</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/cash-register" className="sidebar-link">
+              <i className="fas fa-cash-register"></i>
+              <span>Caja</span>
+            </Link>
+          </li>
+        </ul>
+        <div className="sidebar-footer">
+          <Link to="/login" className="sidebar-link" onClick={handleLogout}>
+            <i className="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
           </Link>
-        </li>
-        <li className="sidebar-item">
-          <Link to="/task" className="sidebar-link">
-            <i className="lni lni-agenda"></i>
-            <span>Task</span>
-          </Link>
-        </li>
-        <li className="sidebar-item">
-          <Link to="#" className="sidebar-link collapsed has-dropdown" data-bs-toggle="collapse" data-bs-target="#auth" aria-expanded="false" aria-controls="auth">
-            <i className="lni lni-protection"></i>
-            <span>Auth</span>
-          </Link>
-          <ul id="auth" className="sidebar-dropdown list-unstyled collapse" data-bs-parent="#sidebar">
-            <li className="sidebar-item">
-              <Link to="/login" className="sidebar-link">Login</Link>
-            </li>
-            <li className="sidebar-item">
-              <Link to="/register" className="sidebar-link">Register</Link>
-            </li>
-          </ul>
-        </li>
-        <li className="sidebar-item">
-          <Link to="#" className="sidebar-link">
-            <i className="lni lni-popup"></i>
-            <span>Notification</span>
-          </Link>
-        </li>
-        <li className="sidebar-item">
-          <Link to="/settings" className="sidebar-link">
-            <i className="lni lni-cog"></i>
-            <span>Setting</span>
-          </Link>
-        </li>
-      </ul>
-      <div className="sidebar-footer">
-        <Link to="/logout" className="sidebar-link">
-          <i className="lni lni-exit"></i>
-          <span>Logout</span>
-        </Link>
-      </div>
-      {/* Navbar con el nombre de usuario */}
-      <div className="navbar-user">
-        <span className="username">{username}</span>
-      </div>
-    </aside>
+        </div>
+      </aside>
   );
 };
 

@@ -3,6 +3,7 @@ package IDP_H1.FactuStock.Controllers;
 import IDP_H1.FactuStock.Entities.CategoriaProducto;
 import IDP_H1.FactuStock.Services.CategoriaProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/categorias")
+@RequestMapping("/categoriasProducto")
 public class CategoriaProductoController {
 
     @Autowired
@@ -39,15 +40,32 @@ public class CategoriaProductoController {
         return new ResponseEntity<>(nuevaCategoria, HttpStatus.CREATED);
     }
 
-    // Eliminar categoría por ID
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        Optional<CategoriaProducto> categoria = categoriaProductoService.obtenerPorId(id);
-        if (categoria.isPresent()) {
-            categoriaProductoService.eliminar(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    // Editar categoría por ID
+    @PutMapping("/{id}")
+    public ResponseEntity<CategoriaProducto> editar(@PathVariable Long id, @RequestBody CategoriaProducto categoriaProducto) {
+        Optional<CategoriaProducto> categoriaExistente = categoriaProductoService.obtenerPorId(id);
+        if (categoriaExistente.isPresent()) {
+            categoriaProducto.setId(id);
+            CategoriaProducto categoriaEditada = categoriaProductoService.guardar(categoriaProducto);
+            return new ResponseEntity<>(categoriaEditada, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    // Eliminar categoría por ID (Manejo de errores si tiene productos asociados)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+        Optional<CategoriaProducto> categoria = categoriaProductoService.obtenerPorId(id);
+        if (categoria.isPresent()) {
+            try {
+                categoriaProductoService.eliminar(id);
+                return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            } catch (DataIntegrityViolationException e) {
+                return new ResponseEntity<>("No se puede eliminar la categoría porque tiene productos asociados.", HttpStatus.BAD_REQUEST);
+            }
+        } else {
+            return new ResponseEntity<>("Categoría no encontrada", HttpStatus.NOT_FOUND);
         }
     }
 }

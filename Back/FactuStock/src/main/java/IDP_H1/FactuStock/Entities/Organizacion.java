@@ -8,7 +8,7 @@ public class Organizacion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false)
     private String nombre;
 
@@ -19,9 +19,9 @@ public class Organizacion {
     private String nifCif;
 
     private String web;
-    
-    @Lob
-    private byte[] logo;
+    private String email;
+
+    private String logo;
 
 
 }

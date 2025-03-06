@@ -14,37 +14,34 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import lombok.RequiredArgsConstructor;
-
 import java.io.IOException;
 
 @Component
-@RequiredArgsConstructor  // Lombok will generate the constructor for us
+@RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService; // JWT service to verify token
-    private final UserDetailsService userDetailsService; // User service to load user details
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        final String token = getTokenFromRequest(request); // Get the token from the request header
+        final String token = getTokenFromRequest(request);
 
         if (token == null) {
-            filterChain.doFilter(request, response); // If no token, proceed to next filter
+            filterChain.doFilter(request, response);
             return;
         }
 
-        // Extract username from token
         final String username = jwtService.getUsernameFromToken(token);
+        final Long idUsuario = jwtService.getIdUsuarioFromToken(token); // Extraemos el idUsuario del token
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             try {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username); // Load user from DB
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                // Validate token and user
                 if (jwtService.isTokenValid(token, userDetails)) {
-                    // Create the authentication token and set it in the security context
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
@@ -52,23 +49,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                    SecurityContextHolder.getContext().setAuthentication(authToken); // Set authentication context
+                    // Guardamos el idUsuario en el request para usarlo después
+                    request.setAttribute("idUsuario", idUsuario);
+
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             } catch (Exception e) {
-                // Handle exception (logging, etc.) if user not found or token is invalid
-                logger.error("Error processing authentication: ", e);
+                logger.error("Error procesando autenticación: ", e);
             }
         }
 
-        filterChain.doFilter(request, response); // Continue with the filter chain
+        filterChain.doFilter(request, response);
     }
 
-    // Extract token from the request header
     private String getTokenFromRequest(HttpServletRequest request) {
         final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7); // Extract token from "Bearer <token>"
+            return authHeader.substring(7);
         }
         return null;
     }

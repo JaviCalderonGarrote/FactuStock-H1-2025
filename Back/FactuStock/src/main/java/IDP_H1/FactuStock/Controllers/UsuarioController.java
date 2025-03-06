@@ -8,10 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/usuarios")
+@CrossOrigin(origins = "http://localhost:5173") // Permitir solo a localhost:5173
 public class UsuarioController {
 
     @Autowired
@@ -47,6 +49,25 @@ public class UsuarioController {
         return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED);
     }
 
+    // Actualizar usuario por ID
+    @PutMapping("/{id}")
+    public ResponseEntity<Usuario> actualizar(@PathVariable Long id, @RequestBody Usuario usuarioActualizado) {
+        Optional<Usuario> usuarioOpt = usuarioService.obtenerPorId(id);
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            usuario.setNombre(usuarioActualizado.getNombre());
+            usuario.setApellido(usuarioActualizado.getApellido());
+            usuario.setMail(usuarioActualizado.getMail());
+            usuario.setTelefono(usuarioActualizado.getTelefono());
+            usuario.setRol(usuarioActualizado.getRol());
+
+            Usuario usuarioGuardado = usuarioService.guardar(usuario);
+            return new ResponseEntity<>(usuarioGuardado, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
     // Eliminar usuario por ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
@@ -56,6 +77,24 @@ public class UsuarioController {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    // Cambiar contraseña
+    @PatchMapping("/{id}/password")
+    public ResponseEntity<String> cambiarPassword(@PathVariable Long id, @RequestBody Map<String, String> passwords) {
+        String oldPassword = passwords.get("oldPassword");
+        String newPassword = passwords.get("newPassword");
+
+        if (oldPassword == null || newPassword == null || newPassword.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La contraseña nueva no puede estar vacía.");
+        }
+
+        boolean success = usuarioService.cambiarPassword(id, oldPassword, newPassword);
+        if (success) {
+            return ResponseEntity.ok("Contraseña actualizada correctamente.");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al cambiar la contraseña. Verifique la contraseña actual.");
         }
     }
 }

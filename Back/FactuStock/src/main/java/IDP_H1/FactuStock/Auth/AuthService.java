@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException; // Importa la excepción específica
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -32,33 +32,33 @@ public class AuthService {
         logger.info("Intento de inicio de sesión para el usuario: {}", request.getUsername());
 
         try {
-            // Log de los datos de la request antes de la autenticación
-            logger.debug("Datos de la request: Username={}, Password (no se muestra por seguridad)", request.getUsername()); // No loguear la contraseña en producción
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                    request.getUsername(), request.getPassword()));
 
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
-
-            UserDetails user = userRepository.findByUsername(request.getUsername())
+            Usuario usuario = userRepository.findByUsername(request.getUsername())
                     .orElseThrow(() -> {
-                        logger.warn("Usuario {} no encontrado en la base de datos.", request.getUsername()); // Log específico para usuario no encontrado
+                        logger.warn("Usuario {} no encontrado en la base de datos.", request.getUsername());
                         return new UsernameNotFoundException("Usuario no encontrado");
                     });
 
             logger.info("Usuario {} autenticado correctamente.", request.getUsername());
 
-            String token = jwtService.getToken(user);
+            // Ahora el token solo incluye el idUsuario
+            String token = jwtService.getToken(usuario, usuario.getId());
+
             return AuthResponse.builder()
                     .token(token)
                     .build();
 
         } catch (BadCredentialsException e) {
-            logger.error("Credenciales inválidas para el usuario {}: {}", request.getUsername(), e.getMessage()); // Log específico para credenciales inválidas
-            throw e; // Re-lanza la excepción
+            logger.error("Credenciales inválidas para el usuario {}: {}", request.getUsername(), e.getMessage());
+            throw e;
         } catch (UsernameNotFoundException e) {
             logger.error("Usuario {} no encontrado: {}", request.getUsername(), e.getMessage());
             throw e;
         } catch (Exception e) {
             logger.error("Error de inicio de sesión para el usuario {}: {}", request.getUsername(), e.getMessage(), e);
-            throw e; // Re-lanza la excepción después de loguearla
+            throw e;
         }
     }
 
@@ -69,12 +69,8 @@ public class AuthService {
             Optional<Usuario> existingUser = userRepository.findByUsername(request.getUsername());
             if (existingUser.isPresent()) {
                 logger.warn("Ya existe un usuario con el nombre: {}", request.getUsername());
-                throw new IllegalArgumentException("Ya existe un usuario con ese nombre."); // Lanza una excepción adecuada
+                throw new IllegalArgumentException("Ya existe un usuario con ese nombre.");
             }
-
-            // Log de los datos del usuario a registrar (sin la contraseña)
-            logger.debug("Datos del usuario a registrar: Username={}, Nombre={}, Apellido={}, Mail={}, Rol={}, Organizacion={}",
-                    request.getUsername(), request.getNombre(), request.getApellido(), request.getMail(), request.getRol(), request.getOrganizacion());
 
             Usuario usuario = Usuario.builder()
                     .username(request.getUsername())
@@ -89,13 +85,16 @@ public class AuthService {
             Usuario savedUser = userRepository.save(usuario);
             logger.info("Usuario {} registrado correctamente.", savedUser.getUsername());
 
+            // Generamos el token con el idUsuario en lugar del username
+            String token = jwtService.getToken(savedUser, savedUser.getId());
+
             return AuthResponse.builder()
-                    .token(jwtService.getToken(savedUser))
+                    .token(token)
                     .build();
 
         } catch (Exception e) {
             logger.error("Error al registrar el usuario {}: {}", request.getUsername(), e.getMessage(), e);
-            throw e; // Re-lanza la excepción
+            throw e;
         }
     }
 }

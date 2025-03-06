@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -25,7 +26,7 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:3000") // Permitir el frontend local
+                .allowedOrigins("http://localhost:5173") // Permitir el frontend local
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Métodos permitidos
                 .allowedHeaders("*") // Permitir todos los headers
                 .allowCredentials(true); // Permitir cookies y credenciales
@@ -37,8 +38,8 @@ public class SecurityConfig implements WebMvcConfigurer {
                 .cors().and()  // Habilitar CORS
                 .csrf().disable() // Deshabilitar CSRF (útil si usas JWT)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/register").permitAll() // Rutas abiertas de login y register
-                        .requestMatchers("/api/public/**").permitAll() // Puedes añadir otras rutas públicas si es necesario
+                        .requestMatchers("/auth/login", "/auth/register").permitAll() // Rutas abiertas de login y registro
+                        .requestMatchers("/api/public/**").permitAll() // Rutas públicas que no requieren autenticación
                         .anyRequest().authenticated() // Requiere autenticación para las demás rutas
                 )
                 .authenticationProvider(authenticationProvider) // Usamos el provider inyectado

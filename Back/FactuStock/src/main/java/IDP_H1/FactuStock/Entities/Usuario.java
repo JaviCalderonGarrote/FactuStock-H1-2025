@@ -1,5 +1,7 @@
 package IDP_H1.FactuStock.Entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Entity
 @Data
@@ -42,12 +45,23 @@ public class Usuario implements UserDetails {
     @Column(nullable = false)
     private String mail;
 
+    @Column(nullable = false)
+    private String telefono;
+
     @ManyToOne
     private Organizacion organizacion;
 
     @Override
+    @JsonIgnore // Evita problemas de serialización
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority(rol.name()));
+    }
+
+    @JsonProperty("roles") // Devuelve el rol como String en JSON
+    public List<String> getRoles() {
+        return getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -80,4 +94,3 @@ public class Usuario implements UserDetails {
         return true;
     }
 }
-

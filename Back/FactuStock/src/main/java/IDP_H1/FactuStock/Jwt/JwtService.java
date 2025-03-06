@@ -6,7 +6,6 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,58 +15,65 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    // Usar una clave secreta segura generada automáticamente
-    private static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256); // Generación segura de la clave
+    private static final SecretKey SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
-    public String getToken(UserDetails user) {
-        return getToken(new HashMap<>(), user);
+    // Generar el token con el ID del usuario y el nombre de usuario
+    public String getToken(UserDetails user, Long idUsuario) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("idUsuario", idUsuario); // Agregamos el idUsuario como un claim
+        return createToken(claims, user.getUsername());
     }
 
-    private String getToken(Map<String, Object> extraClaims, UserDetails user) {
-        return Jwts
-                .builder()
-                .setClaims(extraClaims)
-                .setSubject(user.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 24))  // Token expirará en 24 horas
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS256)  // Usamos la clave segura generada
-                .compact();
+    // Crear el token a partir de los claims y el nombre de usuario
+    private String createToken(Map<String, Object> claims, String subject) {
+        return Jwts.builder()
+                .setClaims(claims)  // Establecemos los claims (idUsuario)
+                .setSubject(subject) // Establecemos el nombre de usuario como el subject
+                .setIssuedAt(new Date(System.currentTimeMillis())) // Fecha de emisión
+                .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // Expira en 24 horas
+                .signWith(SECRET_KEY, SignatureAlgorithm.HS256) // Firmamos el token con la clave secreta
+                .compact(); // Lo empaquetamos y lo devolvemos
     }
 
-    // Método que retorna la clave secreta
-    private SecretKey getKey() {
-        return SECRET_KEY;
-    }
-
+    // Obtener el nombre de usuario del token
     public String getUsernameFromToken(String token) {
-        return getClaim(token, Claims::getSubject);
+        return getClaim(token, Claims::getSubject);  // Extraemos el subject (nombre de usuario)
     }
 
+    // Obtener el idUsuario del token
+    public Long getIdUsuarioFromToken(String token) {
+        return getClaim(token, claims -> claims.get("idUsuario", Long.class)); // Extraemos el idUsuario desde los claims
+    }
+
+    // Extraer un claim del token
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = getAllClaims(token); // Obtenemos todos los claims
+        return claimsResolver.apply(claims); // Aplicamos la función para extraer el claim deseado
+    }
+
+    // Verificar si el token es válido
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = getUsernameFromToken(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        final String username = getUsernameFromToken(token); // Extraemos el nombre de usuario
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token)); // Comprobamos que el nombre de usuario coincida y que el token no haya expirado
     }
 
+    // Obtener todos los claims del token
     private Claims getAllClaims(String token) {
-        return Jwts
-                .parserBuilder()
-                .setSigningKey(getKey()) // Usamos la clave segura para verificar el token
+        return Jwts.parserBuilder()
+                .setSigningKey(SECRET_KEY) // Usamos la clave secreta para validar el token
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseClaimsJws(token) // Parseamos el JWT
+                .getBody(); // Extraemos los claims
     }
 
-    // Método genérico para obtener claims del token
-    public <T> T getClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = getAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
-
-    private Date getExpiration(String token) {
-        return getClaim(token, Claims::getExpiration);
-    }
-
+    // Verificar si el token ha expirado
     private boolean isTokenExpired(String token) {
-        return getExpiration(token).before(new Date());
+        return getClaim(token, Claims::getExpiration).before(new Date()); // Comprobamos si la fecha de expiración ya ha pasado
+    }
+
+    // Obtener un claim específico
+    public <T> T getClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = getAllClaims(token); // Obtenemos todos los claims
+        return claimsResolver.apply(claims); // Aplicamos la función para obtener el claim deseado
     }
 }

@@ -3,6 +3,7 @@ package IDP_H1.FactuStock.Controllers;
 import IDP_H1.FactuStock.Entities.EmpresaPersonaFisica;
 import IDP_H1.FactuStock.Services.EmpresaPersonaFisicaService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,43 +12,71 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/empresas-personas-fisicas")
+@RequestMapping("/clientes")
 public class EmpresaPersonaFisicaController {
 
     @Autowired
-    private EmpresaPersonaFisicaService empresaPersonaFisicaService;
+    private EmpresaPersonaFisicaService service;
 
-    // Obtener todas las empresas/personas físicas
+    // Obtener todos los clientes
     @GetMapping
-    public ResponseEntity<List<EmpresaPersonaFisica>> obtenerTodas() {
-        List<EmpresaPersonaFisica> empresas = empresaPersonaFisicaService.obtenerTodas();
-        return new ResponseEntity<>(empresas, HttpStatus.OK);
+    public List<EmpresaPersonaFisica> obtenerTodos() {
+        return service.obtenerTodos();
     }
 
-    // Obtener empresa/persona física por ID
+    // Obtener un cliente por su ID
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaPersonaFisica> obtenerPorId(@PathVariable Long id) {
-        Optional<EmpresaPersonaFisica> empresa = empresaPersonaFisicaService.obtenerPorId(id);
-        return empresa.map(ResponseEntity::ok)
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        Optional<EmpresaPersonaFisica> cliente = service.obtenerPorId(id);
+        return cliente.map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    // Guardar nueva empresa/persona física
+    // Crear un nuevo cliente
     @PostMapping
-    public ResponseEntity<EmpresaPersonaFisica> guardar(@RequestBody EmpresaPersonaFisica empresaPersonaFisica) {
-        EmpresaPersonaFisica nuevaEmpresa = empresaPersonaFisicaService.guardar(empresaPersonaFisica);
-        return new ResponseEntity<>(nuevaEmpresa, HttpStatus.CREATED);
+    public ResponseEntity<EmpresaPersonaFisica> guardar(@RequestBody EmpresaPersonaFisica cliente) {
+        EmpresaPersonaFisica nuevoCliente = service.guardar(cliente);
+        return ResponseEntity.ok(nuevoCliente);
     }
 
-    // Eliminar empresa/persona física por ID
+    // Editar un cliente existente
+    @PutMapping("/{id}")
+    public ResponseEntity<EmpresaPersonaFisica> editarCliente(@PathVariable Long id, @RequestBody EmpresaPersonaFisica cliente) {
+        Optional<EmpresaPersonaFisica> clienteExistente = service.obtenerPorId(id);
+
+        if (!clienteExistente.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Actualizar el cliente existente
+        EmpresaPersonaFisica clienteActualizado = clienteExistente.get();
+        clienteActualizado.setNombre(cliente.getNombre());
+        clienteActualizado.setNifCif(cliente.getNifCif());
+        clienteActualizado.setTelefono(cliente.getTelefono());
+        clienteActualizado.setDireccion(cliente.getDireccion());
+        clienteActualizado.setWeb(cliente.getWeb());
+        clienteActualizado.setMail(cliente.getMail());
+        clienteActualizado.setTipo(cliente.getTipo());
+
+        EmpresaPersonaFisica clienteGuardado = service.guardar(clienteActualizado);
+        return ResponseEntity.ok(clienteGuardado);
+    }
+
+    // Eliminar un cliente por ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        Optional<EmpresaPersonaFisica> empresa = empresaPersonaFisicaService.obtenerPorId(id);
-        if (empresa.isPresent()) {
-            empresaPersonaFisicaService.eliminar(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+        Optional<EmpresaPersonaFisica> cliente = service.obtenerPorId(id);
+        if (cliente.isPresent()) {
+            try {
+                service.eliminar(id);
+                return ResponseEntity.noContent().build();
+            } catch (DataIntegrityViolationException e) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("No se puede eliminar el cliente porque tiene relaciones asociadas.");
+            }
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Cliente no encontrado");
         }
     }
 }

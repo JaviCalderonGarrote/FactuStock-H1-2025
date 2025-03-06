@@ -10,21 +10,26 @@ import java.util.Optional;
 
 @Service
 public class EmpresaPersonaFisicaService {
+
     @Autowired
     private EmpresaOPersonaFisicaRepository repository;
 
-    public List<EmpresaPersonaFisica> obtenerTodas() {
+    // Obtener todos los clientes
+    public List<EmpresaPersonaFisica> obtenerTodos() {
         return repository.findAll();
     }
 
+    // Obtener cliente por ID
     public Optional<EmpresaPersonaFisica> obtenerPorId(Long id) {
         return repository.findById(id);
     }
 
-    public EmpresaPersonaFisica guardar(EmpresaPersonaFisica empresa) {
-        return repository.save(empresa);
+    // Guardar cliente (crear o actualizar)
+    public EmpresaPersonaFisica guardar(EmpresaPersonaFisica cliente) {
+        return repository.save(cliente);
     }
 
+    // Eliminar cliente
     public void eliminar(Long id) {
         repository.deleteById(id);
     }

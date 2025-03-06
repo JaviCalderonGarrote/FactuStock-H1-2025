@@ -8,6 +8,7 @@ import Organizacion from "./pages/Organizacion.jsx";
 import Perfil from "./pages/Perfil.jsx";
 import './assets/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import Clientes from "./pages/Clientes.jsx";
 
 
 const App = () => {
@@ -20,7 +21,9 @@ const App = () => {
         <Route path="/category-product" element={<CategoryProducts />} />
         <Route path="/category-expense" element={<CategoryGasto />} />
         <Route path="/organización" element={<Organizacion />} />
-          <Route path="/profile" element={<Perfil />} />
+        <Route path="/profile" element={<Perfil />} />
+        <Route path="/clients" element={<Clientes />} />
+
 
 
       </Routes>

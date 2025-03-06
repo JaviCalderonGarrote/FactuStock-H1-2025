@@ -1,14 +1,12 @@
 package IDP_H1.FactuStock.config;
 
 import IDP_H1.FactuStock.Jwt.JwtAuthenticationFilter;
-import IDP_H1.FactuStock.Repositories.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -20,31 +18,32 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SecurityConfig implements WebMvcConfigurer {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final AuthenticationProvider authenticationProvider; // Inyectamos el AuthenticationProvider
+    private final AuthenticationProvider authenticationProvider;
 
-    // Configuración global de CORS
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173") // Permitir el frontend local
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Métodos permitidos
-                .allowedHeaders("*") // Permitir todos los headers
-                .allowCredentials(true); // Permitir cookies y credenciales
+                .allowedOrigins("http://localhost:5173")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true);
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors().and()  // Habilitar CORS
-                .csrf().disable() // Deshabilitar CSRF (útil si usas JWT)
+                .cors().and()
+                .csrf().disable()
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/register").permitAll() // Rutas abiertas de login y registro
-                        .requestMatchers("/api/public/**").permitAll() // Rutas públicas que no requieren autenticación
-                        .anyRequest().authenticated() // Requiere autenticación para las demás rutas
+                        .requestMatchers("/auth/login", "/auth/register").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/organizaciones/logo/**").permitAll() // Permitir acceso a /organizaciones/logo/**
+                        .requestMatchers("/img-logo/**").permitAll() // Permitir acceso directo a /img-logo/**
+                        .anyRequest().authenticated()
                 )
-                .authenticationProvider(authenticationProvider) // Usamos el provider inyectado
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class) // Filtro JWT antes del filtro de autenticación estándar
-                .sessionManagement().disable(); // Deshabilita la gestión de sesiones, ya que usas JWT
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement().disable();
 
         return http.build();
     }

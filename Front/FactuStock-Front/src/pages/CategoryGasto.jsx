@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaPlusCircle, FaSearch } from "react-icons/fa";  // Importamos el icono de la lupa
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -33,6 +33,7 @@ const CategoriaGastoComponent = () => {
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [categoriasPorPagina] = useState(9);
+    const [searchQuery, setSearchQuery] = useState(""); // Estado para búsqueda
     const token = localStorage.getItem("authToken");
 
     // Obtener las categorías de gasto al montar el componente
@@ -107,10 +108,15 @@ const CategoriaGastoComponent = () => {
 
     // Lógica de paginación
     const totalPages = Math.ceil(categoriasGasto.length / categoriasPorPagina);
-    const categoriasPaginadas = categoriasGasto.slice(
-        (currentPage - 1) * categoriasPorPagina,
-        currentPage * categoriasPorPagina
-    );
+    const categoriasPaginadas = categoriasGasto
+        .filter(categoria =>
+            categoria.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||  // Filtrar por nombre
+            categoria.id.toString().includes(searchQuery)  // Filtrar por ID (convertir ID a string)
+        )
+        .slice(
+            (currentPage - 1) * categoriasPorPagina,
+            currentPage * categoriasPorPagina
+        );
 
     return (
         <div className="d-flex">
@@ -123,17 +129,46 @@ const CategoriaGastoComponent = () => {
                         <div className="alert alert-danger text-center">{error}</div>
                     ) : (
                         <>
-                            <button
-                                className="btn d-flex align-items-center"
-                                style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
-                                onClick={() => {
-                                    setNuevaCategoria({ id: null, nombre: '' });
-                                    setShowModal(true);
-                                }}
-                            >
-                                <FaPlusCircle className="me-2" />
-                                Agregar Categoría de Gasto
-                            </button>
+                            <div className="d-flex justify-content-between mb-3">
+                                <button
+                                    className="btn d-flex align-items-center"
+                                    style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
+                                    onClick={() => {
+                                        setNuevaCategoria({ id: null, nombre: '' });
+                                        setShowModal(true);
+                                    }}
+                                >
+                                    <FaPlusCircle className="me-2" />
+                                    Agregar Categoría de Gasto
+                                </button>
+
+                                <div className="position-relative" style={{ maxWidth: "400px" }}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Buscar categoría..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{
+                                            paddingLeft: "35px", // Espacio para la lupa
+                                            borderRadius: "5px",
+                                            backgroundColor: '#a7c5eb',
+                                            boxShadow: "0px 0px 8px rgba(0,0,0,0.1)",
+                                            transition: "border-color 0.3s ease-in-out"
+                                        }}
+                                    />
+                                    <FaSearch
+                                        className="position-absolute"
+                                        style={{
+                                            left: "10px", // Ajustamos la posición horizontal de la lupa
+                                            top: "35%",   // Alineación vertical
+                                            transform: "translateY(-50%)",
+                                            color: "black",  // Color de la lupa
+                                            fontSize: "20px"
+                                        }}
+                                    />
+                                </div>
+                            </div>
 
                             <div className="table-responsive">
                                 <table className="table">

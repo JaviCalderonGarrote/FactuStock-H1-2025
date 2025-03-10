@@ -2,8 +2,9 @@ import Sidebar from "../components/Sidebar";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaPlusCircle, FaSearch } from "react-icons/fa";
 
+// Componente para manejar errores
 class ErrorBoundary extends React.Component {
     constructor(props) {
         super(props);
@@ -41,10 +42,8 @@ const Products = () => {
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [productosPorPagina] = useState(9);
+    const [searchQuery, setSearchQuery] = useState(""); // Estado para búsqueda
     const token = localStorage.getItem("authToken");
-
-    // Agregamos console.log para verificar el token
-    console.log(token); // Verifica el valor del token aquí
 
     useEffect(() => {
         if (!token) {
@@ -134,10 +133,15 @@ const Products = () => {
     };
 
     const totalPages = Math.ceil(productos.length / productosPorPagina);
-    const productosPaginados = productos.slice(
-        (currentPage - 1) * productosPorPagina,
-        currentPage * productosPorPagina
-    );
+    const productosPaginados = productos
+        .filter(producto =>
+            producto.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            producto.precio.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (producto.categoria?.nombre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            producto.cantidadStock.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+            producto.iva.toString().toLowerCase().includes(searchQuery.toLowerCase())
+        )  // Filtrado por todos los campos
+        .slice((currentPage - 1) * productosPorPagina, currentPage * productosPorPagina);
 
     return (
         <div className="d-flex">
@@ -150,17 +154,46 @@ const Products = () => {
                         <div className="alert alert-danger text-center">{error}</div>
                     ) : (
                         <>
-                            <button
-                                className="btn d-flex align-items-center"
-                                style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
-                                onClick={() => {
-                                    setNuevoProducto({ id: null, nombre: '', precio: '', cantidadStock: '', iva: 21, categoriaId: '' });
-                                    setShowModal(true);
-                                }}
-                            >
-                                <FaPlusCircle className="me-2" />
-                                Agregar Producto
-                            </button>
+                            <div className="d-flex justify-content-between mb-3">
+                                <button
+                                    className="btn d-flex align-items-center"
+                                    style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
+                                    onClick={() => {
+                                        setNuevoProducto({ id: null, nombre: '', precio: '', cantidadStock: '', iva: 21, categoriaId: '' });
+                                        setShowModal(true);
+                                    }}
+                                >
+                                    <FaPlusCircle className="me-2" />
+                                    Agregar Producto
+                                </button>
+
+                                <div className="position-relative" style={{ maxWidth: "400px" }}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Buscar aquí..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{
+                                            paddingLeft: "35px", // Espacio para la lupa
+                                            borderRadius: "5px",
+                                            backgroundColor: '#a7c5eb',
+                                            boxShadow: "0px 0px 8px rgba(0,0,0,0.1)",
+                                            transition: "border-color 0.3s ease-in-out"
+                                        }}
+                                    />
+                                    <FaSearch
+                                        className="position-absolute"
+                                        style={{
+                                            left: "10px", // Ajustamos la posición horizontal de la lupa
+                                            top: "35%",   // Alineación vertical
+                                            transform: "translateY(-50%)",
+                                            color: "black",  // Color de la lupa
+                                            fontSize: "20px"
+                                        }}
+                                    />
+                                </div>
+                            </div>
 
                             <div className="table-responsive">
                                 <table className="table">
@@ -239,7 +272,6 @@ const Products = () => {
                                             {nuevoProducto.id ? 'Guardar Cambios' : 'Guardar Producto'}
                                         </button>
                                     </form>
-                                    {/* Botón de cerrar adicional en el cuerpo del modal */}
                                     <button type="button" className="btn btn-secondary mt-3" onClick={() => setShowModal(false)} style={{ width: '100%' }}>
                                         Cerrar
                                     </button>

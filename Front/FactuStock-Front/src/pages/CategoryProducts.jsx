@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { FaPlusCircle } from "react-icons/fa";
+import { FaPlusCircle, FaSearch } from "react-icons/fa"; // Importamos el icono de la lupa
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -36,6 +36,7 @@ const CategoryProducts = () => {
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [categoriasPorPagina] = useState(9);
+    const [searchQuery, setSearchQuery] = useState(""); // Estado para la búsqueda
     const token = localStorage.getItem("authToken");
 
     useEffect(() => {
@@ -118,10 +119,15 @@ const CategoryProducts = () => {
     };
 
     const totalPages = Math.ceil(categorias.length / categoriasPorPagina);
-    const categoriasPaginadas = categorias.slice(
-        (currentPage - 1) * categoriasPorPagina,
-        currentPage * categoriasPorPagina
-    );
+    const categoriasPaginadas = categorias
+        .filter(categoria =>
+            categoria.nombre.toLowerCase().includes(searchQuery.toLowerCase()) || // Buscar por nombre
+            categoria.id.toString().includes(searchQuery) // Buscar por ID (convertido a string)
+        )
+        .slice(
+            (currentPage - 1) * categoriasPorPagina,
+            currentPage * categoriasPorPagina
+        );
 
     return (
         <div className="d-flex">
@@ -134,17 +140,46 @@ const CategoryProducts = () => {
                         <div className="alert alert-danger text-center">{error}</div>
                     ) : (
                         <>
-                            <button
-                                className="btn d-flex align-items-center"
-                                style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
-                                onClick={() => {
-                                    setNuevaCategoria({ id: null, nombre: '' });
-                                    setShowModal(true);
-                                }}
-                            >
-                                <FaPlusCircle className="me-2" />
-                                Agregar Categoría
-                            </button>
+                            <div className="d-flex justify-content-between mb-3">
+                                <button
+                                    className="btn d-flex align-items-center"
+                                    style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
+                                    onClick={() => {
+                                        setNuevaCategoria({ id: null, nombre: '' });
+                                        setShowModal(true);
+                                    }}
+                                >
+                                    <FaPlusCircle className="me-2" />
+                                    Agregar Categoría
+                                </button>
+
+                                <div className="position-relative" style={{ maxWidth: "400px" }}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Buscar aquí..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        style={{
+                                            paddingLeft: "35px", // Espacio para la lupa
+                                            borderRadius: "5px",
+                                            backgroundColor: '#a7c5eb',
+                                            boxShadow: "0px 0px 8px rgba(0,0,0,0.1)",
+                                            transition: "border-color 0.3s ease-in-out"
+                                        }}
+                                    />
+                                    <FaSearch
+                                        className="position-absolute"
+                                        style={{
+                                            left: "10px", // Ajustamos la posición horizontal de la lupa
+                                            top: "35%",   // Alineación vertical
+                                            transform: "translateY(-50%)",
+                                            color: "black",  // Color de la lupa
+                                            fontSize: "20px"
+                                        }}
+                                    />
+                                </div>
+                            </div>
 
                             <div className="table-responsive">
                                 <table className="table">
@@ -170,6 +205,7 @@ const CategoryProducts = () => {
                                 </table>
                             </div>
 
+                            {/* Paginación */}
                             {totalPages > 1 && (
                                 <nav aria-label="Page navigation">
                                     <ul className="pagination justify-content-center">
@@ -185,6 +221,7 @@ const CategoryProducts = () => {
                     )}
                 </ErrorBoundary>
 
+                {/* Modal para agregar/editar categoría */}
                 {showModal && (
                     <div className="modal fade show" style={{ display: "block" }}>
                         <div className="modal-dialog modal-dialog-centered">

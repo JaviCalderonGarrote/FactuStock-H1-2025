@@ -298,3 +298,20 @@ a.sidebar-link:hover {
     transform: scale(1.5);
     cursor: pointer;
 }
+/* Botón de Agregar Producto */
+.btn:hover {
+    background-color: white !important;
+    border: 2px solid #a7c5eb !important;  /* Azul */
+    color: #a7c5eb !important; /* Cambia el texto a azul también */
+}
+
+/* Campo de búsqueda */
+.form-control:hover {
+    background-color: white !important;
+    border: 2px solid #a7c5eb !important;  /* Azul */
+}
+
+/* Icono de búsqueda (lupa) */
+.position-relative .FaSearch:hover {
+    color: #a7c5eb !important;
+}

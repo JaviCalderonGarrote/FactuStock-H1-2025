@@ -171,22 +171,28 @@ const ClienteComponent = () => {
                                     <FaPlusCircle className="me-2" />
                                     Agregar Cliente
                                 </button>
-                                <div className="input-group" style={{ maxWidth: '300px' }}>
-                                    <span className="input-group-text" style={{ backgroundColor: '#a7c5eb' }}>
-                                        <FaSearch />
-                                    </span>
+                                <div className="position-relative" style={{ maxWidth: "300px" }}>
                                     <input
                                         type="text"
-                                        className="form-control"
+                                        className="form-control search-input"
                                         placeholder="Buscar cliente..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         style={{
-                                            backgroundColor: '#a7c5eb', // Fondo azul suave
-                                            border: '1px solid #ccc',
-                                            borderRadius: '5px',
-                                            padding: '5px',
-                                            boxShadow: '0px 0px 8px rgba(0,0,0,0.1)',
+                                            backgroundColor: "#a7c5eb",
+                                            border: "1px solid #ccc",
+                                            borderRadius: "5px",
+                                            paddingLeft: "35px",
+                                            boxShadow: "0px 0px 8px rgba(0,0,0,0.1)",
+                                        }}
+                                    />
+                                    <FaSearch
+                                        className="position-absolute"
+                                        style={{
+                                            left: "10px",
+                                            top: "50%",
+                                            transform: "translateY(-50%)",
+                                            color: "#555",
                                         }}
                                     />
                                 </div>
@@ -245,7 +251,7 @@ const ClienteComponent = () => {
                 {/* Modal para agregar/editar cliente */}
                 {showModal && (
                     <div className="modal fade show" style={{ display: "block" }}>
-                        <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "800px" }}>
                             <div className="modal-content shadow-lg rounded">
                                 <div className="modal-header" style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
                                     <h5 className="modal-title">{nuevoCliente.id ? 'Editar Cliente' : 'Agregar Cliente'}</h5>
@@ -253,37 +259,94 @@ const ClienteComponent = () => {
                                 </div>
                                 <div className="modal-body">
                                     <form onSubmit={handleSubmit}>
-                                        <div className="form-group mb-3">
-                                            <label className="form-label">Nombre</label>
-                                            <input type="text" className="form-control" name="nombre" value={nuevoCliente.nombre} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })} required />
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">Nombre</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    name="nombre"
+                                                    value={nuevoCliente.nombre}
+                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">NIF/CIF</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    name="nifCif"
+                                                    value={nuevoCliente.nifCif}
+                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="form-group mb-3">
-                                            <label className="form-label">NIF/CIF</label>
-                                            <input type="text" className="form-control" name="nifCif" value={nuevoCliente.nifCif} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })} required />
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">Teléfono</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    name="telefono"
+                                                    value={nuevoCliente.telefono}
+                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">Dirección</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    name="direccion"
+                                                    value={nuevoCliente.direccion}
+                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="form-group mb-3">
-                                            <label className="form-label">Teléfono</label>
-                                            <input type="text" className="form-control" name="telefono" value={nuevoCliente.telefono} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })} />
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">Web</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    name="web"
+                                                    value={nuevoCliente.web}
+                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">Email</label>
+                                                <input
+                                                    type="email"
+                                                    className="form-control"
+                                                    name="mail"
+                                                    value={nuevoCliente.mail}
+                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
                                         </div>
-                                        <div className="form-group mb-3">
-                                            <label className="form-label">Dirección</label>
-                                            <input type="text" className="form-control" name="direccion" value={nuevoCliente.direccion} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })} />
+
+                                        <div className="row">
+                                            <div className="col-md-6 mb-3">
+                                                <label className="form-label">Tipo</label>
+                                                <select
+                                                    className="form-control"
+                                                    name="tipo"
+                                                    value={nuevoCliente.tipo}
+                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                >
+                                                    <option value="CLIENTE">Cliente</option>
+                                                    <option value="PROVEEDOR">Proveedor</option>
+                                                    <option value="AMBOS">Ambos</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div className="form-group mb-3">
-                                            <label className="form-label">Web</label>
-                                            <input type="text" className="form-control" name="web" value={nuevoCliente.web} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })} />
-                                        </div>
-                                        <div className="form-group mb-3">
-                                            <label className="form-label">Email</label>
-                                            <input type="email" className="form-control" name="mail" value={nuevoCliente.mail} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })} required />
-                                        </div>
-                                        <div className="form-group mb-3">
-                                            <label className="form-label">Tipo</label>
-                                            <select className="form-control" name="tipo" value={nuevoCliente.tipo} onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}>
-                                                <option value="CLIENTE">Cliente</option>
-                                                <option value="PROVEEDOR">Proveedor</option>
-                                            </select>
-                                        </div>
+
                                         <div className="modal-footer">
                                             <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                                             <button type="submit" className="btn btn-primary">{nuevoCliente.id ? 'Guardar cambios' : 'Agregar Cliente'}</button>

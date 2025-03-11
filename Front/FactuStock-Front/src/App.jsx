@@ -1,33 +1,33 @@
-import { Routes, Route } from "react-router-dom";  // Asegúrate de importar Routes y Route
-import Login from "./pages/login"; // Asegúrate de que las rutas sean correctas
+import { Routes, Route } from "react-router-dom";
+import Login from "./pages/login";
 import Home from "./pages/Home";
-import Products from "./pages/products.jsx";  // Asegúrate de importar el CSS aquí
+import Facturas from "./pages/Facturas.jsx";
+import NuevaFacturaComponent from "./pages/NuevaFacturaComponent.jsx"; // Importa la nueva página
+import Products from "./pages/products.jsx";
 import CategoryProducts from "./pages/CategoryProducts.jsx";
 import CategoryGasto from "./pages/CategoryGasto.jsx";
 import Organizacion from "./pages/Organizacion.jsx";
 import Perfil from "./pages/Perfil.jsx";
+import Clientes from "./pages/Clientes.jsx";
 import './assets/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Clientes from "./pages/Clientes.jsx";
-
 
 const App = () => {
-  return (
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/products" element={<Products />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/category-product" element={<CategoryProducts />} />
-        <Route path="/category-expense" element={<CategoryGasto />} />
-        <Route path="/organización" element={<Organizacion />} />
-        <Route path="/profile" element={<Perfil />} />
-        <Route path="/clients" element={<Clientes />} />
-
-
-
-      </Routes>
-  );
+    return (
+        <Routes>
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/products" element={<Products />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/category-product" element={<CategoryProducts />} />
+            <Route path="/category-expense" element={<CategoryGasto />} />
+            <Route path="/organización" element={<Organizacion />} />
+            <Route path="/profile" element={<Perfil />} />
+            <Route path="/clients" element={<Clientes />} />
+            <Route path="/facturas" element={<Facturas />} />
+            <Route path="/nueva-factura" element={<NuevaFacturaComponent />} />
+        </Routes>
+    );
 };
 
 export default App;

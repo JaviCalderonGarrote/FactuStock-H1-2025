@@ -20,16 +20,16 @@ class ErrorBoundary extends React.Component {
 
     render() {
         if (this.state.hasError) {
-            return <h1 className="text-danger text-center">Algo salió mal al cargar los clientes.</h1>;
+            return <h1 className="text-danger text-center">Algo salió mal al cargar las empresas.</h1>;
         }
         return this.props.children;
     }
 }
 
-const ClienteComponent = () => {
-    const [clientes, setClientes] = useState([]);
+const EmpresaPersonaFisicaComponent = () => {
+    const [empresaPersonaFisica, setEmpresaPersonaFisica] = useState([]);
     const [error, setError] = useState(null);
-    const [nuevoCliente, setNuevoCliente] = useState({
+    const [nuevaEmpresaPersonaFisica, setNuevaEmpresaPersonaFisica] = useState({
         id: null,
         nombre: "",
         nifCif: "",
@@ -45,7 +45,7 @@ const ClienteComponent = () => {
     const [searchQuery, setSearchQuery] = useState(""); // Estado para la búsqueda
     const token = localStorage.getItem("authToken");
 
-    // Obtener los clientes al montar el componente
+    // Obtener las empresas al montar el componente
     useEffect(() => {
         if (!token) {
             setError("No se encontró un token de autenticación.");
@@ -53,89 +53,89 @@ const ClienteComponent = () => {
         }
         const fetchData = async () => {
             try {
-                const response = await axios.get("http://localhost:8080/clientes", {
+                const response = await axios.get("http://localhost:8080/EmpresaPersonaFisica", {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setClientes(response.data);
+                setEmpresaPersonaFisica(response.data);
             } catch (err) {
-                setError("Error al obtener los clientes.");
+                setError("Error al obtener las empresas.");
             }
         };
         fetchData();
     }, [token]);
 
-    // Manejo del formulario para crear/editar cliente
+    // Manejo del formulario para crear/editar empresaPersonaFisica
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (!nuevoCliente.nombre || !nuevoCliente.nifCif || !nuevoCliente.mail) {
+        if (!nuevaEmpresaPersonaFisica.nombre || !nuevaEmpresaPersonaFisica.nifCif || !nuevaEmpresaPersonaFisica.mail) {
             Swal.fire('Error', 'Los campos nombre, NIF/CIF y mail son obligatorios.', 'error');
             return;
         }
 
-        const clienteData = { ...nuevoCliente };
+        const empresaData = { ...nuevaEmpresaPersonaFisica };
 
-        const request = nuevoCliente.id
-            ? axios.put(`http://localhost:8080/clientes/${nuevoCliente.id}`, clienteData, {
+        const request = nuevaEmpresaPersonaFisica.id
+            ? axios.put(`http://localhost:8080/EmpresaPersonaFisica/${nuevaEmpresaPersonaFisica.id}`, empresaData, {
                 headers: { Authorization: `Bearer ${token}` }
             })
-            : axios.post("http://localhost:8080/clientes", clienteData, {
+            : axios.post("http://localhost:8080/EmpresaPersonaFisica", empresaData, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
         request
             .then(() => {
                 setShowModal(false);
-                Swal.fire('Éxito', `Cliente ${nuevoCliente.id ? 'actualizado' : 'creado'} correctamente`, 'success');
+                Swal.fire('Éxito', `Empresa ${nuevaEmpresaPersonaFisica.id ? 'actualizada' : 'creada'} correctamente`, 'success');
                 window.location.reload();
             })
-            .catch(() => Swal.fire('Error', `Hubo un error al ${nuevoCliente.id ? 'actualizar' : 'crear'} el cliente.`, 'error'));
+            .catch(() => Swal.fire('Error', `Hubo un error al ${nuevaEmpresaPersonaFisica.id ? 'actualizar' : 'crear'} la empresa.`, 'error'));
     };
 
-    // Eliminar cliente
+    // Eliminar empresa
     const handleEliminar = (id) => {
         Swal.fire({
             title: '¿Estás seguro?',
-            text: 'Este cliente será eliminado permanentemente.',
+            text: 'Esta empresa será eliminada permanentemente.',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminarlo'
+            confirmButtonText: 'Sí, eliminarla'
         }).then((result) => {
             if (result.isConfirmed) {
-                axios.delete(`http://localhost:8080/clientes/${id}`, {
+                axios.delete(`http://localhost:8080/EmpresaPersonaFisica/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).then(() => {
-                    setClientes(clientes.filter(cliente => cliente.id !== id));
-                    Swal.fire('Eliminado', 'El cliente ha sido eliminado correctamente', 'success');
+                    setEmpresaPersonaFisica(empresaPersonaFisica.filter(empresa => empresa.id !== id));
+                    Swal.fire('Eliminado', 'La empresa ha sido eliminada correctamente', 'success');
                     window.location.reload();
-                }).catch(() => Swal.fire('Error', 'Hubo un error al eliminar el cliente', 'error'));
+                }).catch(() => Swal.fire('Error', 'Hubo un error al eliminar la empresa', 'error'));
             }
         });
     };
 
-    // Preparar edición de cliente
-    const handleEditar = (cliente) => {
-        setNuevoCliente(cliente);
+    // Preparar edición de empresa
+    const handleEditar = (empresa) => {
+        setNuevaEmpresaPersonaFisica(empresa);
         setShowModal(true);
     };
 
     // Lógica de paginación
-    const totalPages = Math.ceil(clientes.length / clientesPorPagina);
-    const clientesPaginados = clientes.slice(
+    const totalPages = Math.ceil(empresaPersonaFisica.length / clientesPorPagina);
+    const empresaPersonaFisicaPaginada = empresaPersonaFisica.slice(
         (currentPage - 1) * clientesPorPagina,
         currentPage * clientesPorPagina
     );
 
-    // Filtrar clientes por búsqueda
-    const filteredClientes = clientesPaginados.filter(cliente => {
+    // Filtrar empresas por búsqueda
+    const filteredEmpresas = empresaPersonaFisicaPaginada.filter(empresa => {
         return (
-            cliente.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            cliente.nifCif.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            cliente.telefono.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            cliente.direccion.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            cliente.mail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            cliente.tipo.toLowerCase().includes(searchQuery.toLowerCase())
+            empresa.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            empresa.nifCif.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            empresa.telefono.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            empresa.direccion.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            empresa.mail.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            empresa.tipo.toLowerCase().includes(searchQuery.toLowerCase())
         );
     });
 
@@ -143,7 +143,7 @@ const ClienteComponent = () => {
         <div className="d-flex">
             <Sidebar />
             <div className="container mt-4">
-                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>Clientes</h2>
+                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>Empresas</h2>
 
                 <ErrorBoundary>
                     {error ? (
@@ -155,7 +155,7 @@ const ClienteComponent = () => {
                                     className="btn d-flex align-items-center"
                                     style={{ backgroundColor: '#a7c5eb' }}
                                     onClick={() => {
-                                        setNuevoCliente({
+                                        setNuevaEmpresaPersonaFisica({
                                             id: null,
                                             nombre: "",
                                             nifCif: "",
@@ -169,13 +169,13 @@ const ClienteComponent = () => {
                                     }}
                                 >
                                     <FaPlusCircle className="me-2" />
-                                    Agregar Cliente
+                                    Agregar Empresa
                                 </button>
                                 <div className="position-relative" style={{ maxWidth: "300px" }}>
                                     <input
                                         type="text"
                                         className="form-control search-input"
-                                        placeholder="Buscar cliente..."
+                                        placeholder="Buscar empresa..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         style={{
@@ -213,18 +213,18 @@ const ClienteComponent = () => {
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {filteredClientes.map((cliente, index) => (
-                                        <tr key={cliente.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                            <td>{cliente.id}</td>
-                                            <td>{cliente.nombre || 'N/A'}</td>
-                                            <td>{cliente.nifCif || 'N/A'}</td>
-                                            <td>{cliente.mail || 'N/A'}</td>
-                                            <td>{cliente.telefono || 'N/A'}</td>
-                                            <td>{cliente.direccion || 'N/A'}</td>
-                                            <td>{cliente.tipo || 'N/A'}</td>
+                                    {filteredEmpresas.map((empresa, index) => (
+                                        <tr key={empresa.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                            <td>{empresa.id}</td>
+                                            <td>{empresa.nombre || 'N/A'}</td>
+                                            <td>{empresa.nifCif || 'N/A'}</td>
+                                            <td>{empresa.mail || 'N/A'}</td>
+                                            <td>{empresa.telefono || 'N/A'}</td>
+                                            <td>{empresa.direccion || 'N/A'}</td>
+                                            <td>{empresa.tipo || 'N/A'}</td>
                                             <td>
-                                                <button className="btn btn-sm btn-outline-secondary mx-1" onClick={() => handleEditar(cliente)}>✏️</button>
-                                                <button className="btn btn-sm btn-outline-danger mx-1" onClick={() => handleEliminar(cliente.id)}>🗑️</button>
+                                                <button className="btn btn-sm btn-outline-secondary mx-1" onClick={() => handleEditar(empresa)}>✏️</button>
+                                                <button className="btn btn-sm btn-outline-danger mx-1" onClick={() => handleEliminar(empresa.id)}>🗑️</button>
                                             </td>
                                         </tr>
                                     ))}
@@ -248,13 +248,13 @@ const ClienteComponent = () => {
                     )}
                 </ErrorBoundary>
 
-                {/* Modal para agregar/editar cliente */}
+                {/* Modal para agregar/editar empresa */}
                 {showModal && (
                     <div className="modal fade show" style={{ display: "block" }}>
                         <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "800px" }}>
                             <div className="modal-content shadow-lg rounded">
                                 <div className="modal-header" style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
-                                    <h5 className="modal-title">{nuevoCliente.id ? 'Editar Cliente' : 'Agregar Cliente'}</h5>
+                                    <h5 className="modal-title">{nuevaEmpresaPersonaFisica.id ? 'Editar Empresa' : 'Agregar Empresa'}</h5>
                                     <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
                                 </div>
                                 <div className="modal-body">
@@ -266,8 +266,8 @@ const ClienteComponent = () => {
                                                     type="text"
                                                     className="form-control"
                                                     name="nombre"
-                                                    value={nuevoCliente.nombre}
-                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    value={nuevaEmpresaPersonaFisica.nombre}
+                                                    onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                     required
                                                 />
                                             </div>
@@ -277,8 +277,8 @@ const ClienteComponent = () => {
                                                     type="text"
                                                     className="form-control"
                                                     name="nifCif"
-                                                    value={nuevoCliente.nifCif}
-                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    value={nuevaEmpresaPersonaFisica.nifCif}
+                                                    onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                     required
                                                 />
                                             </div>
@@ -291,8 +291,8 @@ const ClienteComponent = () => {
                                                     type="text"
                                                     className="form-control"
                                                     name="telefono"
-                                                    value={nuevoCliente.telefono}
-                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    value={nuevaEmpresaPersonaFisica.telefono}
+                                                    onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
@@ -301,8 +301,8 @@ const ClienteComponent = () => {
                                                     type="text"
                                                     className="form-control"
                                                     name="direccion"
-                                                    value={nuevoCliente.direccion}
-                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    value={nuevaEmpresaPersonaFisica.direccion}
+                                                    onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                 />
                                             </div>
                                         </div>
@@ -314,8 +314,8 @@ const ClienteComponent = () => {
                                                     type="text"
                                                     className="form-control"
                                                     name="web"
-                                                    value={nuevoCliente.web}
-                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    value={nuevaEmpresaPersonaFisica.web}
+                                                    onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
@@ -324,8 +324,8 @@ const ClienteComponent = () => {
                                                     type="email"
                                                     className="form-control"
                                                     name="mail"
-                                                    value={nuevoCliente.mail}
-                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    value={nuevaEmpresaPersonaFisica.mail}
+                                                    onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                     required
                                                 />
                                             </div>
@@ -337,20 +337,18 @@ const ClienteComponent = () => {
                                                 <select
                                                     className="form-control"
                                                     name="tipo"
-                                                    value={nuevoCliente.tipo}
-                                                    onChange={(e) => setNuevoCliente({ ...nuevoCliente, [e.target.name]: e.target.value })}
+                                                    value={nuevaEmpresaPersonaFisica.tipo}
+                                                    onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                 >
                                                     <option value="CLIENTE">Cliente</option>
                                                     <option value="PROVEEDOR">Proveedor</option>
-                                                    <option value="AMBOS">Ambos</option>
                                                 </select>
                                             </div>
                                         </div>
 
-                                        <div className="modal-footer">
-                                            <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
-                                            <button type="submit" className="btn btn-primary">{nuevoCliente.id ? 'Guardar cambios' : 'Agregar Cliente'}</button>
-                                        </div>
+                                        <button type="submit" className="btn btn-primary">
+                                            {nuevaEmpresaPersonaFisica.id ? 'Actualizar Empresa' : 'Crear Empresa'}
+                                        </button>
                                     </form>
                                 </div>
                             </div>
@@ -362,4 +360,4 @@ const ClienteComponent = () => {
     );
 };
 
-export default ClienteComponent;
+export default EmpresaPersonaFisicaComponent;

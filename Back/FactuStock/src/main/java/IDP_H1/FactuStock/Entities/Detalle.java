@@ -24,6 +24,9 @@ public class Detalle{
     private Integer cantidad;
 
     @Column(nullable = false)
+    private Integer iva;
+
+    @Column(nullable = false)
     private Double precioUnitario;
 
     @Column(nullable = false)

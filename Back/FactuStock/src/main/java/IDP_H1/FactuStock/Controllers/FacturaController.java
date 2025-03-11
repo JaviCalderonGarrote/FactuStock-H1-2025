@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,11 +34,30 @@ public class FacturaController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    // Contar facturas por mes y año
+    @GetMapping("/count")
+    public ResponseEntity<Integer> contarFacturas(@RequestParam int month, @RequestParam int year) {
+        int count = facturaService.countByMonthAndYear(month, year);
+        return ResponseEntity.ok(count);
+    }
+
     // Guardar nueva factura
     @PostMapping
-    public ResponseEntity<Factura> guardar(@RequestBody Factura factura) {
-        Factura nuevaFactura = facturaService.guardar(factura);
-        return new ResponseEntity<>(nuevaFactura, HttpStatus.CREATED);
+    public ResponseEntity<?> guardar(@RequestBody Factura factura) {
+        try {
+            if (factura.getFecha() == null) {
+                return new ResponseEntity<>("La fecha de la factura es obligatoria.", HttpStatus.BAD_REQUEST);
+            }
+
+            if (factura.getFechaCreacionFactura() == null) {
+                factura.setFechaCreacionFactura(new Date());
+            }
+
+            Factura nuevaFactura = facturaService.guardar(factura);
+            return new ResponseEntity<>(nuevaFactura, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error al crear la factura: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // Eliminar factura por ID

@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Entity
 @Data
@@ -16,13 +17,17 @@ public class Factura {
     private String numeroFactura;
 
     @ManyToOne
-    private Organizacion empresa;
+    private Organizacion Organizacion;
+
+    @ManyToOne
+    private EmpresaPersonaFisica EmpresaPersonaFisica;
 
     @ManyToOne
     private Usuario usuario;
 
     @Column(nullable = false)
-    private Double total;
+    private Double total = 0.0;
+
 
     @Lob
     private byte[] archivo;
@@ -34,6 +39,11 @@ public class Factura {
     @Column(nullable = false)
     private LocalDateTime fecha;
 
+
+    @Temporal(TemporalType.TIMESTAMP)
+    @Column(nullable = false, updatable = false)
+    private Date fechaCreacionFactura;
+
     @Enumerated(EnumType.STRING)
     private FormaPago formaPago;
 }
@@ -43,5 +53,5 @@ enum EstadoFactura {
 }
 
 enum FormaPago {
-    EFECTIVO, TARJETA, TRANSFERENCIA
+    NoCobrada,EFECTIVO, TARJETA, TRANSFERENCIA
 }

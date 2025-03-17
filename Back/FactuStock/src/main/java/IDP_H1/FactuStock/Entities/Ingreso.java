@@ -23,4 +23,6 @@ public class Ingreso {
 
     @Column(nullable = false)
     private LocalDateTime fecha;
+    @ManyToOne
+    private Organizacion organizacion;
 }

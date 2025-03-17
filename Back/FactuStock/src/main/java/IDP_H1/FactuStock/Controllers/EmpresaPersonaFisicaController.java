@@ -18,13 +18,14 @@ public class EmpresaPersonaFisicaController {
     @Autowired
     private EmpresaPersonaFisicaService service;
 
-    // Obtener todos los registros de EmpresaPersonaFisica
+    // Obtener todas las empresas/personas físicas
     @GetMapping
-    public List<EmpresaPersonaFisica> obtenerTodos() {
-        return service.obtenerTodos();
+    public ResponseEntity<List<EmpresaPersonaFisica>> obtenerTodos() {
+        List<EmpresaPersonaFisica> empresas = service.obtenerTodos();
+        return ResponseEntity.ok(empresas);
     }
 
-    // Obtener un registro de EmpresaPersonaFisica por su ID
+    // Obtener una empresa/persona física por su ID
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaPersonaFisica> obtenerPorId(@PathVariable Long id) {
         Optional<EmpresaPersonaFisica> empresaPersonaFisica = service.obtenerPorId(id);
@@ -32,14 +33,18 @@ public class EmpresaPersonaFisicaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Crear un nuevo registro de EmpresaPersonaFisica
+    // Crear una nueva empresa/persona física
     @PostMapping
     public ResponseEntity<EmpresaPersonaFisica> guardar(@RequestBody EmpresaPersonaFisica empresaPersonaFisica) {
-        EmpresaPersonaFisica nuevoEmpresaPersonaFisica = service.guardar(empresaPersonaFisica);
-        return ResponseEntity.ok(nuevoEmpresaPersonaFisica);
+        try {
+            EmpresaPersonaFisica nuevaEmpresa = service.guardar(empresaPersonaFisica);
+            return ResponseEntity.status(HttpStatus.CREATED).body(nuevaEmpresa);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
     }
 
-    // Editar un registro existente de EmpresaPersonaFisica
+    // Actualizar una empresa/persona física existente
     @PutMapping("/{id}")
     public ResponseEntity<EmpresaPersonaFisica> editar(@PathVariable Long id, @RequestBody EmpresaPersonaFisica empresaPersonaFisica) {
         Optional<EmpresaPersonaFisica> empresaExistente = service.obtenerPorId(id);
@@ -48,7 +53,6 @@ public class EmpresaPersonaFisicaController {
             return ResponseEntity.notFound().build();
         }
 
-        // Actualizar el registro existente
         EmpresaPersonaFisica empresaActualizada = empresaExistente.get();
         empresaActualizada.setNombre(empresaPersonaFisica.getNombre());
         empresaActualizada.setNifCif(empresaPersonaFisica.getNifCif());
@@ -57,26 +61,35 @@ public class EmpresaPersonaFisicaController {
         empresaActualizada.setWeb(empresaPersonaFisica.getWeb());
         empresaActualizada.setMail(empresaPersonaFisica.getMail());
         empresaActualizada.setTipo(empresaPersonaFisica.getTipo());
+        empresaActualizada.setOrganizacion(empresaPersonaFisica.getOrganizacion());
 
         EmpresaPersonaFisica empresaGuardada = service.guardar(empresaActualizada);
         return ResponseEntity.ok(empresaGuardada);
     }
 
-    // Eliminar un registro de EmpresaPersonaFisica por ID
+    // Eliminar una empresa/persona física por ID
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminar(@PathVariable Long id) {
+    public ResponseEntity<String> eliminar(@PathVariable Long id) {
         Optional<EmpresaPersonaFisica> empresaPersonaFisica = service.obtenerPorId(id);
-        if (empresaPersonaFisica.isPresent()) {
-            try {
-                service.eliminar(id);
-                return ResponseEntity.noContent().build();
-            } catch (DataIntegrityViolationException e) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body("No se puede eliminar el registro porque tiene relaciones asociadas.");
-            }
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("Registro no encontrado");
+        if (!empresaPersonaFisica.isPresent()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Registro no encontrado");
         }
+        try {
+            service.eliminar(id);
+            return ResponseEntity.noContent().build();
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("No se puede eliminar el registro porque tiene relaciones asociadas.");
+        }
+    }
+
+    // Obtener empresas/personas físicas por idOrganizacion
+    @GetMapping("/organizacion/{idOrganizacion}")
+    public ResponseEntity<List<EmpresaPersonaFisica>> getEmpresasByOrganizacion(@PathVariable Long idOrganizacion) {
+        List<EmpresaPersonaFisica> empresas = service.findByOrganizacion(idOrganizacion);
+        if (empresas.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(empresas);
+        }
+        return ResponseEntity.ok(empresas);
     }
 }

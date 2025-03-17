@@ -31,7 +31,15 @@ public class CategoriaGastoController {
         return categoria.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
+    // Obtener categorías por organización
+    @GetMapping("/organizacion/{idOrganizacion}")
+    public ResponseEntity<List<CategoriaGasto>> obtenerPorOrganizacion(@PathVariable Long idOrganizacion) {
+        List<CategoriaGasto> categorias = service.obtenerPorOrganizacion(idOrganizacion);
+        if (categorias.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).body(categorias);  // Devuelve 204 si no hay categorías
+        }
+        return ResponseEntity.ok(categorias);
+    }
     // Crear una nueva categoría de gasto
     @PostMapping
     public ResponseEntity<CategoriaGasto> guardar(@RequestBody CategoriaGasto categoria) {

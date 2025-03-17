@@ -37,12 +37,15 @@ const Products = () => {
         precio: '',
         cantidadStock: '',
         iva: 21,
-        categoriaId: ''
+        categoriaId: '',
+        organizacionId: '' // Añadir organización al nuevo producto
     });
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [productosPorPagina] = useState(9);
     const [searchQuery, setSearchQuery] = useState(""); // Estado para búsqueda
+    const [inputFocused, setInputFocused] = useState(false); // Estado para manejar el foco del input
+    const [organizacion, setOrganizacion] = useState(null); // Guardar la organización
     const token = localStorage.getItem("authToken");
 
     useEffect(() => {
@@ -53,15 +56,34 @@ const Products = () => {
 
         const fetchData = async () => {
             try {
-                const productosResponse = await axios.get("http://localhost:8080/productos", {
+                // Obtener el ID de usuario del token
+                const decodedToken = JSON.parse(atob(token.split(".")[1]));
+                const userId = decodedToken?.idUsuario;
+
+                if (!userId) {
+                    setError("ID de usuario no encontrado en el token.");
+                    return;
+                }
+
+                // Obtener información del usuario
+                const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                setOrganizacion(userResponse.data.organizacion);
+
+                // Obtener productos de la organización
+                const productosResponse = await axios.get(`http://localhost:8080/productos/organizacion/${userResponse.data.organizacion.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setProductos(productosResponse.data);
 
-                const categoriasResponse = await axios.get("http://localhost:8080/categoriasProducto", {
+                // Obtener categorías de la organización
+                const categoriasResponse = await axios.get(`http://localhost:8080/categoriasProducto/organizacion/${userResponse.data.organizacion.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setCategorias(categoriasResponse.data);
+
+                setCategorias(Array.isArray(categoriasResponse.data) ? categoriasResponse.data : []);
             } catch (err) {
                 setError("Error al obtener los datos.");
             }
@@ -77,12 +99,14 @@ const Products = () => {
             return;
         }
 
+        // Añadir automáticamente la organización del usuario logeado al nuevo producto
         const productoData = {
             nombre: nuevoProducto.nombre,
             precio: nuevoProducto.precio,
             cantidadStock: nuevoProducto.cantidadStock,
             iva: nuevoProducto.iva,
-            categoria: { id: nuevoProducto.categoriaId }
+            categoria: { id: nuevoProducto.categoriaId },
+            organizacion: { id: organizacion.id } // Aquí se asigna la organización
         };
 
         const request = nuevoProducto.id
@@ -93,7 +117,7 @@ const Products = () => {
             .then(() => {
                 setShowModal(false);
                 Swal.fire('Éxito', `Producto ${nuevoProducto.id ? 'actualizado' : 'creado'} correctamente`, 'success');
-                window.location.reload();
+                setProductos(prevProductos => prevProductos.map(producto => producto.id === nuevoProducto.id ? nuevoProducto : producto));
             })
             .catch(() => Swal.fire('Error', `Hubo un error al ${nuevoProducto.id ? 'actualizar' : 'crear'} el producto.`, 'error'));
     };
@@ -114,7 +138,6 @@ const Products = () => {
                 }).then(() => {
                     setProductos(productos.filter(producto => producto.id !== id));
                     Swal.fire('Eliminado', 'El producto ha sido eliminado correctamente', 'success');
-                    window.location.reload();  // Recarga la página
                 }).catch(() => Swal.fire('Error', 'Hubo un error al eliminar el producto', 'error'));
             }
         });
@@ -127,13 +150,14 @@ const Products = () => {
             precio: producto.precio,
             cantidadStock: producto.cantidadStock,
             iva: producto.iva,
-            categoriaId: producto.categoria?.id
+            categoriaId: producto.categoria?.id,
+            organizacionId: producto.organizacion?.id // Mostrar el ID de la organización
         });
         setShowModal(true);
     };
 
-    const totalPages = Math.ceil(productos.length / productosPorPagina);
-    const productosPaginados = productos
+    // Verificamos que productos sea un array
+    const productosFiltrados = Array.isArray(productos) ? productos
         .filter(producto =>
             producto.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
             producto.precio.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -141,7 +165,32 @@ const Products = () => {
             producto.cantidadStock.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
             producto.iva.toString().toLowerCase().includes(searchQuery.toLowerCase())
         )  // Filtrado por todos los campos
-        .slice((currentPage - 1) * productosPorPagina, currentPage * productosPorPagina);
+        .slice((currentPage - 1) * productosPorPagina, currentPage * productosPorPagina) : [];
+
+    const totalPages = Math.ceil(productosFiltrados.length / productosPorPagina);
+
+    const handleCrearProductoClick = () => {
+        // Verificamos si existen categorías antes de mostrar el modal
+        if (categorias.length === 0) {
+            Swal.fire({
+                title: 'Advertencia',
+                text: 'No hay categorías disponibles para esta organización. Por favor, añade categorías primero.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            setNuevoProducto({
+                id: null,
+                nombre: '',
+                precio: '',
+                cantidadStock: '',
+                iva: 21,
+                categoriaId: '',
+                organizacionId: organizacion?.id || ''
+            });
+            setShowModal(true);
+        }
+    };
 
     return (
         <div className="d-flex">
@@ -150,96 +199,104 @@ const Products = () => {
                 <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>Productos</h2>
 
                 <ErrorBoundary>
-                    {error ? (
-                        <div className="alert alert-danger text-center">{error}</div>
-                    ) : (
-                        <>
-                            <div className="d-flex justify-content-between mb-3">
-                                <button
-                                    className="btn d-flex align-items-center"
-                                    style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
-                                    onClick={() => {
-                                        setNuevoProducto({ id: null, nombre: '', precio: '', cantidadStock: '', iva: 21, categoriaId: '' });
-                                        setShowModal(true);
-                                    }}
-                                >
-                                    <FaPlusCircle className="me-2" />
-                                    Agregar Producto
-                                </button>
+                    {error && (
+                        <div className="alert alert-danger text-center">
+                            {error}
+                        </div>
+                    )}
 
-                                <div className="position-relative" style={{ maxWidth: "400px" }}>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="Buscar aquí..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        style={{
-                                            paddingLeft: "35px", // Espacio para la lupa
-                                            borderRadius: "5px",
-                                            backgroundColor: '#a7c5eb',
-                                            boxShadow: "0px 0px 8px rgba(0,0,0,0.1)",
-                                            transition: "border-color 0.3s ease-in-out"
-                                        }}
-                                    />
-                                    <FaSearch
-                                        className="position-absolute"
-                                        style={{
-                                            left: "10px", // Ajustamos la posición horizontal de la lupa
-                                            top: "35%",   // Alineación vertical
-                                            transform: "translateY(-50%)",
-                                            color: "black",  // Color de la lupa
-                                            fontSize: "20px"
-                                        }}
-                                    />
-                                </div>
-                            </div>
+                    <div className="d-flex justify-content-between mb-3">
+                        <button
+                            className="btn d-flex align-items-center"
+                            style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
+                            onClick={handleCrearProductoClick}
+                        >
+                            <FaPlusCircle className="me-2" />
+                            Agregar Producto
+                        </button>
 
-                            <div className="table-responsive">
-                                <table className="table">
-                                    <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>Nombre</th>
-                                        <th>Precio</th>
-                                        <th>Categoría</th>
-                                        <th>Stock</th>
-                                        <th>IVA</th>
-                                        <th>Acciones</th>
+                        <div className="position-relative" style={{ width: "250px" }}>
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Buscar..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onFocus={() => setInputFocused(true)}
+                                onBlur={() => setInputFocused(false)}
+                                style={{
+                                    paddingLeft: "35px",
+                                    borderRadius: "8px",
+                                    border: "1px solid #ccc",
+                                    backgroundColor: inputFocused || searchQuery ? "#ffffff" : "#6f9fd7",
+                                    color: inputFocused || searchQuery ? "#000" : "#fff",
+                                }}
+                            />
+                            <FaSearch
+                                className="position-absolute"
+                                style={{
+                                    left: "10px",
+                                    top: "25%",
+                                    color: inputFocused || searchQuery ? "#6f9fd7" : "#fff",
+                                    fontSize: "18px"
+                                }}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="table-responsive">
+                        {productosFiltrados.length === 0 ? (
+                            <table className="table">
+                                <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
+                                <tr>
+                                    <th colSpan="7" className="text-center">No hay productos disponibles</th>
+                                </tr>
+                                </thead>
+                            </table>
+                        ) : (
+                            <table className="table">
+                                <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Precio</th>
+                                    <th>Categoría</th>
+                                    <th>Stock</th>
+                                    <th>IVA</th>
+                                    <th>Acciones</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {productosFiltrados.map((producto, index) => (
+                                    <tr key={producto.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                        <td>{producto.id}</td>
+                                        <td>{producto.nombre || 'N/A'}</td>
+                                        <td>${producto.precio ?? 'N/A'}</td>
+                                        <td>{producto.categoria?.nombre || 'N/A'}</td>
+                                        <td>{producto.cantidadStock ?? 'N/A'}</td>
+                                        <td>{producto.iva ?? 'N/A'}%</td>
+                                        <td>
+                                            <button className="btn btn-sm btn-outline-secondary mx-1" onClick={() => handleEditar(producto)}>✏️</button>
+                                            <button className="btn btn-sm btn-outline-danger mx-1" onClick={() => handleEliminar(producto.id)}>🗑️</button>
+                                        </td>
                                     </tr>
-                                    </thead>
-                                    <tbody>
-                                    {productosPaginados.map((producto, index) => (
-                                        <tr key={producto.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                            <td>{producto.id}</td>
-                                            <td>{producto.nombre || 'N/A'}</td>
-                                            <td>${producto.precio ?? 'N/A'}</td>
-                                            <td>{producto.categoria?.nombre || 'N/A'}</td>
-                                            <td>{producto.cantidadStock ?? 'N/A'}</td>
-                                            <td>{producto.iva ?? 'N/A'}%</td>
-                                            <td>
-                                                <button className="btn btn-sm btn-outline-secondary mx-1" onClick={() => handleEditar(producto)}>✏️</button>
-                                                <button className="btn btn-sm btn-outline-danger mx-1" onClick={() => handleEliminar(producto.id)}>🗑️</button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                                ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
 
-                            {/* Paginación */}
-                            {totalPages > 1 && (
-                                <nav aria-label="Page navigation">
-                                    <ul className="pagination justify-content-center">
-                                        {[...Array(totalPages).keys()].map((i) => (
-                                            <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                                <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </nav>
-                            )}
-                        </>
+                    {/* Paginación */}
+                    {totalPages > 1 && (
+                        <nav aria-label="Page navigation">
+                            <ul className="pagination justify-content-center">
+                                {[...Array(totalPages).keys()].map((i) => (
+                                    <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
+                                        <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
                     )}
                 </ErrorBoundary>
 
@@ -256,25 +313,23 @@ const Products = () => {
                                         {["nombre", "precio", "cantidadStock", "iva"].map((campo, i) => (
                                             <div className="form-group mb-3" key={campo}>
                                                 <label className="form-label">{campo.charAt(0).toUpperCase() + campo.slice(1)}</label>
-                                                <input type={campo === "nombre" ? "text" : "number"} className="form-control" name={campo} value={nuevoProducto[campo]} onChange={(e) => setNuevoProducto({ ...nuevoProducto, [e.target.name]: e.target.value })} required />
+                                                <input type={campo === "nombre" ? "text" : "number"} className="form-control" name={campo} value={nuevoProducto[campo]} onChange={(e) => setNuevoProducto({ ...nuevoProducto, [campo]: e.target.value })} required />
                                             </div>
                                         ))}
                                         <div className="form-group mb-3">
                                             <label className="form-label">Categoría</label>
                                             <select className="form-control" value={nuevoProducto.categoriaId} onChange={(e) => setNuevoProducto({ ...nuevoProducto, categoriaId: e.target.value })} required>
                                                 <option value="">Seleccionar Categoría</option>
-                                                {categorias.map((cat) => (
+                                                {categorias && Array.isArray(categorias) && categorias.map((cat) => (
                                                     <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%' }}>
-                                            {nuevoProducto.id ? 'Guardar Cambios' : 'Guardar Producto'}
-                                        </button>
+                                        <div className="d-flex justify-content-end">
+                                            <button type="button" className="btn btn-secondary me-2" onClick={() => setShowModal(false)}>Cancelar</button>
+                                            <button type="submit" className="btn btn-primary">{nuevoProducto.id ? 'Actualizar Producto' : 'Crear Producto'}</button>
+                                        </div>
                                     </form>
-                                    <button type="button" className="btn btn-secondary mt-3" onClick={() => setShowModal(false)} style={{ width: '100%' }}>
-                                        Cerrar
-                                    </button>
                                 </div>
                             </div>
                         </div>

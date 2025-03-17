@@ -30,7 +30,10 @@ public class Producto {
     @PrePersist
     public void prePersist() {
         if (iva == null) {
-            iva = BigDecimal.valueOf(21.00);
+            iva = BigDecimal.valueOf(21.00); // Default IVA value is 21% if not provided
         }
     }
+
+    @ManyToOne
+    private Organizacion organizacion;
 }

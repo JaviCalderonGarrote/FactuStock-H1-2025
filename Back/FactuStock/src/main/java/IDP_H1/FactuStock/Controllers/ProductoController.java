@@ -1,6 +1,7 @@
 package IDP_H1.FactuStock.Controllers;
 
 import IDP_H1.FactuStock.Entities.CategoriaProducto;
+import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Entities.Producto;
 import IDP_H1.FactuStock.Services.CategoriaProductoService;
 import IDP_H1.FactuStock.Services.ProductoService;
@@ -22,6 +23,21 @@ public class ProductoController {
 
     @Autowired
     private CategoriaProductoService categoriaProductoService;
+
+    // Obtener productos por organización
+    @GetMapping("/organizacion/{organizacionId}")
+    public ResponseEntity<List<Producto>> obtenerProductosPorOrganizacion(@PathVariable Long organizacionId) {
+        Organizacion organizacion = new Organizacion();
+        organizacion.setId(organizacionId);
+
+        List<Producto> productos = productoService.obtenerProductosPorOrganizacion(organizacion);
+
+        if (productos.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
+        return new ResponseEntity<>(productos, HttpStatus.OK);
+    }
 
     // Obtener todas las categorías
     @GetMapping("/categorias")
@@ -80,7 +96,7 @@ public class ProductoController {
             productoActualizado.setPrecio(producto.getPrecio());
             productoActualizado.setCantidadStock(producto.getCantidadStock());
             productoActualizado.setIva(producto.getIva());
-            productoActualizado.setCategoria(producto.getCategoria()); // Si quieres actualizar la categoría también
+            productoActualizado.setCategoria(producto.getCategoria()); // Actualizar categoría si es necesario
 
             productoService.guardar(productoActualizado);
             return new ResponseEntity<>(productoActualizado, HttpStatus.OK);

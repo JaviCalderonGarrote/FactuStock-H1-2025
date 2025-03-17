@@ -1,6 +1,7 @@
 package IDP_H1.FactuStock.Controllers;
 
 import IDP_H1.FactuStock.Entities.CategoriaProducto;
+import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Services.CategoriaProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -33,10 +34,26 @@ public class CategoriaProductoController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    // Obtener categorías por organización
+    @GetMapping("/organizacion/{organizacionId}")
+    public ResponseEntity<List<CategoriaProducto>> obtenerCategoriasPorOrganizacion(@PathVariable Long organizacionId) {
+        Organizacion organizacion = new Organizacion();
+        organizacion.setId(organizacionId);
+        List<CategoriaProducto> categorias = categoriaProductoService.obtenerCategoriasPorOrganizacion(organizacion);
+
+        if (categorias.isEmpty()) {
+            // Puedes devolver una respuesta con un mensaje si la lista está vacía
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);  // Esto devuelve un código 204 si no hay categorías
+        }
+
+        return new ResponseEntity<>(categorias, HttpStatus.OK);
+    }
+
+
     // Guardar nueva categoría
     @PostMapping
     public ResponseEntity<CategoriaProducto> guardar(@RequestBody CategoriaProducto categoriaProducto) {
-        CategoriaProducto nuevaCategoria = categoriaProductoService.guardar(categoriaProducto);
+        CategoriaProducto nuevaCategoria = categoriaProductoService.guardarCategoria(categoriaProducto);
         return new ResponseEntity<>(nuevaCategoria, HttpStatus.CREATED);
     }
 
@@ -46,7 +63,7 @@ public class CategoriaProductoController {
         Optional<CategoriaProducto> categoriaExistente = categoriaProductoService.obtenerPorId(id);
         if (categoriaExistente.isPresent()) {
             categoriaProducto.setId(id);
-            CategoriaProducto categoriaEditada = categoriaProductoService.guardar(categoriaProducto);
+            CategoriaProducto categoriaEditada = categoriaProductoService.guardarCategoria(categoriaProducto);
             return new ResponseEntity<>(categoriaEditada, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -59,7 +76,7 @@ public class CategoriaProductoController {
         Optional<CategoriaProducto> categoria = categoriaProductoService.obtenerPorId(id);
         if (categoria.isPresent()) {
             try {
-                categoriaProductoService.eliminar(id);
+                categoriaProductoService.eliminarCategoria(id);
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             } catch (DataIntegrityViolationException e) {
                 return new ResponseEntity<>("No se puede eliminar la categoría porque tiene productos asociados.", HttpStatus.BAD_REQUEST);

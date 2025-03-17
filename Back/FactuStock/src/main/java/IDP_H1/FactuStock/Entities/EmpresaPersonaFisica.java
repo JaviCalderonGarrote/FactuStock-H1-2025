@@ -25,6 +25,8 @@ public class EmpresaPersonaFisica {
 
     @Enumerated(EnumType.STRING)
     private TipoEmpresa tipo;
+    @ManyToOne
+    private Organizacion organizacion;
 }
 
 enum TipoEmpresa {

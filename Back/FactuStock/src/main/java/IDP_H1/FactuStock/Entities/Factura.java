@@ -17,7 +17,7 @@ public class Factura {
     private String numeroFactura;
 
     @ManyToOne
-    private Organizacion Organizacion;
+    private Organizacion organizacion;
 
     @ManyToOne
     private EmpresaPersonaFisica EmpresaPersonaFisica;

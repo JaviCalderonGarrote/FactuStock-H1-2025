@@ -23,7 +23,7 @@ public class Gasto{
     private byte[] archivoFactura;
 
     @ManyToOne
-    private Organizacion empresa;
+    private Organizacion organizacion;
 
     @ManyToOne
     private Usuario usuario;

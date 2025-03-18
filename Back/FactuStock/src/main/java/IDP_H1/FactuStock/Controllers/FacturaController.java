@@ -1,13 +1,13 @@
 package IDP_H1.FactuStock.Controllers;
 
 import IDP_H1.FactuStock.Entities.Factura;
+import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Services.FacturaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +23,21 @@ public class FacturaController {
     @GetMapping
     public ResponseEntity<List<Factura>> obtenerTodas() {
         List<Factura> facturas = facturaService.obtenerTodas();
+        return new ResponseEntity<>(facturas, HttpStatus.OK);
+    }
+
+    // Obtener facturas por organización
+    @GetMapping("/organizacion/{organizacionId}")
+    public ResponseEntity<List<Factura>> obtenerFacturasPorOrganizacion(@PathVariable Long organizacionId) {
+        Organizacion organizacion = new Organizacion();
+        organizacion.setId(organizacionId);
+
+        List<Factura> facturas = facturaService.obtenerFacturasPorOrganizacion(organizacion);
+
+        if (facturas.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
+
         return new ResponseEntity<>(facturas, HttpStatus.OK);
     }
 

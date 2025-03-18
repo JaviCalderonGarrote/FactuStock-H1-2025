@@ -43,52 +43,76 @@ const EmpresaPersonaFisicaComponent = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [clientesPorPagina] = useState(9);
     const [searchQuery, setSearchQuery] = useState(""); // Estado para la búsqueda
+    const [inputFocused, setInputFocused] = useState(false); // Estado para saber si el input está enfocado
     const token = localStorage.getItem("authToken");
+    const [usuario, setUsuario] = useState(null); // Definir estado para usuario
+    const [organizacion, setOrganizacion] = useState(null); // Definir estado para organizacion
 
-    // Obtener las empresas al montar el componente
     useEffect(() => {
         if (!token) {
             setError("No se encontró un token de autenticación.");
             return;
         }
+
         const fetchData = async () => {
             try {
-                const response = await axios.get("http://localhost:8080/EmpresaPersonaFisica", {
-                    headers: { Authorization: `Bearer ${token}` }
+                const decodedToken = JSON.parse(atob(token.split(".")[1]));
+                const userId = decodedToken?.idUsuario;
+
+                if (!userId) {
+                    setError("ID de usuario no encontrado en el token.");
+                    return;
+                }
+
+                const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
                 });
-                setEmpresaPersonaFisica(response.data);
+
+                setUsuario(userResponse.data);
+                setOrganizacion(userResponse.data.organizacion);
+
+                const empresaResponse = await axios.get(
+                    `http://localhost:8080/EmpresaPersonaFisica/organizacion/${userResponse.data.organizacion.id}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+
+                setEmpresaPersonaFisica(empresaResponse.data);
             } catch (err) {
-                setError("Error al obtener las empresas.");
+                setError("Error al obtener los datos.");
             }
         };
+
         fetchData();
     }, [token]);
 
     // Manejo del formulario para crear/editar empresaPersonaFisica
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (!nuevaEmpresaPersonaFisica.nombre || !nuevaEmpresaPersonaFisica.nifCif || !nuevaEmpresaPersonaFisica.mail) {
             Swal.fire('Error', 'Los campos nombre, NIF/CIF y mail son obligatorios.', 'error');
             return;
         }
 
-        const empresaData = { ...nuevaEmpresaPersonaFisica };
+        const empresaData = { ...nuevaEmpresaPersonaFisica, organizacion: { id: organizacion.id } };
 
-        const request = nuevaEmpresaPersonaFisica.id
-            ? axios.put(`http://localhost:8080/EmpresaPersonaFisica/${nuevaEmpresaPersonaFisica.id}`, empresaData, {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            : axios.post("http://localhost:8080/EmpresaPersonaFisica", empresaData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+        try {
+            let response;
+            if (nuevaEmpresaPersonaFisica.id) {
+                response = await axios.put(`http://localhost:8080/EmpresaPersonaFisica/${nuevaEmpresaPersonaFisica.id}`, empresaData, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+            } else {
+                response = await axios.post("http://localhost:8080/EmpresaPersonaFisica", empresaData, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setEmpresaPersonaFisica([...empresaPersonaFisica, response.data]);
+            }
 
-        request
-            .then(() => {
-                setShowModal(false);
-                Swal.fire('Éxito', `Empresa ${nuevaEmpresaPersonaFisica.id ? 'actualizada' : 'creada'} correctamente`, 'success');
-                window.location.reload();
-            })
-            .catch(() => Swal.fire('Error', `Hubo un error al ${nuevaEmpresaPersonaFisica.id ? 'actualizar' : 'crear'} la empresa.`, 'error'));
+            setShowModal(false);
+            Swal.fire('Éxito', `Empresa ${nuevaEmpresaPersonaFisica.id ? 'actualizada' : 'creada'} correctamente`, 'success');
+        } catch (err) {
+            Swal.fire('Error', 'Hubo un error al procesar la solicitud.', 'error');
+        }
     };
 
     // Eliminar empresa
@@ -153,7 +177,7 @@ const EmpresaPersonaFisicaComponent = () => {
                             <div className="d-flex justify-content-between mb-3">
                                 <button
                                     className="btn d-flex align-items-center"
-                                    style={{ backgroundColor: '#a7c5eb' }}
+                                    style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
                                     onClick={() => {
                                         setNuevaEmpresaPersonaFisica({
                                             id: null,
@@ -171,28 +195,30 @@ const EmpresaPersonaFisicaComponent = () => {
                                     <FaPlusCircle className="me-2" />
                                     Agregar Empresa
                                 </button>
-                                <div className="position-relative" style={{ maxWidth: "300px" }}>
+                                <div className="position-relative" style={{ width: "250px" }}>
                                     <input
                                         type="text"
-                                        className="form-control search-input"
-                                        placeholder="Buscar empresa..."
+                                        className="form-control"
+                                        placeholder="Buscar..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
+                                        onFocus={() => setInputFocused(true)} // Cambiar estado a true cuando el input esté enfocado
+                                        onBlur={() => setInputFocused(false)} // Cambiar estado a false cuando el input pierda el foco
                                         style={{
-                                            backgroundColor: "#a7c5eb",
-                                            border: "1px solid #ccc",
-                                            borderRadius: "5px",
                                             paddingLeft: "35px",
-                                            boxShadow: "0px 0px 8px rgba(0,0,0,0.1)",
+                                            borderRadius: "8px",
+                                            border: "1px solid #ccc",
+                                            backgroundColor: inputFocused || searchQuery ? "#ffffff" : "#6f9fd7",
+                                            color: inputFocused || searchQuery ? "#000" : "#fff",
                                         }}
                                     />
                                     <FaSearch
                                         className="position-absolute"
                                         style={{
                                             left: "10px",
-                                            top: "50%",
-                                            transform: "translateY(-50%)",
-                                            color: "#555",
+                                            top: "25%",
+                                            color: inputFocused || searchQuery ? "#6f9fd7" : "#fff",
+                                            fontSize: "18px"
                                         }}
                                     />
                                 </div>
@@ -254,11 +280,14 @@ const EmpresaPersonaFisicaComponent = () => {
                         <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "800px" }}>
                             <div className="modal-content shadow-lg rounded">
                                 <div className="modal-header" style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
-                                    <h5 className="modal-title">{nuevaEmpresaPersonaFisica.id ? 'Editar Empresa' : 'Agregar Empresa'}</h5>
+                                    <h5 className="modal-title">
+                                        {nuevaEmpresaPersonaFisica.id ? 'Editar Empresa' : 'Agregar Empresa'}
+                                    </h5>
                                     <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
                                 </div>
                                 <div className="modal-body">
                                     <form onSubmit={handleSubmit}>
+                                        {/* Fila 1: Nombre y NIF/CIF */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Nombre</label>
@@ -284,6 +313,7 @@ const EmpresaPersonaFisicaComponent = () => {
                                             </div>
                                         </div>
 
+                                        {/* Fila 2: Teléfono y Dirección */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Teléfono</label>
@@ -307,6 +337,7 @@ const EmpresaPersonaFisicaComponent = () => {
                                             </div>
                                         </div>
 
+                                        {/* Fila 3: Web y Email */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Web</label>
@@ -331,6 +362,7 @@ const EmpresaPersonaFisicaComponent = () => {
                                             </div>
                                         </div>
 
+                                        {/* Fila 4: Tipo */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Tipo</label>
@@ -342,19 +374,33 @@ const EmpresaPersonaFisicaComponent = () => {
                                                 >
                                                     <option value="CLIENTE">Cliente</option>
                                                     <option value="PROVEEDOR">Proveedor</option>
+                                                    <option value="AMBOS">Ambos</option>
+
                                                 </select>
                                             </div>
                                         </div>
 
-                                        <button type="submit" className="btn btn-primary">
-                                            {nuevaEmpresaPersonaFisica.id ? 'Actualizar Empresa' : 'Crear Empresa'}
-                                        </button>
+                                        {/* Botones de Acción - uno debajo del otro */}
+                                        <div className="d-flex flex-column gap-3 mt-3">
+                                            <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%' }}>
+                                                {nuevaEmpresaPersonaFisica.id ? 'Actualizar Empresa' : 'Crear Empresa'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary"
+                                                onClick={() => setShowModal(false)}
+                                                style={{ width: '100%' }}
+                                            >
+                                                Cerrar
+                                            </button>
+                                        </div>
                                     </form>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
+
             </div>
         </div>
     );

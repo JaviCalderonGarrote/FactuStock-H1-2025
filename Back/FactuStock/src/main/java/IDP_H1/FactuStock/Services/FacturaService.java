@@ -1,6 +1,7 @@
 package IDP_H1.FactuStock.Services;
 
 import IDP_H1.FactuStock.Entities.Factura;
+import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Repositories.FacturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -8,36 +9,41 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-
 @Service
 public class FacturaService {
 
     @Autowired
     private FacturaRepository facturaRepository;
 
+    // Obtener facturas de una organización específica
+    public List<Factura> obtenerFacturasPorOrganizacion(Organizacion organizacion) {
+        return facturaRepository.findByOrganizacion(organizacion);
+    }
+
     // Contar facturas de un mes y año específicos
     public int countByMonthAndYear(int month, int year) {
         return facturaRepository.countByMonthAndYear(month, year);
     }
 
-    // Guardar una nueva factura con número en formato "Fac_AA/MM/00001"
+    // Guardar una nueva factura con número en formato "Fac_1_23/03/00002"
     public Factura guardar(Factura factura) {
         if (factura.getFechaCreacionFactura() == null) {
             factura.setFechaCreacionFactura(new java.util.Date());
         }
 
-        // Generar número de factura si no tiene asignado
         if (factura.getNumeroFactura() == null || factura.getNumeroFactura().trim().isEmpty()) {
             LocalDate fechaActual = LocalDate.now();
             int year = fechaActual.getYear() % 100; // Últimos dos dígitos del año
             int month = fechaActual.getMonthValue(); // Mes actual
 
-            // Contar cuántas facturas existen en el mes y año actual
-            int count = countByMonthAndYear(month, fechaActual.getYear());
-            int sequence = count + 1; // Incrementar en 1
+            Organizacion organizacion = factura.getOrganizacion();
+            String organizacionId = String.valueOf(organizacion.getId());
 
-            // Formato de número de factura
-            String numeroFactura = String.format("Fac_%02d/%02d/%05d", year, month, sequence);
+            int count = countByMonthAndYear(month, fechaActual.getYear());
+            int sequence = count + 1;
+
+            // Formato de número de factura con Año antes del mes
+            String numeroFactura = String.format("Fac_%s_%02d/%02d/%05d", organizacionId, year, month, sequence);
             factura.setNumeroFactura(numeroFactura);
         }
 

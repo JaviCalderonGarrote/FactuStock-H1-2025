@@ -22,6 +22,7 @@ public class Organizacion {
     private String email;
 
     private String logo;
+    private String IBAN;
 
 
 }

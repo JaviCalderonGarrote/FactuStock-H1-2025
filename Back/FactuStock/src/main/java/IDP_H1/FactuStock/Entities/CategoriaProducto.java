@@ -12,4 +12,7 @@ public class CategoriaProducto {
 
     @Column(nullable = false)
     private String nombre;
+
+    @ManyToOne
+    private Organizacion organizacion;
 }

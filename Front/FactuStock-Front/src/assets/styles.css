@@ -298,20 +298,50 @@ a.sidebar-link:hover {
     transform: scale(1.5);
     cursor: pointer;
 }
+.magnifying-glass-icon {
+    transition: color 0.3s ease-in-out;
+}
+
+.magnifying-glass-icon:hover {
+    color: #6f9fd7;
+}
+
 /* Botón de Agregar Producto */
 .btn:hover {
     background-color: white !important;
-    border: 2px solid #a7c5eb !important;  /* Azul */
+    border: 2px solid #a7c5eb !important; /* Azul */
     color: #a7c5eb !important; /* Cambia el texto a azul también */
 }
-
-/* Campo de búsqueda */
-.form-control:hover {
-    background-color: white !important;
-    border: 2px solid #a7c5eb !important;  /* Azul */
+/* Añadir a tu archivo CSS */
+.search-icon {
+    color: white;
+    transition: color 0.3s ease;
 }
+
+.search-icon:hover {
+    color: #007bff; /* Azul */
+}
+
+/* CSS para manejar el color del placeholder */
+input:focus::placeholder,
+input:not(:focus)::placeholder {
+    color: #fff; /* Color por defecto */
+}
+
+input:focus:valid::placeholder {
+    color: #007bff; /* Azul cuando se escribe */
+}
+
 
 /* Icono de búsqueda (lupa) */
 .position-relative .FaSearch:hover {
     color: #a7c5eb !important;
 }
+
+
+/* Estilos para la lupa y el campo de búsqueda */
+.form-control {
+    transition: color 0.3s ease-in-out, border-color 0.3s ease-in-out;
+}
+
+

@@ -1,9 +1,15 @@
 package IDP_H1.FactuStock.Repositories;
 
 import IDP_H1.FactuStock.Entities.EmpresaPersonaFisica;
+import IDP_H1.FactuStock.Entities.Organizacion;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import java.util.List;
 
-@Repository
 public interface EmpresaOPersonaFisicaRepository extends JpaRepository<EmpresaPersonaFisica, Long> {
+
+    // Buscar empresas/personas físicas por organización
+    List<EmpresaPersonaFisica> findByOrganizacion(Organizacion organizacion);
+
+    // Buscar empresas/personas físicas por idOrganizacion
+    List<EmpresaPersonaFisica> findByOrganizacionId(Long idOrganizacion);
 }

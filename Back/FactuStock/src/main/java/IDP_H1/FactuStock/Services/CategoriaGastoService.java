@@ -28,4 +28,8 @@ public class CategoriaGastoService {
     public void eliminar(Long id) {
         repository.deleteById(id);
     }
+    // Obtener categorías por organización
+    public List<CategoriaGasto> obtenerPorOrganizacion(Long idOrganizacion) {
+        return repository.findByOrganizacionId(idOrganizacion);
+    }
 }

@@ -6,14 +6,14 @@ import Sidebar from "../components/Sidebar";
 
 const convertToISOFormat = (date) => {
     const dateObj = new Date(date);
-    return dateObj.toISOString();
+    return dateObj.toISOString(); // Devuelve la fecha en formato ISO
 };
 
 const NuevaFacturaComponent = () => {
     const navigate = useNavigate();
     const [factura, setFactura] = useState({
         fecha: "",
-        empresaPersonaFisicaId: "", // Campo correcto
+        empresaPersonaFisicaId: "",
         estado: "ENVIADA",
         formaCobro: "NoCobrada",
         organizacion: null,
@@ -70,15 +70,11 @@ const NuevaFacturaComponent = () => {
                     setError("No se encontró la información del usuario.");
                 }
 
-                const empresasResponse = await axios.get("http://localhost:8080/EmpresaPersonaFisica", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                if (empresasResponse.data) {
-                    setEmpresasPersonaFisica(empresasResponse.data);
-                } else {
-                    setError("No se pudieron obtener las empresas/personas físicas.");
-                }
+                const empresaResponse = await axios.get(
+                    `http://localhost:8080/EmpresaPersonaFisica/organizacion/${userResponse.data.organizacion.id}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setEmpresasPersonaFisica(empresaResponse.data);
             } catch (err) {
                 setError("Error al obtener los datos.");
                 console.error(err);
@@ -117,7 +113,14 @@ const NuevaFacturaComponent = () => {
             );
 
             const sequence = countResponse.data + 1;
-            const numeroFactura = `Fac_${String(year).padStart(2, "0")}/${String(month).padStart(2, "0")}/${String(sequence).padStart(5, "0")}`;
+
+            const organizacionId = organizacion?.id;
+            if (!organizacionId) {
+                Swal.fire("Error", "No se encontró el ID de la organización.", "error");
+                return;
+            }
+
+            const numeroFactura = `Fac_${organizacionId}_${String(year).padStart(2, "0")}/${String(month).padStart(2, "0")}/${String(sequence).padStart(5, "0")}`;
 
             const facturaData = {
                 ...factura,

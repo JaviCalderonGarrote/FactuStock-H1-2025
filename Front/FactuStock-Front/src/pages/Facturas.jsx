@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // Ya lo tienes importado
 import { FaSearch, FaPlusCircle } from "react-icons/fa";
 
 const FacturaComponent = () => {
@@ -11,8 +11,10 @@ const FacturaComponent = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [facturasPorPagina] = useState(9);
     const [searchQuery, setSearchQuery] = useState("");
+    const [organizacion, setOrganizacion] = useState(null);
+    const [inputFocused, setInputFocused] = useState(false); // Estado para el enfoque del input
     const token = localStorage.getItem("authToken");
-    const navigate = useNavigate();
+    const navigate = useNavigate();  // Esto te permite navegar programáticamente
 
     useEffect(() => {
         if (!token) {
@@ -21,15 +23,33 @@ const FacturaComponent = () => {
         }
         const fetchData = async () => {
             try {
-                const response = await axios.get("http://localhost:8080/facturas", {
+                // Obtener el ID de usuario del token
+                const decodedToken = JSON.parse(atob(token.split(".")[1]));
+                const userId = decodedToken?.idUsuario;
+
+                if (!userId) {
+                    setError("ID de usuario no encontrado en el token.");
+                    return;
+                }
+
+                // Obtener información del usuario
+                const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                setOrganizacion(userResponse.data.organizacion);
+
+                // Obtener las facturas de la organización
+                const facturasResponse = await axios.get(`http://localhost:8080/facturas/organizacion/${userResponse.data.organizacion.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
-                if (response.data && Array.isArray(response.data)) {
-                    setFacturas(response.data);
+                if (facturasResponse.data && Array.isArray(facturasResponse.data)) {
+                    setFacturas(facturasResponse.data);
                 } else {
-                    setError("No se encontraron facturas.");
+                    setError("No se encontraron facturas para esta organización.");
                 }
+
             } catch (err) {
                 setError("Error al obtener las facturas.");
                 console.error(err);
@@ -40,16 +60,18 @@ const FacturaComponent = () => {
 
     // Función para filtrar facturas
     const facturasFiltradas = facturas.filter(factura => {
+        // Crear un array de valores a partir de todos los campos relevantes de la factura
         const valoresFactura = [
-            factura.numeroFactura,
-            factura.empresaPersonaFisica?.nombre,
-            factura.usuario?.username,
-            factura.formaPago,
-            factura.fecha ? new Date(factura.fecha).toLocaleDateString() : "",
-            factura.total?.toFixed(2),
-            factura.estado
+            factura.numeroFactura,                            // Número de factura
+            factura.empresaPersonaFisica?.nombre,             // Nombre del cliente
+            factura.usuario?.username,                        // Nombre del usuario
+            factura.formaPago,                                // Forma de pago
+            factura.fecha ? new Date(factura.fecha).toLocaleDateString() : "", // Fecha
+            factura.total?.toFixed(2),                        // Total
+            factura.estado                                    // Estado
         ];
 
+        // Verificar si alguna de las propiedades contiene el término de búsqueda (ignorando mayúsculas/minúsculas)
         return valoresFactura.some(valor =>
             valor?.toString().toLowerCase().includes(searchQuery.toLowerCase())
         );
@@ -71,44 +93,48 @@ const FacturaComponent = () => {
                     <div className="alert alert-danger text-center">{error}</div>
                 ) : (
                     <>
+                        {/* Botón para crear nueva factura */}
                         <div className="d-flex justify-content-between mb-3">
                             <button
                                 className="btn d-flex align-items-center"
-                                style={{ backgroundColor: '#a7c5eb', marginBottom: '20px' }}
-                                onClick={() => navigate("/nueva-factura")}
+                                style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
+                                onClick={() => navigate('/nueva-factura')}  // Redirigir al usuario a /nueva-factura
                             >
                                 <FaPlusCircle className="me-2" />
-                                Crear Nueva Factura
+                                Crear nueva Factura
                             </button>
 
-                            <div className="position-relative" style={{ maxWidth: "400px" }}>
+                            {/* Campo de búsqueda */}
+                            <div className="position-relative" style={{ width: "250px" }}>
                                 <input
                                     type="text"
                                     className="form-control"
-                                    placeholder="Buscar en todas las columnas..."
+                                    placeholder="Buscar..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
+                                    onFocus={() => setInputFocused(true)} // Cambiar estado a true cuando el input esté enfocado
+                                    onBlur={() => setInputFocused(false)} // Cambiar estado a false cuando el input pierda el foco
                                     style={{
                                         paddingLeft: "35px",
-                                        borderRadius: "5px",
-                                        backgroundColor: '#a7c5eb',
-                                        boxShadow: "0px 0px 8px rgba(0,0,0,0.1)",
-                                        transition: "border-color 0.3s ease-in-out"
+                                        borderRadius: "8px",
+                                        border: "1px solid #ccc",
+                                        backgroundColor: inputFocused || searchQuery ? "#ffffff" : "#6f9fd7",
+                                        color: inputFocused || searchQuery ? "#000" : "#fff",
                                     }}
                                 />
                                 <FaSearch
                                     className="position-absolute"
                                     style={{
                                         left: "10px",
-                                        top: "35%",
-                                        transform: "translateY(-50%)",
-                                        color: "black",
-                                        fontSize: "20px"
+                                        top: "25%",
+                                        color: inputFocused || searchQuery ? "#6f9fd7" : "#fff",
+                                        fontSize: "18px"
                                     }}
                                 />
                             </div>
                         </div>
 
+                        {/* Tabla de Facturas */}
                         <div className="table-responsive">
                             <table className="table">
                                 <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>

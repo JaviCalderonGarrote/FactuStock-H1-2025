@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { useNavigate } from "react-router-dom"; // Ya lo tienes importado
+import { useNavigate } from "react-router-dom";
 import { FaSearch, FaPlusCircle } from "react-icons/fa";
 
 const FacturaComponent = () => {
@@ -12,9 +12,9 @@ const FacturaComponent = () => {
     const [facturasPorPagina] = useState(9);
     const [searchQuery, setSearchQuery] = useState("");
     const [organizacion, setOrganizacion] = useState(null);
-    const [inputFocused, setInputFocused] = useState(false); // Estado para el enfoque del input
+    const [inputFocused, setInputFocused] = useState(false);
     const token = localStorage.getItem("authToken");
-    const navigate = useNavigate();  // Esto te permite navegar programáticamente
+    const navigate = useNavigate();
 
     useEffect(() => {
         if (!token) {
@@ -23,7 +23,6 @@ const FacturaComponent = () => {
         }
         const fetchData = async () => {
             try {
-                // Obtener el ID de usuario del token
                 const decodedToken = JSON.parse(atob(token.split(".")[1]));
                 const userId = decodedToken?.idUsuario;
 
@@ -32,14 +31,12 @@ const FacturaComponent = () => {
                     return;
                 }
 
-                // Obtener información del usuario
                 const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
                 setOrganizacion(userResponse.data.organizacion);
 
-                // Obtener las facturas de la organización
                 const facturasResponse = await axios.get(`http://localhost:8080/facturas/organizacion/${userResponse.data.organizacion.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -47,7 +44,7 @@ const FacturaComponent = () => {
                 if (facturasResponse.data && Array.isArray(facturasResponse.data)) {
                     setFacturas(facturasResponse.data);
                 } else {
-                    setError("No se encontraron facturas para esta organización.");
+                    setFacturas([]); // Si no hay facturas, simplemente establecemos un array vacío
                 }
 
             } catch (err) {
@@ -58,20 +55,17 @@ const FacturaComponent = () => {
         fetchData();
     }, [token]);
 
-    // Función para filtrar facturas
     const facturasFiltradas = facturas.filter(factura => {
-        // Crear un array de valores a partir de todos los campos relevantes de la factura
         const valoresFactura = [
-            factura.numeroFactura,                            // Número de factura
-            factura.empresaPersonaFisica?.nombre,             // Nombre del cliente
-            factura.usuario?.username,                        // Nombre del usuario
-            factura.formaPago,                                // Forma de pago
-            factura.fecha ? new Date(factura.fecha).toLocaleDateString() : "", // Fecha
-            factura.total?.toFixed(2),                        // Total
-            factura.estado                                    // Estado
+            factura.numeroFactura,
+            factura.empresaPersonaFisica?.nombre,
+            factura.usuario?.username,
+            factura.formaPago,
+            factura.fecha ? new Date(factura.fecha).toLocaleDateString() : "",
+            factura.total?.toFixed(2),
+            factura.estado
         ];
 
-        // Verificar si alguna de las propiedades contiene el término de búsqueda (ignorando mayúsculas/minúsculas)
         return valoresFactura.some(valor =>
             valor?.toString().toLowerCase().includes(searchQuery.toLowerCase())
         );
@@ -112,8 +106,8 @@ const FacturaComponent = () => {
                                     placeholder="Buscar..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    onFocus={() => setInputFocused(true)} // Cambiar estado a true cuando el input esté enfocado
-                                    onBlur={() => setInputFocused(false)} // Cambiar estado a false cuando el input pierda el foco
+                                    onFocus={() => setInputFocused(true)}
+                                    onBlur={() => setInputFocused(false)}
                                     style={{
                                         paddingLeft: "35px",
                                         borderRadius: "8px",
@@ -149,17 +143,23 @@ const FacturaComponent = () => {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {facturasPaginadas.map((factura, index) => (
-                                    <tr key={factura.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                        <td>{factura.numeroFactura}</td>
-                                        <td>{factura.empresaPersonaFisica?.nombre || 'N/A'}</td>
-                                        <td>{factura.usuario?.username || 'N/A'}</td>
-                                        <td>{factura.formaPago || 'N/A'}</td>
-                                        <td>{factura.fecha ? new Date(factura.fecha).toLocaleDateString() : 'N/A'}</td>
-                                        <td>${factura.total?.toFixed(2) || '0.00'}</td>
-                                        <td>{factura.estado}</td>
+                                {facturasPaginadas.length > 0 ? (
+                                    facturasPaginadas.map((factura, index) => (
+                                        <tr key={factura.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                            <td>{factura.numeroFactura}</td>
+                                            <td>{factura.empresaPersonaFisica?.nombre || 'N/A'}</td>
+                                            <td>{factura.usuario?.username || 'N/A'}</td>
+                                            <td>{factura.formaPago || 'N/A'}</td>
+                                            <td>{factura.fecha ? new Date(factura.fecha).toLocaleDateString() : 'N/A'}</td>
+                                            <td>${factura.total?.toFixed(2) || '0.00'}</td>
+                                            <td>{factura.estado}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="7" className="text-center">No hay datos disponibles</td>
                                     </tr>
-                                ))}
+                                )}
                                 </tbody>
                             </table>
                         </div>

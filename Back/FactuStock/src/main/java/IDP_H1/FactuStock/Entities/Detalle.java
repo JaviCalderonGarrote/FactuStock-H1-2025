@@ -5,20 +5,20 @@ import lombok.Data;
 
 @Entity
 @Data
-public class Detalle{
+public class Detalle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
     private Venta venta;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
     private Producto producto;
 
-    @ManyToOne
-    private Factura Factura;
-
+    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
+    @JoinColumn(name = "factura_id") // Relación con factura
+    private Factura factura;  // Relación con la factura
 
     @Column(nullable = false)
     private Integer cantidad;

@@ -4,7 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Data
@@ -16,18 +17,20 @@ public class Factura {
     @Column(nullable = false, unique = true)
     private String numeroFactura;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
     private Organizacion organizacion;
 
-    @ManyToOne
-    private EmpresaPersonaFisica EmpresaPersonaFisica;
+    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
+    private EmpresaPersonaFisica empresaPersonaFisica;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
     private Usuario usuario;
 
     @Column(nullable = false)
     private Double total = 0.0;
 
+    @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)  // Cargamos los detalles inmediatamente
+    private List<Detalle> detalles = new ArrayList<>();
 
     @Lob
     private byte[] archivo;
@@ -39,19 +42,18 @@ public class Factura {
     @Column(nullable = false)
     private LocalDateTime fecha;
 
-
-    @Temporal(TemporalType.TIMESTAMP)
     @Column(nullable = false, updatable = false)
-    private Date fechaCreacionFactura;
+    private LocalDateTime fechaCreacionFactura;
 
     @Enumerated(EnumType.STRING)
     private FormaPago formaPago;
-}
 
-enum EstadoFactura {
-    ENVIADA, RECIBIDA, ERROR, PAGADA, COMPLETADA
-}
-
-enum FormaPago {
-    NoCobrada,EFECTIVO, TARJETA, TRANSFERENCIA
+    // Método para actualizar el total de la factura según los detalles
+    public void actualizarTotal() {
+        double totalCalculado = 0.0;
+        for (Detalle detalle : detalles) {
+            totalCalculado += detalle.getSubtotal();  // Sumar el subtotal de cada detalle
+        }
+        this.total = totalCalculado;
+    }
 }

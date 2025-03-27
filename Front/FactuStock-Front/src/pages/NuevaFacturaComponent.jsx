@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
+import Select from "react-select"; // Ensure you have this library installed for the select input
 
 const convertToISOFormat = (date) => {
     const dateObj = new Date(date);
-    return dateObj.toISOString(); // Devuelve la fecha en formato ISO
+    return dateObj.toISOString();
 };
 
 const NuevaFacturaComponent = () => {
@@ -19,12 +20,19 @@ const NuevaFacturaComponent = () => {
         organizacion: null,
         usuario: null,
         numeroFactura: "",
+        detalles: [],
+        total: 0,
     });
 
     const [empresasPersonaFisica, setEmpresasPersonaFisica] = useState([]);
     const [organizacion, setOrganizacion] = useState(null);
     const [usuario, setUsuario] = useState(null);
+    const [productos, setProductos] = useState([]);
     const [error, setError] = useState(null);
+    const [modalOpen, setModalOpen] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false); // State for the new modal visibility
+    const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+    const [cantidad, setCantidad] = useState(1);
     const token = localStorage.getItem("authToken");
 
     const decodeToken = (token) => {
@@ -75,6 +83,13 @@ const NuevaFacturaComponent = () => {
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
                 setEmpresasPersonaFisica(empresaResponse.data);
+
+                // Obtener productos de la organización del usuario
+                const productosResponse = await axios.get(
+                    `http://localhost:8080/productos/organizacion/${userResponse.data.organizacion.id}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setProductos(productosResponse.data);
             } catch (err) {
                 setError("Error al obtener los datos.");
                 console.error(err);
@@ -87,6 +102,45 @@ const NuevaFacturaComponent = () => {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFactura({ ...factura, [name]: value });
+    };
+
+    const handleAddDetalle = () => {
+        if (!productoSeleccionado || cantidad <= 0) {
+            Swal.fire("Error", "Por favor selecciona un producto y una cantidad válida.", "error");
+            return;
+        }
+
+        const detalle = {
+            producto: productoSeleccionado,
+            cantidad,
+            precioUnitario: productoSeleccionado.precio,
+            iva: productoSeleccionado.iva,
+            subtotal: productoSeleccionado.precio * cantidad,
+        };
+
+        const nuevosDetalles = [...factura.detalles, detalle];
+
+        const totalFactura = nuevosDetalles.reduce((total, detalle) => total + detalle.subtotal, 0);
+
+        setFactura({
+            ...factura,
+            detalles: nuevosDetalles,
+            total: totalFactura,
+        });
+
+        setModalVisible(false); // Close the new modal after adding the product
+    };
+
+    const handleRemoveDetalle = (index) => {
+        const nuevosDetalles = factura.detalles.filter((_, i) => i !== index);
+
+        const totalFactura = nuevosDetalles.reduce((total, detalle) => total + detalle.subtotal, 0);
+
+        setFactura({ ...factura, detalles: nuevosDetalles, total: totalFactura });
+    };
+
+    const handleSelectProducto = (producto) => {
+        setProductoSeleccionado(producto);
     };
 
     const handleSubmit = async (e) => {
@@ -130,6 +184,8 @@ const NuevaFacturaComponent = () => {
                 numeroFactura: numeroFactura,
                 empresaPersonaFisica: { id: factura.empresaPersonaFisicaId },
                 formaPago: factura.formaCobro,
+                detalles: factura.detalles,
+                total: factura.total,
             };
 
             await axios.post("http://localhost:8080/facturas", facturaData, {
@@ -176,7 +232,14 @@ const NuevaFacturaComponent = () => {
 
                         <div className="col-12 col-md-6 mb-3">
                             <label className="form-label">Fecha</label>
-                            <input type="date" className="form-control" name="fecha" value={factura.fecha} onChange={handleChange} required />
+                            <input
+                                type="date"
+                                className="form-control"
+                                name="fecha"
+                                value={factura.fecha}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
@@ -190,12 +253,121 @@ const NuevaFacturaComponent = () => {
                         </div>
 
                         <div className="col-12 mb-3">
-                            <button type="submit" className="btn" style={{ backgroundColor: "#a7c5eb", width: "100%" }}>
-                                Guardar Factura
+                            <button
+                                type="button"
+                                className="btn"
+                                style={{ backgroundColor: "#a7c5eb", width: "100%" }}
+                                onClick={() => setModalVisible(true)}
+                            >
+                                Añadir Detalle
+                            </button>
+                        </div>
+
+                        {factura.detalles.length > 0 && (
+                            <div className="col-12 mb-3">
+                                <h4>Detalles de la Factura</h4>
+                                {factura.detalles.length > 0 ? (
+                                    <div className="table-responsive">
+                                        <table className="table table-bordered table-striped">
+                                            <thead>
+                                            <tr>
+                                                <th>Producto</th>
+                                                <th>Cantidad</th>
+                                                <th>Precio Unitario (€)</th>
+                                                <th>Subtotal (€)</th>
+                                                <th>Acciones</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            {factura.detalles.map((detalle, index) => (
+                                                <tr key={index}>
+                                                    <td>{detalle.producto.nombre}</td>
+                                                    <td>{detalle.cantidad}</td>
+                                                    <td>{detalle.precioUnitario.toFixed(2)}</td>
+                                                    <td>{detalle.subtotal.toFixed(2)}</td>
+                                                    <td>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleRemoveDetalle(index)}
+                                                            className="btn btn-danger btn-sm"
+                                                        >
+                                                            Eliminar
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            </tbody>
+                                        </table>
+                                        <div className="text-end">
+                                            <h5>Total: <strong>{factura.total.toFixed(2)}€</strong></h5>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p>No hay detalles agregados a la factura.</p>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="col-12 mb-3">
+                            <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>
+                                Crear Factura
                             </button>
                         </div>
                     </div>
                 </form>
+
+                {/* Modal for selecting products */}
+                {modalVisible && (
+                    <div className="modal fade show" style={{ display: "block" }} tabIndex="-1" aria-hidden="true">
+                        <div className="modal-dialog">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">Seleccionar Producto</h5>
+                                    <button type="button" className="btn-close" onClick={() => setModalVisible(false)}></button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="form-group">
+                                        <label htmlFor="productoSelect">Producto</label>
+                                        <Select
+                                            options={productos.map(producto => ({
+                                                value: producto.id,
+                                                label: `${producto.nombre} - €${producto.precio}`,
+                                            }))}
+                                            onChange={(selectedOption) =>
+                                                handleSelectProducto(productos.find(p => p.id === selectedOption.value))
+                                            }
+                                            placeholder="Buscar producto..."
+                                        />
+                                    </div>
+
+                                    {productoSeleccionado && (
+                                        <div className="mt-3">
+                                            <h5>Detalles del Producto</h5>
+                                            <p><strong>Nombre:</strong> {productoSeleccionado.nombre}</p>
+                                            <p><strong>Precio:</strong> €{productoSeleccionado.precio}</p>
+                                            <p><strong>IVA:</strong> {productoSeleccionado.iva}%</p>
+                                            <div className="mt-3">
+                                                <label>Cantidad</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    value={cantidad}
+                                                    onChange={(e) => setCantidad(Number(e.target.value))}
+                                                    min="1"
+                                                />
+                                            </div>
+                                            <div className="mt-3">
+                                                <button className="btn" style={{ backgroundColor: "#a7c5eb" }} onClick={handleAddDetalle}>
+                                                    Agregar Producto
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import Select from "react-select"; // Ensure you have this library installed for the select input
+import Select from "react-select";
 
 const convertToISOFormat = (date) => {
     const dateObj = new Date(date);
@@ -30,9 +30,16 @@ const NuevaFacturaComponent = () => {
     const [productos, setProductos] = useState([]);
     const [error, setError] = useState(null);
     const [modalOpen, setModalOpen] = useState(false);
-    const [modalVisible, setModalVisible] = useState(false); // State for the new modal visibility
+    const [modalVisible, setModalVisible] = useState(false);
     const [productoSeleccionado, setProductoSeleccionado] = useState(null);
     const [cantidad, setCantidad] = useState(1);
+    const [detalleMano, setDetalleMano] = useState({
+        nombre: "",
+        iva: 21,
+        cantidad: 1,
+        precio: 0,
+    });
+    const [isProducto, setIsProducto] = useState(true); // Estado para alternar entre producto o detalle personalizado
     const token = localStorage.getItem("authToken");
 
     const decodeToken = (token) => {
@@ -84,7 +91,6 @@ const NuevaFacturaComponent = () => {
                 );
                 setEmpresasPersonaFisica(empresaResponse.data);
 
-                // Obtener productos de la organización del usuario
                 const productosResponse = await axios.get(
                     `http://localhost:8080/productos/organizacion/${userResponse.data.organizacion.id}`,
                     { headers: { Authorization: `Bearer ${token}` } }
@@ -104,22 +110,37 @@ const NuevaFacturaComponent = () => {
         setFactura({ ...factura, [name]: value });
     };
 
+    // Función para calcular el subtotal
+    const calcularSubtotal = (cantidad, precio) => {
+        return cantidad * precio;
+    };
+
     const handleAddDetalle = () => {
-        if (!productoSeleccionado || cantidad <= 0) {
-            Swal.fire("Error", "Por favor selecciona un producto y una cantidad válida.", "error");
-            return;
+        let detalle;
+
+        if (isProducto && productoSeleccionado) {
+            const subtotal = calcularSubtotal(cantidad, productoSeleccionado.precio);
+            detalle = {
+                producto: productoSeleccionado,
+                cantidad,
+                precioUnitario: parseFloat(productoSeleccionado.precio), // Asegurarnos que sea un número
+                iva: productoSeleccionado.iva,
+                subtotal,
+            };
+        } else if (!isProducto) {
+            const subtotal = calcularSubtotal(detalleMano.cantidad, detalleMano.precio);
+            detalle = {
+                nombre: detalleMano.nombre,
+                cantidad: detalleMano.cantidad,
+                precioUnitario: parseFloat(detalleMano.precio), // Asegurarnos que sea un número
+                iva: detalleMano.iva,
+                subtotal,
+            };
         }
 
-        const detalle = {
-            producto: productoSeleccionado,
-            cantidad,
-            precioUnitario: productoSeleccionado.precio,
-            iva: productoSeleccionado.iva,
-            subtotal: productoSeleccionado.precio * cantidad,
-        };
+        if (!detalle) return;
 
         const nuevosDetalles = [...factura.detalles, detalle];
-
         const totalFactura = nuevosDetalles.reduce((total, detalle) => total + detalle.subtotal, 0);
 
         setFactura({
@@ -128,7 +149,10 @@ const NuevaFacturaComponent = () => {
             total: totalFactura,
         });
 
-        setModalVisible(false); // Close the new modal after adding the product
+        setModalVisible(false);
+
+        setDetalleMano({ nombre: "", iva: 21, cantidad: 1, precio: 0 });
+        setCantidad(1); // Reset cantidad a 1
     };
 
     const handleRemoveDetalle = (index) => {
@@ -266,45 +290,42 @@ const NuevaFacturaComponent = () => {
                         {factura.detalles.length > 0 && (
                             <div className="col-12 mb-3">
                                 <h4>Detalles de la Factura</h4>
-                                {factura.detalles.length > 0 ? (
-                                    <div className="table-responsive">
-                                        <table className="table table-bordered table-striped">
-                                            <thead>
-                                            <tr>
-                                                <th>Producto</th>
-                                                <th>Cantidad</th>
-                                                <th>Precio Unitario (€)</th>
-                                                <th>Subtotal (€)</th>
-                                                <th>Acciones</th>
+                                <div className="table-responsive">
+                                    <table className="table table-bordered table-striped">
+                                        <thead>
+                                        <tr>
+                                            <th>Nombre</th>
+                                            <th>Cantidad</th>
+                                            <th>Precio Unitario (€)</th>
+                                            <th>Subtotal (€)</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {factura.detalles.map((detalle, index) => (
+                                            <tr key={index}>
+                                                <td>{detalle.nombre || detalle.producto?.nombre}</td>
+                                                <td>{detalle.cantidad}</td>
+                                                <td>{detalle.precioUnitario.toFixed(2)}</td>
+                                                <td>{detalle.subtotal.toFixed(2)}</td>
+                                                <td>
+                                                    <button
+                                                        type="button"
+                                                        className="btn btn-danger"
+                                                        onClick={() => handleRemoveDetalle(index)}
+                                                    >
+                                                        Eliminar
+                                                    </button>
+                                                </td>
                                             </tr>
-                                            </thead>
-                                            <tbody>
-                                            {factura.detalles.map((detalle, index) => (
-                                                <tr key={index}>
-                                                    <td>{detalle.producto.nombre}</td>
-                                                    <td>{detalle.cantidad}</td>
-                                                    <td>{detalle.precioUnitario.toFixed(2)}</td>
-                                                    <td>{detalle.subtotal.toFixed(2)}</td>
-                                                    <td>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => handleRemoveDetalle(index)}
-                                                            className="btn btn-danger btn-sm"
-                                                        >
-                                                            Eliminar
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            </tbody>
-                                        </table>
-                                        <div className="text-end">
-                                            <h5>Total: <strong>{factura.total.toFixed(2)}€</strong></h5>
-                                        </div>
+                                        ))}
+                                        </tbody>
+
+                                    </table>
+                                    <div className="text-end">
+                                        <h5>Total: <strong>{factura.total.toFixed(2)}€</strong></h5>
                                     </div>
-                                ) : (
-                                    <p>No hay detalles agregados a la factura.</p>
-                                )}
+                                </div>
                             </div>
                         )}
 
@@ -316,58 +337,139 @@ const NuevaFacturaComponent = () => {
                     </div>
                 </form>
 
-                {/* Modal for selecting products */}
                 {modalVisible && (
                     <div className="modal fade show" style={{ display: "block" }} tabIndex="-1" aria-hidden="true">
-                        <div className="modal-dialog">
+                        <div className="modal-dialog modal-lg"> {/* Modal más grande */}
                             <div className="modal-content">
-                                <div className="modal-header">
-                                    <h5 className="modal-title">Seleccionar Producto</h5>
+                                <div className="modal-header" style={{ backgroundColor: "#a7c5eb", color: "#fff" }}>
+                                    <h5 className="modal-title">Seleccionar Producto o Detalle Personalizado</h5>
                                     <button type="button" className="btn-close" onClick={() => setModalVisible(false)}></button>
                                 </div>
                                 <div className="modal-body">
-                                    <div className="form-group">
-                                        <label htmlFor="productoSelect">Producto</label>
-                                        <Select
-                                            options={productos.map(producto => ({
-                                                value: producto.id,
-                                                label: `${producto.nombre} - €${producto.precio}`,
-                                            }))}
-                                            onChange={(selectedOption) =>
-                                                handleSelectProducto(productos.find(p => p.id === selectedOption.value))
-                                            }
-                                            placeholder="Buscar producto..."
-                                        />
+                                    <div className="form-group mb-3">
+                                        <label htmlFor="productoSelect">Tipo de Detalle</label>
+                                        <div className="d-flex justify-content-start gap-3">
+                                            <button
+                                                className="btn btn-secondary btn-lg"
+                                                onClick={() => setIsProducto(true)} // Muestra los productos
+                                            >
+                                                Producto
+                                            </button>
+                                            <button
+                                                className="btn btn-secondary btn-lg"
+                                                onClick={() => setIsProducto(false)} // Muestra el detalle personalizado
+                                            >
+                                                Detalle Personalizado
+                                            </button>
+                                        </div>
                                     </div>
 
-                                    {productoSeleccionado && (
-                                        <div className="mt-3">
-                                            <h5>Detalles del Producto</h5>
-                                            <p><strong>Nombre:</strong> {productoSeleccionado.nombre}</p>
-                                            <p><strong>Precio:</strong> €{productoSeleccionado.precio}</p>
-                                            <p><strong>IVA:</strong> {productoSeleccionado.iva}%</p>
-                                            <div className="mt-3">
-                                                <label>Cantidad</label>
+                                    {isProducto ? (
+                                        <>
+                                            <div className="form-group mb-3">
+                                                <label htmlFor="productoSelect">Producto</label>
+                                                <Select
+                                                    options={productos.map((producto) => ({
+                                                        value: producto.id,
+                                                        label: `${producto.nombre} - €${producto.precio}`,
+                                                    }))}
+                                                    onChange={(selectedOption) =>
+                                                        handleSelectProducto(productos.find((p) => p.id === selectedOption.value))
+                                                    }
+                                                    placeholder="Buscar producto..."
+                                                />
+                                            </div>
+
+                                            {productoSeleccionado && (
+                                                <div className="mt-3">
+                                                    <h5>Detalles del Producto</h5>
+                                                    <p><strong>Nombre:</strong> {productoSeleccionado.nombre}</p>
+                                                    <p><strong>Precio:</strong> €{productoSeleccionado.precio}</p>
+                                                    <p><strong>IVA:</strong> {productoSeleccionado.iva}%</p>
+                                                    <div className="mt-3">
+                                                        <label>Cantidad</label>
+                                                        <input
+                                                            type="number"
+                                                            className="form-control"
+                                                            value={cantidad}
+                                                            onChange={(e) => setCantidad(Number(e.target.value))}
+                                                            min="1"
+                                                        />
+                                                    </div>
+                                                    <div className="mt-3 text-center">
+                                                        <button
+                                                            className="btn btn-success btn-lg"
+                                                            onClick={handleAddDetalle}
+                                                        >
+                                                            Añadir Producto
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="form-group mb-3">
+                                                <label htmlFor="detalleManoNombre">Nombre del Detalle</label>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    id="detalleManoNombre"
+                                                    name="nombre"
+                                                    value={detalleMano.nombre}
+                                                    onChange={(e) =>
+                                                        setDetalleMano({ ...detalleMano, nombre: e.target.value })
+                                                    }
+                                                />
+                                            </div>
+
+                                            <div className="form-group mb-3">
+                                                <label htmlFor="detalleManoPrecio">Precio (€)</label>
                                                 <input
                                                     type="number"
                                                     className="form-control"
-                                                    value={cantidad}
-                                                    onChange={(e) => setCantidad(Number(e.target.value))}
+                                                    id="detalleManoPrecio"
+                                                    name="precio"
+                                                    value={detalleMano.precio}
+                                                    onChange={(e) =>
+                                                        setDetalleMano({ ...detalleMano, precio: e.target.value })
+                                                    }
+                                                    min="0"
+                                                />
+                                            </div>
+
+                                            <div className="form-group mb-3">
+                                                <label htmlFor="detalleManoCantidad">Cantidad</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    id="detalleManoCantidad"
+                                                    name="cantidad"
+                                                    value={detalleMano.cantidad}
+                                                    onChange={(e) =>
+                                                        setDetalleMano({ ...detalleMano, cantidad: e.target.value })
+                                                    }
                                                     min="1"
                                                 />
                                             </div>
-                                            <div className="mt-3">
-                                                <button className="btn" style={{ backgroundColor: "#a7c5eb" }} onClick={handleAddDetalle}>
-                                                    Agregar Producto
+
+                                            <div className="mt-3 text-center">
+                                                <button
+                                                    className="btn btn-success btn-lg"
+                                                    onClick={handleAddDetalle}
+                                                >
+                                                    Añadir Detalle
                                                 </button>
                                             </div>
-                                        </div>
+                                        </>
                                     )}
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
+
+
             </div>
         </div>
     );

@@ -55,6 +55,7 @@ const FacturaComponent = () => {
         fetchData();
     }, [token]);
 
+    // Filtrado de facturas
     const facturasFiltradas = facturas.filter(factura => {
         const valoresFactura = [
             factura.numeroFactura,
@@ -69,6 +70,13 @@ const FacturaComponent = () => {
         return valoresFactura.some(valor =>
             valor?.toString().toLowerCase().includes(searchQuery.toLowerCase())
         );
+    });
+
+    // Ordenar las facturas de más reciente a más antigua
+    facturasFiltradas.sort((a, b) => {
+        const fechaA = new Date(a.fecha);
+        const fechaB = new Date(b.fecha);
+        return fechaB - fechaA;  // Ordenar de más reciente a más antigua
     });
 
     const totalPages = Math.ceil(facturasFiltradas.length / facturasPorPagina);

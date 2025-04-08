@@ -31,4 +31,7 @@ public class Detalle {
 
     @Column(nullable = false)
     private Double subtotal;
+
+    @Column(nullable = true)
+    private String nombre;
 }

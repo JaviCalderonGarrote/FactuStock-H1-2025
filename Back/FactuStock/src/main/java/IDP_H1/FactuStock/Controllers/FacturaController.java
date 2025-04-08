@@ -15,7 +15,6 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/facturas")
@@ -68,6 +67,7 @@ public class FacturaController {
     @PostMapping
     public ResponseEntity<?> guardar(@RequestBody Factura factura) {
         try {
+            // Validar que la fecha de la factura esté presente
             if (factura.getFecha() == null) {
                 return new ResponseEntity<>("La fecha de la factura es obligatoria.", HttpStatus.BAD_REQUEST);
             }
@@ -77,12 +77,16 @@ public class FacturaController {
                 factura.setFechaCreacionFactura(convertToLocalDateTime(new Date()));
             }
 
-            // Guardar los detalles de la factura
+            // Calcular el subtotal de los detalles de la factura
             factura.getDetalles().forEach(detalle -> {
-                detalle.setFactura(factura);
-                detalle.setSubtotal(detalle.getCantidad() * detalle.getProducto().getPrecio());
+                detalle.setFactura(factura);  // Asociar detalle con la factura
+                detalle.setSubtotal(detalle.getCantidad() * detalle.getPrecioUnitario());  // Calcular subtotal
             });
 
+            // Actualizar el total de la factura sumando los subtotales de los detalles
+            factura.actualizarTotal();
+
+            // Guardar la factura en la base de datos
             Factura nuevaFactura = facturaService.guardar(factura);
             return new ResponseEntity<>(nuevaFactura, HttpStatus.CREATED);
         } catch (Exception e) {

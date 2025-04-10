@@ -1,11 +1,13 @@
 package IDP_H1.FactuStock.Entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
 @Data
 public class Detalle {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -17,8 +19,9 @@ public class Detalle {
     private Producto producto;
 
     @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
-    @JoinColumn(name = "factura_id") // Relación con factura
-    private Factura factura;  // Relación con la factura
+    @JoinColumn(name = "factura_id")  // Relación con factura
+    @JsonBackReference  // Evita la recursividad durante la serialización de la relación con la factura
+    private Factura factura;
 
     @Column(nullable = false)
     private Integer cantidad;

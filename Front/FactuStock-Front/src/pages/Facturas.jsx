@@ -31,15 +31,20 @@ const FacturaComponent = () => {
                     return;
                 }
 
+                // Obtener usuario
                 const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
                 setOrganizacion(userResponse.data.organizacion);
 
+                // Obtener facturas para la organización
                 const facturasResponse = await axios.get(`http://localhost:8080/facturas/organizacion/${userResponse.data.organizacion.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
+
+                // Verificar que las facturas fueron recibidas correctamente
+                console.log('Respuesta de facturas:', facturasResponse.data);
 
                 if (facturasResponse.data && Array.isArray(facturasResponse.data)) {
                     setFacturas(facturasResponse.data);
@@ -151,23 +156,17 @@ const FacturaComponent = () => {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {facturasPaginadas.length > 0 ? (
-                                    facturasPaginadas.map((factura, index) => (
-                                        <tr key={factura.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                            <td>{factura.numeroFactura}</td>
-                                            <td>{factura.empresaPersonaFisica?.nombre || 'N/A'}</td>
-                                            <td>{factura.usuario?.username || 'N/A'}</td>
-                                            <td>{factura.formaPago || 'N/A'}</td>
-                                            <td>{factura.fecha ? new Date(factura.fecha).toLocaleDateString() : 'N/A'}</td>
-                                            <td>${factura.total?.toFixed(2) || '0.00'}</td>
-                                            <td>{factura.estado}</td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="7" className="text-center">No hay datos disponibles</td>
+                                {facturasPaginadas.length > 0 && facturasPaginadas.map((factura, index) => (
+                                    <tr key={factura.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                        <td>{factura.numeroFactura}</td>
+                                        <td>{factura.empresaPersonaFisica?.nombre || 'N/A'}</td>
+                                        <td>{factura.usuario?.username || 'N/A'}</td>
+                                        <td>{factura.formaPago || 'N/A'}</td>
+                                        <td>{factura.fecha ? new Date(factura.fecha).toLocaleDateString() : 'N/A'}</td>
+                                        <td>${factura.total?.toFixed(2) || '0.00'}</td>
+                                        <td>{factura.estado}</td>
                                     </tr>
-                                )}
+                                ))}
                                 </tbody>
                             </table>
                         </div>

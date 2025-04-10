@@ -1,8 +1,8 @@
 package IDP_H1.FactuStock.Controllers;
 
+
 import IDP_H1.FactuStock.Entities.Factura;
 import IDP_H1.FactuStock.Entities.Organizacion;
-import IDP_H1.FactuStock.DTO.FacturaDTO;
 import IDP_H1.FactuStock.Services.FacturaService;
 import IDP_H1.FactuStock.Services.ProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,26 +28,25 @@ public class FacturaController {
 
     // Obtener todas las facturas
     @GetMapping
-    public ResponseEntity<List<FacturaDTO>> obtenerTodas() {
-        List<FacturaDTO> facturas = facturaService.obtenerTodas();
+    public ResponseEntity<List<Factura>> obtenerTodas() {
+        List<Factura> facturas = facturaService.obtenerTodas();
         return new ResponseEntity<>(facturas, HttpStatus.OK);
     }
 
     // Obtener factura por ID
     @GetMapping("/{id}")
-    public ResponseEntity<FacturaDTO> obtenerPorId(@PathVariable Long id) {
-        Optional<FacturaDTO> factura = facturaService.obtenerPorId(id);
-        return factura.map(ResponseEntity::ok)
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<Factura> obtenerPorId(@PathVariable Long id) {
+        Factura factura = facturaService.obtenerPorId(id);
+        return factura != null ? ResponseEntity.ok(factura) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     // Obtener facturas por organización
     @GetMapping("/organizacion/{organizacionId}")
-    public ResponseEntity<List<FacturaDTO>> obtenerFacturasPorOrganizacion(@PathVariable Long organizacionId) {
+    public ResponseEntity<List<Factura>> obtenerFacturasPorOrganizacion(@PathVariable Long organizacionId) {
         Organizacion organizacion = new Organizacion();
         organizacion.setId(organizacionId);
 
-        List<FacturaDTO> facturas = facturaService.obtenerFacturasPorOrganizacion(organizacion);
+        List<Factura> facturas = facturaService.obtenerFacturasPorOrganizacion(organizacion);
 
         if (facturas.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
@@ -97,8 +96,8 @@ public class FacturaController {
     // Eliminar factura por ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        Optional<FacturaDTO> factura = facturaService.obtenerPorId(id);
-        if (factura.isPresent()) {
+        Factura factura = facturaService.obtenerPorId(id);
+        if (factura != null) {
             facturaService.eliminar(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } else {

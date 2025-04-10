@@ -3,15 +3,12 @@ package IDP_H1.FactuStock.Services;
 import IDP_H1.FactuStock.Entities.Factura;
 import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Repositories.FacturaRepository;
-import IDP_H1.FactuStock.DTO.FacturaDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class FacturaService {
@@ -20,11 +17,8 @@ public class FacturaService {
     private FacturaRepository facturaRepository;
 
     // Obtener facturas de una organización específica
-    public List<FacturaDTO> obtenerFacturasPorOrganizacion(Organizacion organizacion) {
-        List<Factura> facturas = facturaRepository.findByOrganizacion(organizacion);
-        return facturas.stream()
-                .map(FacturaDTO::fromFactura)  // Convertir a DTO
-                .collect(Collectors.toList());
+    public List<Factura> obtenerFacturasPorOrganizacion(Organizacion organizacion) {
+        return facturaRepository.findByOrganizacion(organizacion);
     }
 
     // Contar facturas de un mes y año específicos
@@ -58,17 +52,13 @@ public class FacturaService {
     }
 
     // Obtener todas las facturas
-    public List<FacturaDTO> obtenerTodas() {
-        List<Factura> facturas = facturaRepository.findAll();
-        return facturas.stream()
-                .map(FacturaDTO::fromFactura)  // Convertir a DTO
-                .collect(Collectors.toList());
+    public List<Factura> obtenerTodas() {
+        return facturaRepository.findAll();
     }
 
     // Obtener factura por ID
-    public Optional<FacturaDTO> obtenerPorId(Long id) {
-        Optional<Factura> facturaOpt = facturaRepository.findById(id);
-        return facturaOpt.map(FacturaDTO::fromFactura);  // Convertir a DTO si existe
+    public Factura obtenerPorId(Long id) {
+        return facturaRepository.findById(id).orElse(null);
     }
 
     // Eliminar factura por ID

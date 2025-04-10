@@ -1,5 +1,6 @@
 package IDP_H1.FactuStock.Entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -10,6 +11,7 @@ import java.util.List;
 @Entity
 @Data
 public class Factura {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -29,7 +31,8 @@ public class Factura {
     @Column(nullable = false)
     private Double total = 0.0;
 
-    @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)  // Cargamos los detalles inmediatamente
+    @OneToMany(mappedBy = "factura", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference  // Evita la recursividad durante la serialización de la lista de detalles
     private List<Detalle> detalles = new ArrayList<>();
 
     @Lob

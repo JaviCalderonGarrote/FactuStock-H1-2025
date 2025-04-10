@@ -47,7 +47,7 @@ const CategoryProducts = () => {
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                setCategorias(categoriasResponse.data.length ? categoriasResponse.data : []);
+                setCategorias(categoriasResponse.data || []);
             } catch (err) {
                 setError("Error al obtener las categorías.");
             }
@@ -72,7 +72,7 @@ const CategoryProducts = () => {
 
         const categoriaData = {
             nombre: nuevaCategoria.nombre,
-            organizacion: { id: organizacion.id },
+            organizacion: { id: organizacion.id },  // Enviar la organización correctamente
         };
 
         const request = nuevaCategoria.id
@@ -87,7 +87,7 @@ const CategoryProducts = () => {
             .then(() => {
                 setShowModal(false);
                 Swal.fire("Éxito", `Categoría ${nuevaCategoria.id ? "actualizada" : "creada"} correctamente`, "success");
-                window.location.reload();
+                window.location.reload();  // Recargar la página para actualizar la lista
             })
             .catch(() => Swal.fire("Error", `Hubo un error al ${nuevaCategoria.id ? "actualizar" : "crear"} la categoría.`, "error"));
     };

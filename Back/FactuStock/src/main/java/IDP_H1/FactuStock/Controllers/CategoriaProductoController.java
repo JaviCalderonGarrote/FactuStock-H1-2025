@@ -1,6 +1,6 @@
 package IDP_H1.FactuStock.Controllers;
 
-import IDP_H1.FactuStock.Entities.CategoriaProducto;
+import IDP_H1.FactuStock.DTO.CategoriaProductoDTO;
 import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Services.CategoriaProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,25 +21,25 @@ public class CategoriaProductoController {
 
     // Obtener todas las categorías
     @GetMapping
-    public ResponseEntity<List<CategoriaProducto>> obtenerTodas() {
-        List<CategoriaProducto> categorias = categoriaProductoService.obtenerTodas();
+    public ResponseEntity<List<CategoriaProductoDTO>> obtenerTodas() {
+        List<CategoriaProductoDTO> categorias = categoriaProductoService.obtenerTodas();
         return new ResponseEntity<>(categorias, HttpStatus.OK);
     }
 
     // Obtener categoría por ID
     @GetMapping("/{id}")
-    public ResponseEntity<CategoriaProducto> obtenerPorId(@PathVariable Long id) {
-        Optional<CategoriaProducto> categoria = categoriaProductoService.obtenerPorId(id);
+    public ResponseEntity<CategoriaProductoDTO> obtenerPorId(@PathVariable Long id) {
+        Optional<CategoriaProductoDTO> categoria = categoriaProductoService.obtenerPorId(id);
         return categoria.map(ResponseEntity::ok)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     // Obtener categorías por organización
     @GetMapping("/organizacion/{organizacionId}")
-    public ResponseEntity<List<CategoriaProducto>> obtenerCategoriasPorOrganizacion(@PathVariable Long organizacionId) {
+    public ResponseEntity<List<CategoriaProductoDTO>> obtenerCategoriasPorOrganizacion(@PathVariable Long organizacionId) {
         Organizacion organizacion = new Organizacion();
         organizacion.setId(organizacionId);
-        List<CategoriaProducto> categorias = categoriaProductoService.obtenerCategoriasPorOrganizacion(organizacion);
+        List<CategoriaProductoDTO> categorias = categoriaProductoService.obtenerCategoriasPorOrganizacion(organizacion);
 
         if (categorias.isEmpty()) {
             // Puedes devolver una respuesta con un mensaje si la lista está vacía
@@ -49,21 +49,20 @@ public class CategoriaProductoController {
         return new ResponseEntity<>(categorias, HttpStatus.OK);
     }
 
-
     // Guardar nueva categoría
     @PostMapping
-    public ResponseEntity<CategoriaProducto> guardar(@RequestBody CategoriaProducto categoriaProducto) {
-        CategoriaProducto nuevaCategoria = categoriaProductoService.guardarCategoria(categoriaProducto);
+    public ResponseEntity<CategoriaProductoDTO> guardar(@RequestBody CategoriaProductoDTO categoriaProductoDTO) {
+        CategoriaProductoDTO nuevaCategoria = categoriaProductoService.guardarCategoria(categoriaProductoDTO);
         return new ResponseEntity<>(nuevaCategoria, HttpStatus.CREATED);
     }
 
     // Editar categoría por ID
     @PutMapping("/{id}")
-    public ResponseEntity<CategoriaProducto> editar(@PathVariable Long id, @RequestBody CategoriaProducto categoriaProducto) {
-        Optional<CategoriaProducto> categoriaExistente = categoriaProductoService.obtenerPorId(id);
+    public ResponseEntity<CategoriaProductoDTO> editar(@PathVariable Long id, @RequestBody CategoriaProductoDTO categoriaProductoDTO) {
+        Optional<CategoriaProductoDTO> categoriaExistente = categoriaProductoService.obtenerPorId(id);
         if (categoriaExistente.isPresent()) {
-            categoriaProducto.setId(id);
-            CategoriaProducto categoriaEditada = categoriaProductoService.guardarCategoria(categoriaProducto);
+            categoriaProductoDTO.setId(id);
+            CategoriaProductoDTO categoriaEditada = categoriaProductoService.guardarCategoria(categoriaProductoDTO);
             return new ResponseEntity<>(categoriaEditada, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -73,7 +72,7 @@ public class CategoriaProductoController {
     // Eliminar categoría por ID (Manejo de errores si tiene productos asociados)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> eliminar(@PathVariable Long id) {
-        Optional<CategoriaProducto> categoria = categoriaProductoService.obtenerPorId(id);
+        Optional<CategoriaProductoDTO> categoria = categoriaProductoService.obtenerPorId(id);
         if (categoria.isPresent()) {
             try {
                 categoriaProductoService.eliminarCategoria(id);

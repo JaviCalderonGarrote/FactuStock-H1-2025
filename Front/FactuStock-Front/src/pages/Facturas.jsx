@@ -3,7 +3,8 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaPlusCircle } from "react-icons/fa";
+import { FaSearch, FaPlusCircle, FaDownload } from "react-icons/fa";
+import { generarFacturaPDF } from "../utils/generarFacturaPDF.js";
 
 const FacturaComponent = () => {
     const [facturas, setFacturas] = useState([]);
@@ -11,7 +12,6 @@ const FacturaComponent = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [facturasPorPagina] = useState(9);
     const [searchQuery, setSearchQuery] = useState("");
-    const [organizacion, setOrganizacion] = useState(null);
     const [inputFocused, setInputFocused] = useState(false);
     const token = localStorage.getItem("authToken");
     const navigate = useNavigate();
@@ -21,6 +21,7 @@ const FacturaComponent = () => {
             setError("No se encontró un token de autenticación.");
             return;
         }
+
         const fetchData = async () => {
             try {
                 const decodedToken = JSON.parse(atob(token.split(".")[1]));
@@ -31,25 +32,19 @@ const FacturaComponent = () => {
                     return;
                 }
 
-                // Obtener usuario
                 const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                setOrganizacion(userResponse.data.organizacion);
-
-                // Obtener facturas para la organización
-                const facturasResponse = await axios.get(`http://localhost:8080/facturas/organizacion/${userResponse.data.organizacion.id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                // Verificar que las facturas fueron recibidas correctamente
-                console.log('Respuesta de facturas:', facturasResponse.data);
+                const facturasResponse = await axios.get(
+                    `http://localhost:8080/facturas/organizacion/${userResponse.data.organizacion.id}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
 
                 if (facturasResponse.data && Array.isArray(facturasResponse.data)) {
                     setFacturas(facturasResponse.data);
                 } else {
-                    setFacturas([]); // Si no hay facturas, simplemente establecemos un array vacío
+                    setFacturas([]);
                 }
 
             } catch (err) {
@@ -57,10 +52,27 @@ const FacturaComponent = () => {
                 console.error(err);
             }
         };
+
         fetchData();
     }, [token]);
 
-    // Filtrado de facturas
+    const handleDownload = async (facturaId) => {
+        try {
+            const response = await axios.get(`http://localhost:8080/facturas/${facturaId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (response.data) {
+                generarFacturaPDF(response.data);
+            } else {
+                Swal.fire("Error", "No se pudo obtener la factura.", "error");
+            }
+        } catch (error) {
+            console.error("Error al descargar la factura:", error);
+            Swal.fire("Error", "Ocurrió un problema al generar el PDF.", "error");
+        }
+    };
+
     const facturasFiltradas = facturas.filter(factura => {
         const valoresFactura = [
             factura.numeroFactura,
@@ -77,12 +89,7 @@ const FacturaComponent = () => {
         );
     });
 
-    // Ordenar las facturas de más reciente a más antigua
-    facturasFiltradas.sort((a, b) => {
-        const fechaA = new Date(a.fecha);
-        const fechaB = new Date(b.fecha);
-        return fechaB - fechaA;  // Ordenar de más reciente a más antigua
-    });
+    facturasFiltradas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
     const totalPages = Math.ceil(facturasFiltradas.length / facturasPorPagina);
     const facturasPaginadas = facturasFiltradas.slice(
@@ -94,24 +101,24 @@ const FacturaComponent = () => {
         <div className="d-flex">
             <Sidebar />
             <div className="container mt-4">
-                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>Facturas Emitidas</h2>
+                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>
+                    Facturas Emitidas
+                </h2>
 
                 {error ? (
                     <div className="alert alert-danger text-center">{error}</div>
                 ) : (
                     <>
-                        {/* Botón para crear nueva factura */}
                         <div className="d-flex justify-content-between mb-3">
                             <button
                                 className="btn d-flex align-items-center"
                                 style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
-                                onClick={() => navigate('/nueva-factura')}  // Redirigir al usuario a /nueva-factura
+                                onClick={() => navigate('/nueva-factura')}
                             >
                                 <FaPlusCircle className="me-2" />
                                 Crear nueva Factura
                             </button>
 
-                            {/* Campo de búsqueda */}
                             <div className="position-relative" style={{ width: "250px" }}>
                                 <input
                                     type="text"
@@ -141,7 +148,6 @@ const FacturaComponent = () => {
                             </div>
                         </div>
 
-                        {/* Tabla de Facturas */}
                         <div className="table-responsive">
                             <table className="table">
                                 <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
@@ -153,10 +159,11 @@ const FacturaComponent = () => {
                                     <th>Fecha</th>
                                     <th>Total</th>
                                     <th>Estado</th>
+                                    <th>Acción</th>
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {facturasPaginadas.length > 0 && facturasPaginadas.map((factura, index) => (
+                                {facturasPaginadas.map((factura, index) => (
                                     <tr key={factura.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
                                         <td>{factura.numeroFactura}</td>
                                         <td>{factura.empresaPersonaFisica?.nombre || 'N/A'}</td>
@@ -165,13 +172,21 @@ const FacturaComponent = () => {
                                         <td>{factura.fecha ? new Date(factura.fecha).toLocaleDateString() : 'N/A'}</td>
                                         <td>${factura.total?.toFixed(2) || '0.00'}</td>
                                         <td>{factura.estado}</td>
+                                        <td>
+                                            <button
+                                                className="btn btn-sm btn-outline-primary"
+                                                title="Descargar PDF"
+                                                onClick={() => handleDownload(factura.id)}
+                                            >
+                                                <FaDownload />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 </tbody>
                             </table>
                         </div>
 
-                        {/* Paginación */}
                         {totalPages > 1 && (
                             <nav aria-label="Page navigation">
                                 <ul className="pagination justify-content-center">

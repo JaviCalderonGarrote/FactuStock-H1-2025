@@ -23,27 +23,28 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173")
+                .allowedOrigins("http://localhost:5173")  // Actualiza el origen si es necesario
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(true);
+                .allowCredentials(true);  // Permitir cookies o credenciales si es necesario
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors().and()
-                .csrf().disable()
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/register").permitAll()
-                        .requestMatchers("/api/public/**").permitAll()
-                        .requestMatchers("/organizaciones/logo/**").permitAll() // Permitir acceso a /organizaciones/logo/**
-                        .requestMatchers("/img-logo/**").permitAll() // Permitir acceso directo a /img-logo/**
-                        .anyRequest().authenticated()
+                .csrf().disable()  // Desactivar CSRF, ya que usas JWT
+                .authorizeRequests(auth -> auth
+                        .requestMatchers("/auth/login", "/auth/register").permitAll()  // Rutas públicas de login y registro
+                        .requestMatchers("/api/public/**").permitAll()  // Otros endpoints públicos si los necesitas
+                        .requestMatchers("/auth/**", "/usuarios/forgot-password", "/usuarios/reset-password").permitAll()  // Rutas de recuperación de contraseña
+                        .requestMatchers("/organizaciones/logo/**").permitAll()  // Archivos de logos sin autenticación
+                        .requestMatchers("/img-logo/**").permitAll()  // Archivos de imágenes sin autenticación
+                        .anyRequest().authenticated()  // Resto de las rutas requieren autenticación
                 )
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-                .sessionManagement().disable();
+                .authenticationProvider(authenticationProvider)  // Usar el provider de autenticación personalizado
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)  // Agregar el filtro JWT
+                .sessionManagement().disable();  // Deshabilitar la gestión de sesión, ya que usas JWT
 
         return http.build();
     }

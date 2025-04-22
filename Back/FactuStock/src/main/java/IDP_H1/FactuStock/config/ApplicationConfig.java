@@ -27,7 +27,7 @@ public class ApplicationConfig {
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(userDetailService());
+        authenticationProvider.setUserDetailsService(userDetailsService()); // 👈 usamos el método corregido
         authenticationProvider.setPasswordEncoder(passwordEncoder());
         return authenticationProvider;
     }
@@ -38,8 +38,8 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailService() {
-        return username -> userRepository.findByUsername(username)
+    public UserDetailsService userDetailsService() {
+        return username -> userRepository.findByUsernameIgnoreCase(username.toLowerCase()) // 👈 CORREGIDO
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 }

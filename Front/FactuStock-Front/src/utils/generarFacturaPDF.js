@@ -31,7 +31,7 @@ export const generarFacturaPDF = async (factura) => {
             const base64Logo = reader.result;
 
             // Usamos addImage para incluir el logo en el PDF
-            doc.addImage(base64Logo, 'PNG', 10, 10, 40, 40); // Ajustar la posición y el tamaño del logo
+            doc.addImage(base64Logo, 'PNG', 20, 20, 50, 50);
             y = 55; // Ajustar la posición después del logo
             agregarContenidoFactura(doc, factura, y);
             // Descargar el PDF después de agregar el contenido
@@ -52,28 +52,38 @@ const agregarContenidoFactura = (doc, factura, y) => {
     const cliente = factura.empresaPersonaFisica;
     const detalles = factura.detalles;
 
-    // Encabezado de la factura
-    doc.setFontSize(24);
-    doc.setFont('times', 'bold');
-    doc.text(`Factura Nº ${factura.numeroFactura}`, 105, y, null, null, 'center');
-    y += 20;
+    // Datos de la empresa (logo y nombre)
+    const logoX = 10;
+    const logoY = 10;
+    const logoWidth = 40;
+    const logoHeight = 40;
 
-    // Datos de la organización (empresa)
-    doc.setFontSize(14);
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("Datos de la Empresa", 14, y);
-    y += 10;
+    const empresaNombre = organizacion.nombre || 'Nombre de la Empresa';
+    doc.text(empresaNombre, 60, 20); // Nombre de la empresa al lado del logo
+
+    // Datos de la empresa a la derecha del logo (alineados a la derecha)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Nombre: ${organizacion.nombre || 'N/A'}`, 14, y);
-    y += 6;
-    doc.text(`Dirección: ${organizacion.direccion || 'N/A'}`, 14, y);
-    y += 6;
-    doc.text(`Teléfono: ${organizacion.telefono || 'N/A'}`, 14, y);
-    y += 6;
-    doc.text(`Email: ${organizacion.email || 'N/A'}`, 14, y);
-    y += 6;
-    doc.text(`CIF/NIF: ${organizacion.nifCif || 'N/A'}`, 14, y);
+    const empresaDatos = [
+        `Dirección: ${organizacion.direccion || 'N/A'}`,
+        `Teléfono: ${organizacion.telefono || 'N/A'}`,
+        `Email: ${organizacion.email || 'N/A'}`,
+        `CIF/NIF: ${organizacion.nifCif || 'N/A'}`
+    ];
+
+    let currentY = 30;
+    empresaDatos.forEach((line, index) => {
+        doc.text(line, 160, currentY + (index * 6)); // Ajustamos para que esté más a la derecha
+    });
+
+    y = 70; // Comenzamos después de la cabecera
+
+    // Título de la factura (en negrita)
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Factura Nº ${factura.numeroFactura}`, 105, y, null, null, 'center'); // En negrita y centrado
     y += 20;
 
     // Datos del cliente
@@ -133,7 +143,5 @@ const agregarContenidoFactura = (doc, factura, y) => {
     doc.setFont('helvetica', 'bold');
     doc.text(`Total Factura: ${factura.total.toFixed(2)} €`, 14, finalY);
 
-
-
-doc.save(`factura_${factura.numeroFactura}.pdf`);
+    doc.save(`factura_${factura.numeroFactura}.pdf`);
 };

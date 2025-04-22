@@ -1,4 +1,5 @@
 package IDP_H1.FactuStock.Auth;
+
 import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Entities.Rol;
 import lombok.AllArgsConstructor;

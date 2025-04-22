@@ -11,6 +11,8 @@ import Perfil from "./pages/Perfil.jsx";
 import Clientes from "./pages/Clientes.jsx";
 import './assets/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import ResetPassword from "./pages/ResetPassword.jsx";
+import Registro from "./pages/Registro.jsx";
 
 const App = () => {
     return (
@@ -25,6 +27,8 @@ const App = () => {
             <Route path="/profile" element={<Perfil />} />
             <Route path="/clients" element={<Clientes />} />
             <Route path="/facturas" element={<Facturas />} />
+            <Route path="/usuarios/reset-password" element={<ResetPassword />} />
+            <Route path="/registro/" element={<Registro />} />
             <Route path="/nueva-factura" element={<NuevaFacturaComponent />} />
         </Routes>
     );

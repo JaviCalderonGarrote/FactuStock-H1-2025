@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -21,7 +21,9 @@ const Sidebar = () => {
       <aside id="sidebar">
         <div className="d-flex">
           <button className="toggle-btn" type="button">
-            <i className="fas fa-bars"></i>
+            <Link to="/home">            <img src="/LOGO-Letras.png" alt="Logo" style={{ height: "40px" }} />
+            </Link>
+
           </button>
           <div className="sidebar-logo">
             <Link to="/home">FactuStock</Link>

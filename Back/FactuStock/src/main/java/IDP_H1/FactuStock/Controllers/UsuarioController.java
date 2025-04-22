@@ -97,4 +97,45 @@ public class UsuarioController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al cambiar la contraseña. Verifique la contraseña actual.");
         }
     }
+
+    // Recuperar contraseña
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> request) {
+        String usernameOrEmail = request.get("usernameOrEmail");
+
+        // Buscar por username
+        Optional<Usuario> usuarioOpt = usuarioService.obtenerPorUsername(usernameOrEmail);
+
+        // Si no lo encontramos por username, buscar por email
+        if (usuarioOpt.isEmpty()) {
+            usuarioOpt = usuarioService.obtenerPorEmail(usernameOrEmail);
+        }
+
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            String token = usuarioService.generatePasswordResetToken(usuario);
+
+            // Enviar el correo con el enlace de recuperación
+            usuarioService.sendPasswordResetEmail(usuario, token);
+            return ResponseEntity.ok("Se ha enviado un correo con instrucciones para cambiar la contraseña.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
+        }
+    }
+
+    // Restablecer contraseña con el token
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("newPassword");
+
+        // Llamar al servicio para restablecer la contraseña
+        boolean result = usuarioService.resetPasswordWithToken(token, newPassword);
+
+        if (result) {
+            return ResponseEntity.ok("Contraseña restablecida exitosamente.");
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El token es inválido o ha expirado.");
+        }
+    }
 }

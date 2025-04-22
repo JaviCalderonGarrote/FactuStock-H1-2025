@@ -1,11 +1,8 @@
 package IDP_H1.FactuStock.Auth;
 
-import IDP_H1.FactuStock.Auth.AuthResponse;
-import IDP_H1.FactuStock.Auth.LoginRequest;
-import IDP_H1.FactuStock.Auth.RegisterRequest;
+import IDP_H1.FactuStock.Entities.Organizacion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.CrossOrigin;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

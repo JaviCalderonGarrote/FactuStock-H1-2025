@@ -51,6 +51,10 @@ public class Usuario implements UserDetails {
     @ManyToOne
     private Organizacion organizacion;
 
+    // Campo para el token de recuperación de contraseña
+    @Column
+    private String passwordResetToken;
+
     @Override
     @JsonIgnore // Evita problemas de serialización
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -92,5 +96,14 @@ public class Usuario implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    // Métodos adicionales para gestionar el token de recuperación de contraseña
+    public String getPasswordResetToken() {
+        return passwordResetToken;
+    }
+
+    public void setPasswordResetToken(String passwordResetToken) {
+        this.passwordResetToken = passwordResetToken;
     }
 }

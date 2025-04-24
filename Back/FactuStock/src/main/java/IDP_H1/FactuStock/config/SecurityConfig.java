@@ -39,7 +39,9 @@ public class SecurityConfig implements WebMvcConfigurer {
                         .requestMatchers("/api/public/**").permitAll()  // Otros endpoints públicos si los necesitas
                         .requestMatchers("/auth/**", "/usuarios/forgot-password", "/usuarios/reset-password").permitAll()  // Rutas de recuperación de contraseña
                         .requestMatchers("/organizaciones/logo/**").permitAll()  // Archivos de logos sin autenticación
+                        .requestMatchers("/api/email/enviar").permitAll()  // Archivos de imágenes sin autenticación
                         .requestMatchers("/img-logo/**").permitAll()  // Archivos de imágenes sin autenticación
+
                         .anyRequest().authenticated()  // Resto de las rutas requieren autenticación
                 )
                 .authenticationProvider(authenticationProvider)  // Usar el provider de autenticación personalizado

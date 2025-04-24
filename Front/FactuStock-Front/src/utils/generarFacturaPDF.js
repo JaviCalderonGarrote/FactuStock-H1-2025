@@ -143,5 +143,4 @@ const agregarContenidoFactura = (doc, factura, y) => {
     doc.setFont('helvetica', 'bold');
     doc.text(`Total Factura: ${factura.total.toFixed(2)} €`, 14, finalY);
 
-    doc.save(`factura_${factura.numeroFactura}.pdf`);
 };

@@ -13,6 +13,7 @@ import './assets/styles.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import ResetPassword from "./pages/ResetPassword.jsx";
 import Registro from "./pages/Registro.jsx";
+import Mail from "./pages/Mail.jsx";
 
 const App = () => {
     return (
@@ -30,6 +31,8 @@ const App = () => {
             <Route path="/usuarios/reset-password" element={<ResetPassword />} />
             <Route path="/registro/" element={<Registro />} />
             <Route path="/nueva-factura" element={<NuevaFacturaComponent />} />
+                <Route path="/mail" element={<Mail />} />
+
         </Routes>
     );
 };

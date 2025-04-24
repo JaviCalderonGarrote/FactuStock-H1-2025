@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 
 const Sidebar = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("Usuario"); // Valor por defecto
+  const [username, setUsername] = useState("Usuario");
 
   useEffect(() => {
     const storedUsername = localStorage.getItem("username");
@@ -21,9 +21,9 @@ const Sidebar = () => {
       <aside id="sidebar">
         <div className="d-flex">
           <button className="toggle-btn" type="button">
-            <Link to="/home">            <img src="/LOGO-Letras.png" alt="Logo" style={{ height: "40px" }} />
+            <Link to="/home">
+              <img src="/LOGO-Letras.png" alt="Logo" style={{ height: "40px" }} />
             </Link>
-
           </button>
           <div className="sidebar-logo">
             <Link to="/home">FactuStock</Link>
@@ -83,7 +83,7 @@ const Sidebar = () => {
           <li className="sidebar-item">
             <Link to="/organización" className="sidebar-link">
               <i className="fas fa-sitemap"></i>
-              <span>Organizacion</span>
+              <span>Organización</span>
             </Link>
           </li>
           <li className="sidebar-item">
@@ -96,6 +96,12 @@ const Sidebar = () => {
             <Link to="/cash-register" className="sidebar-link">
               <i className="fas fa-cash-register"></i>
               <span>Caja</span>
+            </Link>
+          </li>
+          <li className="sidebar-item">
+            <Link to="/mail" className="sidebar-link">
+              <i className="fas fa-envelope"></i>
+              <span>Mail</span>
             </Link>
           </li>
         </ul>

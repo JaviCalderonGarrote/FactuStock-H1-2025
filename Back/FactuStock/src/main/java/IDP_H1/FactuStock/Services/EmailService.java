@@ -1,10 +1,13 @@
 package IDP_H1.FactuStock.Services;
 
-import IDP_H1.FactuStock.Entities.Usuario;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class EmailService {
@@ -12,16 +15,23 @@ public class EmailService {
     @Autowired
     private JavaMailSender mailSender;
 
-    public void sendPasswordResetEmail(Usuario usuario, String token) {
-        String resetUrl = "http://localhost:5173/reset-password?token=" + token;
-        String subject = "Solicitud de Cambio de Contraseña";
-        String body = "Para cambiar tu contraseña, por favor haz clic en el siguiente enlace: " + resetUrl;
+    public void enviarCorreoConAdjunto(String to, String subject, String body, MultipartFile adjunto) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true);
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(usuario.getMail());
-        message.setSubject(subject);
-        message.setText(body);
+            helper.setTo(to);
+            helper.setSubject(subject);
+            helper.setText(body, true); // true indica que el cuerpo es HTML
 
-        mailSender.send(message);
+            if (adjunto != null && !adjunto.isEmpty()) {
+                helper.addAttachment(adjunto.getOriginalFilename(), adjunto);
+            }
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+            // Aquí puedes registrar el error o lanzar una excepción personalizada si lo deseas
+        }
     }
 }

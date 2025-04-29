@@ -29,7 +29,6 @@ const NuevaFacturaComponent = () => {
     const [usuario, setUsuario] = useState(null);
     const [productos, setProductos] = useState([]);
     const [error, setError] = useState(null);
-    const [modalOpen, setModalOpen] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [productoSeleccionado, setProductoSeleccionado] = useState(null);
     const [cantidad, setCantidad] = useState(1);
@@ -39,7 +38,7 @@ const NuevaFacturaComponent = () => {
         cantidad: 1,
         precio: 0,
     });
-    const [isProducto, setIsProducto] = useState(true); // Estado para alternar entre producto o detalle personalizado
+    const [isProducto, setIsProducto] = useState(true);
     const token = localStorage.getItem("authToken");
 
     const decodeToken = (token) => {
@@ -110,7 +109,6 @@ const NuevaFacturaComponent = () => {
         setFactura({ ...factura, [name]: value });
     };
 
-    // Función para calcular el subtotal
     const calcularSubtotal = (cantidad, precio) => {
         return cantidad * precio;
     };
@@ -123,7 +121,7 @@ const NuevaFacturaComponent = () => {
             detalle = {
                 producto: productoSeleccionado,
                 cantidad,
-                precioUnitario: parseFloat(productoSeleccionado.precio), // Asegurarnos que sea un número
+                precioUnitario: parseFloat(productoSeleccionado.precio),
                 iva: productoSeleccionado.iva,
                 subtotal,
             };
@@ -132,7 +130,7 @@ const NuevaFacturaComponent = () => {
             detalle = {
                 nombre: detalleMano.nombre,
                 cantidad: detalleMano.cantidad,
-                precioUnitario: parseFloat(detalleMano.precio), // Asegurarnos que sea un número
+                precioUnitario: parseFloat(detalleMano.precio),
                 iva: detalleMano.iva,
                 subtotal,
             };
@@ -152,7 +150,7 @@ const NuevaFacturaComponent = () => {
         setModalVisible(false);
 
         setDetalleMano({ nombre: "", iva: 21, cantidad: 1, precio: 0 });
-        setCantidad(1); // Reset cantidad a 1
+        setCantidad(1);
     };
 
     const handleRemoveDetalle = (index) => {
@@ -180,6 +178,15 @@ const NuevaFacturaComponent = () => {
             return;
         }
 
+        // Mostrar indicador de carga
+        Swal.fire({
+            title: 'Creando factura...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         try {
             const fechaFactura = new Date(factura.fecha);
             const year = fechaFactura.getFullYear() % 100;
@@ -194,8 +201,7 @@ const NuevaFacturaComponent = () => {
 
             const organizacionId = organizacion?.id;
             if (!organizacionId) {
-                Swal.fire("Error", "No se encontró el ID de la organización.", "error");
-                return;
+                throw new Error("No se encontró el ID de la organización.");
             }
 
             const numeroFactura = `Fac_${organizacionId}_${String(year).padStart(2, "0")}/${String(month).padStart(2, "0")}/${String(sequence).padStart(5, "0")}`;
@@ -216,10 +222,25 @@ const NuevaFacturaComponent = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            Swal.fire("Éxito", "Factura creada correctamente.", "success").then(() => {
-                navigate("/facturas");
+            // Cerrar el indicador de carga
+            Swal.close();
+
+            // Navegar inmediatamente
+            navigate("/facturas");
+
+            // Mostrar el mensaje de éxito después de la navegación
+            Swal.fire({
+                title: "Éxito",
+                text: "Factura creada correctamente.",
+                icon: "success",
+                timer: 2000,
+                showConfirmButton: false
             });
+
         } catch (err) {
+            // Cerrar el indicador de carga
+            Swal.close();
+
             Swal.fire("Error", err.response?.data?.message || "Hubo un problema al crear la factura.", "error");
         }
     };
@@ -320,7 +341,6 @@ const NuevaFacturaComponent = () => {
                                             </tr>
                                         ))}
                                         </tbody>
-
                                     </table>
                                     <div className="text-end">
                                         <h5>Total: <strong>{factura.total.toFixed(2)}€</strong></h5>
@@ -339,7 +359,7 @@ const NuevaFacturaComponent = () => {
 
                 {modalVisible && (
                     <div className="modal fade show" style={{ display: "block" }} tabIndex="-1" aria-hidden="true">
-                        <div className="modal-dialog modal-lg"> {/* Modal más grande */}
+                        <div className="modal-dialog modal-lg">
                             <div className="modal-content">
                                 <div className="modal-header" style={{ backgroundColor: "#a7c5eb", color: "#fff" }}>
                                     <h5 className="modal-title">Seleccionar Producto o Detalle Personalizado</h5>
@@ -351,13 +371,13 @@ const NuevaFacturaComponent = () => {
                                         <div className="d-flex justify-content-start gap-3">
                                             <button
                                                 className="btn btn-secondary btn-lg"
-                                                onClick={() => setIsProducto(true)} // Muestra los productos
+                                                onClick={() => setIsProducto(true)}
                                             >
                                                 Producto
                                             </button>
                                             <button
                                                 className="btn btn-secondary btn-lg"
-                                                onClick={() => setIsProducto(false)} // Muestra el detalle personalizado
+                                                onClick={() => setIsProducto(false)}
                                             >
                                                 Detalle Personalizado
                                             </button>
@@ -468,8 +488,6 @@ const NuevaFacturaComponent = () => {
                         </div>
                     </div>
                 )}
-
-
             </div>
         </div>
     );

@@ -24,7 +24,7 @@ public class UsuarioService {
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
-    private JavaMailSender mailSender;  // Inyectamos JavaMailSender
+    private JavaMailSender mailSender;
 
     // Obtener todos los usuarios
     public List<Usuario> obtenerTodos() {
@@ -43,7 +43,7 @@ public class UsuarioService {
 
     // Obtener usuario por email
     public Optional<Usuario> obtenerPorEmail(String mail) {
-        return repository.findByMail(mail);  // Cambiado a findByMail
+        return repository.findByMail(mail);
     }
 
     // Guardar o actualizar usuario
@@ -62,60 +62,91 @@ public class UsuarioService {
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
 
-            // Verificar la contraseña actual
             if (!passwordEncoder.matches(oldPassword, usuario.getPassword())) {
-                return false; // La contraseña actual no coincide
+                return false;
             }
 
-            // Codificar la nueva contraseña
             usuario.setPassword(passwordEncoder.encode(newPassword));
-
-            // Guardar usuario con la nueva contraseña
             repository.save(usuario);
             return true;
         }
-        return false; // Usuario no encontrado
+        return false;
     }
 
-    // Método para generar un token para la recuperación de contraseña
+    // Generar token para recuperación de contraseña
     public String generatePasswordResetToken(Usuario usuario) {
         String token = UUID.randomUUID().toString();
-        usuario.setPasswordResetToken(token); // Necesitas agregar este campo en la entidad Usuario
+        usuario.setPasswordResetToken(token);
         repository.save(usuario);
         return token;
     }
 
-    // Método para resetear la contraseña con el token
+    // Resetear contraseña con token
     public boolean resetPasswordWithToken(String token, String newPassword) {
         Optional<Usuario> usuarioOpt = repository.findByPasswordResetToken(token);
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
             usuario.setPassword(passwordEncoder.encode(newPassword));
-            usuario.setPasswordResetToken(null); // Limpiar el token
+            usuario.setPasswordResetToken(null);
             repository.save(usuario);
             return true;
         }
-        return false; // Token no válido
+        return false;
     }
 
-    // Método para enviar un correo con el token para la recuperación de la contraseña
+    // Enviar correo para recuperación de contraseña
     public void sendPasswordResetEmail(Usuario usuario, String token) {
-        String resetUrl = "http://localhost:5173/usuarios/reset-password?token=" + token; // URL de tu API para el reset
+        String resetUrl = "http://localhost:5173/usuarios/reset-password?token=" + token;
         String subject = "Recuperación de Contraseña";
-        String text = "Hola " + usuario.getNombre() + ",\n\n" +
-                "Hemos recibido una solicitud para restablecer tu contraseña. Si fuiste tú, por favor haz clic en el siguiente enlace para cambiar tu contraseña:\n\n" +
-                resetUrl + "\n\n" +
-                "Si no solicitaste este cambio, por favor ignora este mensaje.";
+
+        String mensaje = "<html>" +
+                "<head>" +
+                "<style>" +
+                "body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; color: #333; }" +
+                ".container { max-width: 600px; margin: 30px auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); }" +
+                ".header { background-color: #2E6DA4; color: #ffffff; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }" +
+                ".header h2 { margin: 0; font-size: 24px; }" +
+                ".footer { font-size: 12px; color: #888; text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e1e1e1; }" +
+                ".content { padding: 20px; }" +
+                ".content h3 { color: #2E6DA4; font-size: 18px; }" +
+                ".content ul { padding-left: 20px; }" +
+                ".content li { margin-bottom: 10px; }" +
+                ".button { display: inline-block; padding: 10px 20px; background-color: #2E6DA4; color: #fff; text-decoration: none; border-radius: 5px; margin-top: 20px; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "<div class='container'>" +
+                "<div class='header'>" +
+                "<h2>Recuperación de Contraseña</h2>" +
+                "</div>" +
+                "<div class='content'>" +
+                "<p>Estimado/a <strong>" + usuario.getNombre() + "</strong>,</p>" +
+                "<p>Hemos recibido una solicitud para restablecer tu contraseña. Si fuiste tú, por favor haz clic en el siguiente botón para cambiar tu contraseña:</p>" +
+                "<a href='" + resetUrl + "' class='button'>Restablecer Contraseña</a>" +
+                "<p>Si no solicitaste este cambio, por favor ignora este mensaje.</p>" +
+                "<p>Este enlace expirará en 24 horas por razones de seguridad.</p>" +
+                "<p>Si tienes alguna pregunta o necesitas ayuda adicional, no dudes en ponerte en contacto con nuestro equipo de soporte.</p>" +
+                "<p>Atentamente,</p>" +
+                "<p><strong>El equipo de Soporte</strong></p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "<p>----------------------------------------------------------</p>" +
+                "<p><strong>AVISO DE SEGURIDAD:</strong> Nunca compartas tu contraseña con nadie. Nuestro equipo nunca te pedirá tu contraseña.</p>" +
+                "<p><strong>PROTECCIÓN DE DATOS:</strong> De conformidad con lo dispuesto en el Reglamento (UE) 2016/679, le informamos de que los datos personales y la dirección de correo electrónico del interesado serán tratados únicamente para los fines de esta solicitud.</p>" +
+                "</div>" +
+                "</div>" +
+                "</body>" +
+                "</html>";
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage);
+        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
 
         try {
             helper.setTo(usuario.getMail());
             helper.setSubject(subject);
-            helper.setText(text);
+            helper.setText(mensaje, true);  // Set to true to send HTML content
 
-            mailSender.send(mimeMessage);  // Enviar el correo
+            mailSender.send(mimeMessage);
         } catch (MessagingException e) {
             e.printStackTrace();
             // Manejar el error de envío de correo

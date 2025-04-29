@@ -4,7 +4,6 @@ import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
 import { FaSearch, FaPlusCircle, FaDownload } from "react-icons/fa";
-import { generarFacturaPDF } from "../utils/generarFacturaPDF.js";
 
 const FacturaComponent = () => {
     const [facturas, setFacturas] = useState([]);
@@ -58,18 +57,25 @@ const FacturaComponent = () => {
 
     const handleDownload = async (facturaId) => {
         try {
-            const response = await axios.get(`http://localhost:8080/facturas/${facturaId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+            const response = await axios.get(`http://localhost:8080/facturas/${facturaId}/pdf`, {
+                headers: { Authorization: `Bearer ${token}` },
+                responseType: 'blob' // Importante para recibir datos binarios
             });
 
-            if (response.data) {
-                generarFacturaPDF(response.data);
-            } else {
-                Swal.fire("Error", "No se pudo obtener la factura.", "error");
-            }
+            // Crear un blob con los datos recibidos
+            const blob = new Blob([response.data], { type: 'application/pdf' });
+
+            // Crear un enlace temporal y hacer clic en él para descargar
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `Factura_${facturaId}.pdf`;
+            link.click();
+
+            // Limpieza
+            window.URL.revokeObjectURL(link.href);
         } catch (error) {
             console.error("Error al descargar la factura:", error);
-            Swal.fire("Error", "Ocurrió un problema al generar el PDF.", "error");
+            Swal.fire("Error", "Ocurrió un problema al descargar el PDF.", "error");
         }
     };
 
@@ -170,7 +176,7 @@ const FacturaComponent = () => {
                                         <td>{factura.usuario?.username || 'N/A'}</td>
                                         <td>{factura.formaPago || 'N/A'}</td>
                                         <td>{factura.fecha ? new Date(factura.fecha).toLocaleDateString() : 'N/A'}</td>
-                                        <td>${factura.total?.toFixed(2) || '0.00'}</td>
+                                        <td>{factura.total?.toFixed(2) || '0.00'}€</td>
                                         <td>{factura.estado}</td>
                                         <td>
                                             <button

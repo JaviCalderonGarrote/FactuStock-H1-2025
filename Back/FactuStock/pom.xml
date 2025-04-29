@@ -28,6 +28,12 @@
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-mock</artifactId>
+			<version>2.0.8</version>
+		</dependency>
+
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
 		</dependency>
@@ -35,6 +41,20 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+			<!-- iText 7 Core -->
+			<dependency>
+				<groupId>com.itextpdf</groupId>
+				<artifactId>itext7-core</artifactId>
+				<version>7.2.5</version>
+				<type>pom</type>
+			</dependency>
+
+			<!-- iText 7 pdfHTML -->
+			<dependency>
+				<groupId>com.itextpdf</groupId>
+				<artifactId>html2pdf</artifactId>
+				<version>4.0.5</version>
+			</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
@@ -88,6 +108,17 @@
 			<artifactId>jakarta.mail-api</artifactId>
 			<version>2.1.3</version>
 		</dependency>
+		<dependency>
+			<groupId>org.xhtmlrenderer</groupId>
+			<artifactId>flying-saucer-pdf</artifactId>
+			<version>9.1.22</version>
+		</dependency>
+		<dependency>
+			<groupId>com.lowagie</groupId>
+			<artifactId>itext</artifactId>
+			<version>2.1.7</version>
+		</dependency>
+
 		<dependency>
 			<groupId>org.eclipse.angus</groupId>
 			<artifactId>angus-mail</artifactId>

@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
 import Select from "react-select";
+import { Pagination } from 'react-bootstrap';
 
 const convertToISOFormat = (date) => {
     const dateObj = new Date(date);
@@ -29,7 +30,6 @@ const NuevaFacturaComponent = () => {
     const [usuario, setUsuario] = useState(null);
     const [productos, setProductos] = useState([]);
     const [error, setError] = useState(null);
-    const [modalOpen, setModalOpen] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [productoSeleccionado, setProductoSeleccionado] = useState(null);
     const [cantidad, setCantidad] = useState(1);
@@ -39,7 +39,10 @@ const NuevaFacturaComponent = () => {
         cantidad: 1,
         precio: 0,
     });
-    const [isProducto, setIsProducto] = useState(true); // Estado para alternar entre producto o detalle personalizado
+    const [isProducto, setIsProducto] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const detallesPorPagina = 4;
+
     const token = localStorage.getItem("authToken");
 
     const decodeToken = (token) => {
@@ -110,7 +113,6 @@ const NuevaFacturaComponent = () => {
         setFactura({ ...factura, [name]: value });
     };
 
-    // Función para calcular el subtotal
     const calcularSubtotal = (cantidad, precio) => {
         return cantidad * precio;
     };
@@ -123,7 +125,7 @@ const NuevaFacturaComponent = () => {
             detalle = {
                 producto: productoSeleccionado,
                 cantidad,
-                precioUnitario: parseFloat(productoSeleccionado.precio), // Asegurarnos que sea un número
+                precioUnitario: parseFloat(productoSeleccionado.precio),
                 iva: productoSeleccionado.iva,
                 subtotal,
             };
@@ -132,7 +134,7 @@ const NuevaFacturaComponent = () => {
             detalle = {
                 nombre: detalleMano.nombre,
                 cantidad: detalleMano.cantidad,
-                precioUnitario: parseFloat(detalleMano.precio), // Asegurarnos que sea un número
+                precioUnitario: parseFloat(detalleMano.precio),
                 iva: detalleMano.iva,
                 subtotal,
             };
@@ -140,7 +142,18 @@ const NuevaFacturaComponent = () => {
 
         if (!detalle) return;
 
-        const nuevosDetalles = [...factura.detalles, detalle];
+        const nuevosDetalles = [...factura.detalles];
+        const detalleExistente = nuevosDetalles.findIndex(d =>
+            d.producto?.id === detalle.producto?.id || d.nombre === detalle.nombre
+        );
+
+        if (detalleExistente !== -1) {
+            nuevosDetalles[detalleExistente].cantidad += detalle.cantidad;
+            nuevosDetalles[detalleExistente].subtotal += detalle.subtotal;
+        } else {
+            nuevosDetalles.push(detalle);
+        }
+
         const totalFactura = nuevosDetalles.reduce((total, detalle) => total + detalle.subtotal, 0);
 
         setFactura({
@@ -150,16 +163,12 @@ const NuevaFacturaComponent = () => {
         });
 
         setModalVisible(false);
-
-        setDetalleMano({ nombre: "", iva: 21, cantidad: 1, precio: 0 });
-        setCantidad(1); // Reset cantidad a 1
+        resetModal();
     };
 
     const handleRemoveDetalle = (index) => {
         const nuevosDetalles = factura.detalles.filter((_, i) => i !== index);
-
         const totalFactura = nuevosDetalles.reduce((total, detalle) => total + detalle.subtotal, 0);
-
         setFactura({ ...factura, detalles: nuevosDetalles, total: totalFactura });
     };
 
@@ -180,6 +189,14 @@ const NuevaFacturaComponent = () => {
             return;
         }
 
+        Swal.fire({
+            title: 'Creando factura...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
         try {
             const fechaFactura = new Date(factura.fecha);
             const year = fechaFactura.getFullYear() % 100;
@@ -194,8 +211,7 @@ const NuevaFacturaComponent = () => {
 
             const organizacionId = organizacion?.id;
             if (!organizacionId) {
-                Swal.fire("Error", "No se encontró el ID de la organización.", "error");
-                return;
+                throw new Error("No se encontró el ID de la organización.");
             }
 
             const numeroFactura = `Fac_${organizacionId}_${String(year).padStart(2, "0")}/${String(month).padStart(2, "0")}/${String(sequence).padStart(5, "0")}`;
@@ -216,13 +232,40 @@ const NuevaFacturaComponent = () => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            Swal.fire("Éxito", "Factura creada correctamente.", "success").then(() => {
-                navigate("/facturas");
+            Swal.close();
+            navigate("/facturas");
+
+            Swal.fire({
+                title: "Éxito",
+                text: "Factura creada correctamente.",
+                icon: "success",
+                timer: 2000,
+                showConfirmButton: false
             });
+
         } catch (err) {
+            Swal.close();
             Swal.fire("Error", err.response?.data?.message || "Hubo un problema al crear la factura.", "error");
         }
     };
+
+    const resetModal = () => {
+        setProductoSeleccionado(null);
+        setCantidad(1);
+        setDetalleMano({ nombre: "", iva: 21, cantidad: 1, precio: 0 });
+        setIsProducto(true);
+    };
+
+    const handleCloseModal = () => {
+        setModalVisible(false);
+        resetModal();
+    };
+
+    const indexOfLastDetalle = currentPage * detallesPorPagina;
+    const indexOfFirstDetalle = indexOfLastDetalle - detallesPorPagina;
+    const currentDetalles = factura.detalles.slice(indexOfFirstDetalle, indexOfLastDetalle);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
         <div className="d-flex">
@@ -302,7 +345,7 @@ const NuevaFacturaComponent = () => {
                                         </tr>
                                         </thead>
                                         <tbody>
-                                        {factura.detalles.map((detalle, index) => (
+                                        {currentDetalles.map((detalle, index) => (
                                             <tr key={index}>
                                                 <td>{detalle.nombre || detalle.producto?.nombre}</td>
                                                 <td>{detalle.cantidad}</td>
@@ -311,8 +354,8 @@ const NuevaFacturaComponent = () => {
                                                 <td>
                                                     <button
                                                         type="button"
-                                                        className="btn btn-danger"
-                                                        onClick={() => handleRemoveDetalle(index)}
+                                                        className="btn btn-danger btn-sm"
+                                                        onClick={() => handleRemoveDetalle(indexOfFirstDetalle + index)}
                                                     >
                                                         Eliminar
                                                     </button>
@@ -320,9 +363,17 @@ const NuevaFacturaComponent = () => {
                                             </tr>
                                         ))}
                                         </tbody>
-
                                     </table>
-                                    <div className="text-end">
+                                    <div className="d-flex justify-content-center align-items-center mt-3">
+                                        <Pagination>
+                                            {[...Array(Math.ceil(factura.detalles.length / detallesPorPagina)).keys()].map(number => (
+                                                <Pagination.Item key={number + 1} active={number + 1 === currentPage} onClick={() => paginate(number + 1)}>
+                                                    {number + 1}
+                                                </Pagination.Item>
+                                            ))}
+                                        </Pagination>
+                                    </div>
+                                    <div className="text-end mt-3">
                                         <h5>Total: <strong>{factura.total.toFixed(2)}€</strong></h5>
                                     </div>
                                 </div>
@@ -330,7 +381,7 @@ const NuevaFacturaComponent = () => {
                         )}
 
                         <div className="col-12 mb-3">
-                            <button type="submit" className="btn btn-primary" style={{ width: "100%" }}>
+                            <button type="submit" className="btn" style={{ backgroundColor: "#a7c5eb", width: "100%" }}>
                                 Crear Factura
                             </button>
                         </div>
@@ -339,25 +390,27 @@ const NuevaFacturaComponent = () => {
 
                 {modalVisible && (
                     <div className="modal fade show" style={{ display: "block" }} tabIndex="-1" aria-hidden="true">
-                        <div className="modal-dialog modal-lg"> {/* Modal más grande */}
+                        <div className="modal-dialog modal-lg">
                             <div className="modal-content">
                                 <div className="modal-header" style={{ backgroundColor: "#a7c5eb", color: "#fff" }}>
-                                    <h5 className="modal-title">Seleccionar Producto o Detalle Personalizado</h5>
-                                    <button type="button" className="btn-close" onClick={() => setModalVisible(false)}></button>
+                                    <h5 className="modal-title">Añadir Detalle a la Factura</h5>
+                                    <button type="button" className="btn-close" onClick={handleCloseModal}></button>
                                 </div>
                                 <div className="modal-body">
-                                    <div className="form-group mb-3">
-                                        <label htmlFor="productoSelect">Tipo de Detalle</label>
-                                        <div className="d-flex justify-content-start gap-3">
+                                    <div className="form-group mb-4">
+                                        <label className="mb-2">Tipo de Detalle</label>
+                                        <div className="btn-group w-100" role="group">
                                             <button
-                                                className="btn btn-secondary btn-lg"
-                                                onClick={() => setIsProducto(true)} // Muestra los productos
+                                                type="button"
+                                                className={`btn ${isProducto ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setIsProducto(true)}
                                             >
                                                 Producto
                                             </button>
                                             <button
-                                                className="btn btn-secondary btn-lg"
-                                                onClick={() => setIsProducto(false)} // Muestra el detalle personalizado
+                                                type="button"
+                                                className={`btn ${!isProducto ? 'btn-primary' : 'btn-outline-primary'}`}
+                                                onClick={() => setIsProducto(false)}
                                             >
                                                 Detalle Personalizado
                                             </button>
@@ -381,7 +434,7 @@ const NuevaFacturaComponent = () => {
                                             </div>
 
                                             {productoSeleccionado && (
-                                                <div className="mt-3">
+                                                <div className="mt-3 p-3 border rounded">
                                                     <h5>Detalles del Producto</h5>
                                                     <p><strong>Nombre:</strong> {productoSeleccionado.nombre}</p>
                                                     <p><strong>Precio:</strong> €{productoSeleccionado.precio}</p>
@@ -395,14 +448,6 @@ const NuevaFacturaComponent = () => {
                                                             onChange={(e) => setCantidad(Number(e.target.value))}
                                                             min="1"
                                                         />
-                                                    </div>
-                                                    <div className="mt-3 text-center">
-                                                        <button
-                                                            className="btn btn-success btn-lg"
-                                                            onClick={handleAddDetalle}
-                                                        >
-                                                            Añadir Producto
-                                                        </button>
                                                     </div>
                                                 </div>
                                             )}
@@ -452,24 +497,26 @@ const NuevaFacturaComponent = () => {
                                                     min="1"
                                                 />
                                             </div>
-
-                                            <div className="mt-3 text-center">
-                                                <button
-                                                    className="btn btn-success btn-lg"
-                                                    onClick={handleAddDetalle}
-                                                >
-                                                    Añadir Detalle
-                                                </button>
-                                            </div>
                                         </>
                                     )}
+
+                                    <div className="mt-4 text-center">
+                                        <button
+                                            className="btn"
+                                            style={{ backgroundColor: "#a7c5eb" }}
+                                            onClick={() => {
+                                                handleAddDetalle();
+                                                handleCloseModal();
+                                            }}
+                                        >
+                                            Añadir Detalle
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
-
-
             </div>
         </div>
     );

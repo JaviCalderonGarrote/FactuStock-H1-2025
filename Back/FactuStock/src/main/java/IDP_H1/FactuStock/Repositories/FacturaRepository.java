@@ -19,4 +19,7 @@ public interface FacturaRepository extends JpaRepository<Factura, Long> {
     // Obtener facturas por organización
     @Query("SELECT f FROM Factura f WHERE f.organizacion = :organizacion")
     List<Factura> findByOrganizacion(@Param("organizacion") Organizacion organizacion);
+
+    // Verificar si ya existe un número de factura
+    boolean existsByNumeroFactura(String numeroFactura);
 }

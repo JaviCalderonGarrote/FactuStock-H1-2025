@@ -3,7 +3,22 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaPlusCircle, FaDownload } from "react-icons/fa";
+import { FaSearch, FaPlusCircle, FaFileDownload, FaPencilAlt } from "react-icons/fa";
+import { Modal, Button, Form } from "react-bootstrap";
+
+const EstadoFactura = {
+    ENVIADA: "ENVIADA",
+    RECIBIDA: "RECIBIDA",
+    ERROR: "ERROR",
+    COMPLETADA: "COMPLETADA"
+};
+
+const FormaPago = {
+    NoCobrada: "NoCobrada",
+    EFECTIVO: "EFECTIVO",
+    TARJETA: "TARJETA",
+    TRANSFERENCIA: "TRANSFERENCIA"
+};
 
 const FacturaComponent = () => {
     const [facturas, setFacturas] = useState([]);
@@ -12,6 +27,8 @@ const FacturaComponent = () => {
     const [facturasPorPagina] = useState(9);
     const [searchQuery, setSearchQuery] = useState("");
     const [inputFocused, setInputFocused] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [editingFactura, setEditingFactura] = useState(null);
     const token = localStorage.getItem("authToken");
     const navigate = useNavigate();
 
@@ -59,23 +76,179 @@ const FacturaComponent = () => {
         try {
             const response = await axios.get(`http://localhost:8080/facturas/${facturaId}/pdf`, {
                 headers: { Authorization: `Bearer ${token}` },
-                responseType: 'blob' // Importante para recibir datos binarios
+                responseType: 'blob'
             });
 
-            // Crear un blob con los datos recibidos
             const blob = new Blob([response.data], { type: 'application/pdf' });
-
-            // Crear un enlace temporal y hacer clic en él para descargar
             const link = document.createElement('a');
             link.href = window.URL.createObjectURL(blob);
             link.download = `Factura_${facturaId}.pdf`;
             link.click();
-
-            // Limpieza
             window.URL.revokeObjectURL(link.href);
         } catch (error) {
             console.error("Error al descargar la factura:", error);
             Swal.fire("Error", "Ocurrió un problema al descargar el PDF.", "error");
+        }
+    };
+
+    const getBadgeStyle = (borderColor, backgroundColor, textColor) => ({
+        padding: '6px 12px',
+        borderRadius: '4px',
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+        fontSize: '0.75em',
+        display: 'inline-block',
+        width: '120px',
+        textAlign: 'center',
+        color: textColor,
+        backgroundColor: backgroundColor,
+        border: `2px solid ${borderColor}`,
+    });
+
+    const getEstadoBadge = (estado) => {
+        switch (estado) {
+            case EstadoFactura.ENVIADA:
+                return <span style={getBadgeStyle('#FFA500', '#FFF3E0', '#FFA500')}>Enviada</span>;
+            case EstadoFactura.RECIBIDA:
+                return <span style={getBadgeStyle('#4682B4', '#E3F2FD', '#4682B4')}>Recibida</span>;
+            case EstadoFactura.ERROR:
+                return <span style={getBadgeStyle('#FF0000', '#FFEBEE', '#FF0000')}>Error</span>;
+            case EstadoFactura.COMPLETADA:
+                return <span style={getBadgeStyle('#32CD32', '#E8F5E9', '#32CD32')}>Completada</span>;
+            default:
+                return null;
+        }
+    };
+
+    const getFormaPagoBadge = (formaPago) => {
+        switch (formaPago) {
+            case FormaPago.NoCobrada:
+                return <span style={getBadgeStyle('#FF6347', '#FFF0F0', '#FF6347')}>No Cobrada</span>;
+            case FormaPago.EFECTIVO:
+                return <span style={getBadgeStyle('#DAA520', '#FFFDE7', '#DAA520')}>Efectivo</span>;
+            case FormaPago.TARJETA:
+                return <span style={getBadgeStyle('#4169E1', '#E8EAF6', '#4169E1')}>Tarjeta</span>;
+            case FormaPago.TRANSFERENCIA:
+                return <span style={getBadgeStyle('#2E8B57', '#E0F2F1', '#2E8B57')}>Transferencia</span>;
+            default:
+                return null;
+        }
+    };
+
+    const handleEdit = (factura) => {
+        setEditingFactura({...factura, tempEstado: factura.estado, tempFormaPago: factura.formaPago});
+        setShowModal(true);
+    };
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        setEditingFactura(null);
+    };
+
+    const handleEstadoChange = (e) => {
+        const newEstado = e.target.value;
+        let newFormaPago = editingFactura.tempFormaPago;
+
+        if (newEstado === EstadoFactura.ERROR) {
+            newFormaPago = FormaPago.NoCobrada;
+        } else if (newEstado === EstadoFactura.COMPLETADA) {
+            newFormaPago = [FormaPago.EFECTIVO, FormaPago.TARJETA, FormaPago.TRANSFERENCIA].includes(newFormaPago)
+                ? newFormaPago
+                : FormaPago.EFECTIVO;
+        } else if (newEstado === EstadoFactura.ENVIADA) {
+            newFormaPago = FormaPago.NoCobrada;
+        } else if (newEstado === EstadoFactura.RECIBIDA) {
+            newFormaPago = newFormaPago === FormaPago.NoCobrada ? newFormaPago : FormaPago.EFECTIVO;
+        }
+
+        setEditingFactura(prev => ({
+            ...prev,
+            tempEstado: newEstado,
+            tempFormaPago: newFormaPago
+        }));
+    };
+
+    const handleFormaPagoChange = (e) => {
+        const newFormaPago = e.target.value;
+        setEditingFactura(prev => ({
+            ...prev,
+            tempFormaPago: newFormaPago
+        }));
+    };
+
+    const getFormasPagoDisponibles = (estado) => {
+        switch (estado) {
+            case EstadoFactura.COMPLETADA:
+                return [FormaPago.EFECTIVO, FormaPago.TARJETA, FormaPago.TRANSFERENCIA];
+            case EstadoFactura.ERROR:
+                return [FormaPago.NoCobrada];
+            case EstadoFactura.RECIBIDA:
+                return [FormaPago.NoCobrada, FormaPago.EFECTIVO, FormaPago.TARJETA, FormaPago.TRANSFERENCIA];
+            case EstadoFactura.ENVIADA:
+                return [FormaPago.NoCobrada];
+            default:
+                return Object.values(FormaPago);
+        }
+    };
+
+    const handleSaveChanges = async () => {
+        try {
+            const updatedFactura = {
+                ...editingFactura,
+                estado: editingFactura.tempEstado,
+                formaPago: editingFactura.tempFormaPago
+            };
+
+            if (!Object.values(EstadoFactura).includes(updatedFactura.estado)) {
+                Swal.fire("Error", "Estado de factura no válido", "error");
+                return;
+            }
+
+            if (!Object.values(FormaPago).includes(updatedFactura.formaPago)) {
+                Swal.fire("Error", "Forma de pago no válida", "error");
+                return;
+            }
+
+            // Validación adicional
+            if (updatedFactura.estado === EstadoFactura.ERROR && updatedFactura.formaPago !== FormaPago.NoCobrada) {
+                Swal.fire("Error", "Cuando el estado es ERROR, la forma de pago debe ser NoCobrada", "error");
+                return;
+            }
+
+            if (updatedFactura.estado === EstadoFactura.ENVIADA && updatedFactura.formaPago !== FormaPago.NoCobrada) {
+                Swal.fire("Error", "Cuando el estado es ENVIADA, la forma de pago debe ser NoCobrada", "error");
+                return;
+            }
+
+            if (updatedFactura.estado === EstadoFactura.COMPLETADA && updatedFactura.formaPago === FormaPago.NoCobrada) {
+                Swal.fire("Error", "Cuando el estado es COMPLETADA, la forma de pago no puede ser NoCobrada", "error");
+                return;
+            }
+
+            await axios.put(`http://localhost:8080/facturas/${editingFactura.id}`, updatedFactura, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            const updatedFacturas = facturas.map(f =>
+                f.id === editingFactura.id ? updatedFactura : f
+            );
+            setFacturas(updatedFacturas);
+
+            handleCloseModal();
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: 'Factura actualizada correctamente',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        } catch (error) {
+            console.error("Error al actualizar la factura:", error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Ocurrió un problema al actualizar la factura.',
+            });
         }
     };
 
@@ -155,7 +328,7 @@ const FacturaComponent = () => {
                         </div>
 
                         <div className="table-responsive">
-                            <table className="table">
+                            <table className="table table-hover">
                                 <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
                                 <tr>
                                     <th>Número</th>
@@ -174,17 +347,24 @@ const FacturaComponent = () => {
                                         <td>{factura.numeroFactura}</td>
                                         <td>{factura.empresaPersonaFisica?.nombre || 'N/A'}</td>
                                         <td>{factura.usuario?.username || 'N/A'}</td>
-                                        <td>{factura.formaPago || 'N/A'}</td>
+                                        <td>{getFormaPagoBadge(factura.formaPago)}</td>
                                         <td>{factura.fecha ? new Date(factura.fecha).toLocaleDateString() : 'N/A'}</td>
                                         <td>{factura.total?.toFixed(2) || '0.00'}€</td>
-                                        <td>{factura.estado}</td>
+                                        <td>{getEstadoBadge(factura.estado)}</td>
                                         <td>
                                             <button
-                                                className="btn btn-sm btn-outline-primary"
+                                                className="btn btn-sm btn-outline-primary me-2"
+                                                title="Editar Factura"
+                                                onClick={() => handleEdit(factura)}
+                                            >
+                                                <FaPencilAlt />
+                                            </button>
+                                            <button
+                                                className="btn btn-sm btn-outline-secondary"
                                                 title="Descargar PDF"
                                                 onClick={() => handleDownload(factura.id)}
                                             >
-                                                <FaDownload />
+                                                <FaFileDownload />
                                             </button>
                                         </td>
                                     </tr>
@@ -204,6 +384,53 @@ const FacturaComponent = () => {
                                 </ul>
                             </nav>
                         )}
+
+                        <Modal show={showModal} onHide={handleCloseModal}>
+                            <Modal.Header closeButton style={{backgroundColor: '#f0f8ff'}}>
+                                <Modal.Title style={{color: '#2c3e50'}}>Editar Factura</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body style={{backgroundColor: '#f9f9f9'}}>
+                                {editingFactura && (
+                                    <Form>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Estado</Form.Label>
+                                            <Form.Control
+                                                as="select"
+                                                value={editingFactura.tempEstado}
+                                                onChange={handleEstadoChange}
+                                                style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
+                                            >
+                                                {Object.values(EstadoFactura).map(estado => (
+                                                    <option key={estado} value={estado}>{estado}</option>
+                                                ))}
+                                            </Form.Control>
+                                        </Form.Group>
+                                        <Form.Group className="mb-3">
+                                            <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Forma de Pago</Form.Label>
+                                            <Form.Control
+                                                as="select"
+                                                value={editingFactura.tempFormaPago}
+                                                onChange={handleFormaPagoChange}
+                                                style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
+                                                disabled={editingFactura.tempEstado === EstadoFactura.ERROR}
+                                            >
+                                                {getFormasPagoDisponibles(editingFactura.tempEstado).map(formaPago => (
+                                                    <option key={formaPago} value={formaPago}>{formaPago}</option>
+                                                ))}
+                                            </Form.Control>
+                                        </Form.Group>
+                                    </Form>
+                                )}
+                            </Modal.Body>
+                            <Modal.Footer style={{backgroundColor: '#f0f8ff'}}>
+                                <Button variant="secondary" onClick={handleCloseModal}>
+                                    Cerrar
+                                </Button>
+                                <Button variant="primary" onClick={handleSaveChanges}>
+                                    Guardar Cambios
+                                </Button>
+                            </Modal.Footer>
+                        </Modal>
                     </>
                 )}
             </div>

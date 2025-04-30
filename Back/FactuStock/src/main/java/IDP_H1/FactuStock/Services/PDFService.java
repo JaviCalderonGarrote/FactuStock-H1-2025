@@ -2,10 +2,22 @@ package IDP_H1.FactuStock.Services;
 
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
+import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.events.Event;
+import com.itextpdf.kernel.events.IEventHandler;
+import com.itextpdf.kernel.events.PdfDocumentEvent;
+import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.layout.Canvas;
+import com.itextpdf.layout.element.Paragraph;
+import com.itextpdf.layout.properties.TextAlignment;
+import com.itextpdf.layout.Document;
 import IDP_H1.FactuStock.Entities.Factura;
 import IDP_H1.FactuStock.Entities.Detalle;
+import IDP_H1.FactuStock.Entities.EmpresaPersonaFisica;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -24,10 +36,53 @@ public class PDFService {
 
         PdfWriter writer = new PdfWriter(outputStream);
         PdfDocument pdf = new PdfDocument(writer);
-        ConverterProperties properties = new ConverterProperties();
-        HtmlConverter.convertToPdf(html, pdf, properties);
+        pdf.addEventHandler(PdfDocumentEvent.END_PAGE, new FooterHandler(factura));
 
+        ConverterProperties properties = new ConverterProperties();
+        Document document = HtmlConverter.convertToDocument(html, pdf, properties);
+
+        // Ajustar márgenes para dar espacio al footer
+        document.setMargins(50, 50, 70, 50);
+
+        document.close();
         return outputStream.toByteArray();
+    }
+
+    private class FooterHandler implements IEventHandler {
+        private Factura factura;
+
+        public FooterHandler(Factura factura) {
+            this.factura = factura;
+        }
+
+        @Override
+        public void handleEvent(Event event) {
+            PdfDocumentEvent docEvent = (PdfDocumentEvent) event;
+            PdfPage page = docEvent.getPage();
+            Rectangle pageSize = page.getPageSize();
+            PdfCanvas pdfCanvas = new PdfCanvas(page);
+
+            Canvas canvas = new Canvas(pdfCanvas, pageSize);
+            canvas.setFontSize(8);
+
+            // Establecer color gris claro
+            DeviceRgb grisClaro = new DeviceRgb(200, 200, 200);
+            canvas.setFontColor(grisClaro);
+
+            // Texto del footer en dos líneas
+            String footerText1 = "Gracias por su confianza. Para cualquier consulta, no dude en contactarnos.";
+            String footerText2 = "Este documento es una factura oficial emitida por " + factura.getOrganizacion().getNombre() + ".";
+
+            // Añadir footer
+            canvas.showTextAligned(new Paragraph(footerText1),
+                    pageSize.getWidth() / 2,
+                    pageSize.getBottom() + 30,
+                    TextAlignment.CENTER);
+            canvas.showTextAligned(new Paragraph(footerText2),
+                    pageSize.getWidth() / 2,
+                    pageSize.getBottom() + 20,
+                    TextAlignment.CENTER);
+        }
     }
 
     private String generarHTML(Factura factura) throws IOException {
@@ -52,6 +107,9 @@ public class PDFService {
             total += subtotal;
         }
 
+        // Obtener los datos del cliente
+        EmpresaPersonaFisica cliente = factura.getEmpresaPersonaFisica();
+
         htmlBuilder.append("<!DOCTYPE html>")
                 .append("<html lang=\"es\">")
                 .append("<head>")
@@ -59,8 +117,8 @@ public class PDFService {
                 .append("<title>Factura</title>")
                 .append("<style>")
                 .append("@page { size: A4; margin: 0; }")
-                .append("body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f0f0; }")
-                .append(".page { width: 210mm; min-height: 297mm; padding: 10mm; margin: 0 auto; background-color: white; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); box-sizing: border-box; }")
+                .append("body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: white; }")
+                .append(".page { width: 210mm; min-height: 297mm; padding: 10mm; margin: 0 auto; background-color: white; box-sizing: border-box; }")
                 .append(".header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15mm; }")
                 .append(".logo-container { width: 45%; }")
                 .append(".logo { max-width: 100%; max-height: 60mm; width: auto; height: auto; }")
@@ -78,12 +136,12 @@ public class PDFService {
                 .append("th { background-color: #f8f9fa; font-weight: bold; color: #2c3e50; }")
                 .append("tr:nth-child(even) { background-color: #f8f9fa; }")
                 .append(".total-section { margin-top: 15mm; width: 60%; float: right; }")
-                .append(".total-row { display: flex; justify-content: space-between; margin-bottom: 3pt; padding: 3pt 0; }")
-                .append(".total-label { font-weight: bold; }")
-                .append(".total-amount { text-align: right; }")
+                .append(".total-row { margin-bottom: 3pt; padding: 3pt 0; }")
+                .append(".total-label { float: left; font-weight: bold; }")
+                .append(".total-amount { float: right; }")
                 .append(".subtotal { background-color: #f8f9fa; }")
                 .append(".grand-total { font-size: 14pt; font-weight: bold; color: #2c3e50; border-top: 2pt solid #3498db; padding-top: 3mm; }")
-                .append(".footer { margin-top: 20mm; text-align: center; font-size: 10pt; color: #7f8c8d; clear: both; }")
+                .append(".clearfix::after { content: \"\"; clear: both; display: table; }")
                 .append("</style>")
                 .append("</head>")
                 .append("<body>")
@@ -103,12 +161,13 @@ public class PDFService {
                 .append("<div class=\"client-invoice-info\">")
                 .append("<div class=\"client-info info-box\">")
                 .append("<h3>Datos del Cliente</h3>")
-                .append("<p><strong>").append(factura.getEmpresaPersonaFisica().getNombre()).append("</strong></p>")
-                .append("<p>").append(factura.getEmpresaPersonaFisica().getDireccion()).append("</p>")
-                .append("<p>CIF/NIF: ").append(factura.getEmpresaPersonaFisica().getNifCif()).append("</p>")
-                .append("<p>Email: ").append(factura.getEmpresaPersonaFisica().getMail()).append("</p>")
-                .append("<p>Teléfono: ").append(factura.getEmpresaPersonaFisica().getTelefono()).append("</p>")
+                .append("<p><strong>").append(cliente.getNombre()).append("</strong></p>")
+                .append("<p>").append(cliente.getDireccion()).append("</p>")
+                .append("<p>CIF/NIF: ").append(cliente.getNifCif()).append("</p>")
+                .append("<p>Email: ").append(cliente.getMail()).append("</p>")
+                .append("<p>Teléfono: ").append(cliente.getTelefono()).append("</p>")
                 .append("</div>")
+                .append("<div style=\"width: 4%;\"></div>")
                 .append("<div class=\"invoice-info info-box\">")
                 .append("<h3>Detalles de la Factura</h3>")
                 .append("<p><strong>Número:</strong> ").append(factura.getNumeroFactura()).append("</p>")
@@ -118,13 +177,16 @@ public class PDFService {
                 .append("</div>")
                 .append("</div>")
                 .append("<table>")
+                .append("<thead>")
                 .append("<tr>")
                 .append("<th>Descripción</th>")
                 .append("<th>Cantidad</th>")
                 .append("<th>Precio Unitario</th>")
                 .append("<th>IVA</th>")
                 .append("<th>Subtotal</th>")
-                .append("</tr>");
+                .append("</tr>")
+                .append("</thead>")
+                .append("<tbody>");
 
         for (Detalle detalle : factura.getDetalles()) {
             htmlBuilder.append("<tr>")
@@ -136,24 +198,21 @@ public class PDFService {
                     .append("</tr>");
         }
 
-        htmlBuilder.append("</table>")
+        htmlBuilder.append("</tbody>")
+                .append("</table>")
                 .append("<div class=\"total-section\">")
-                .append("<div class=\"total-row subtotal\">")
-                .append("<span class=\"total-label\">Base Imponible :  </span> ")
-                .append("<span class=\"total-amount\">").append(String.format("%.2f €",   baseImponible)).append("</span>")
+                .append("<div class=\"total-row subtotal clearfix\">")
+                .append("<span class=\"total-label\">Base Imponible:</span>")
+                .append("<span class=\"total-amount\">").append(String.format("%.2f €", baseImponible)).append("</span>")
                 .append("</div>")
-                .append("<div class=\"total-row subtotal\">")
-                .append("<span class=\"total-label\">IVA Total:  </span>")
-                .append("<span class=\"total-amount\">").append(String.format("%.2f €",   ivaTotal)).append("</span>")
+                .append("<div class=\"total-row subtotal clearfix\">")
+                .append("<span class=\"total-label\">IVA Total:</span>")
+                .append("<span class=\"total-amount\">").append(String.format("%.2f €", ivaTotal)).append("</span>")
                 .append("</div>")
-                .append("<div class=\"total-row grand-total\">")
-                .append("<span class=\"total-label\">Total:  </span>  " )
-                .append("<span class=\"total-amount\"> ").append(String.format(" %.2f €",   total)).append("</span>")
+                .append("<div class=\"total-row grand-total clearfix\">")
+                .append("<span class=\"total-label\">Total:</span>")
+                .append("<span class=\"total-amount\">").append(String.format("%.2f €", total)).append("</span>")
                 .append("</div>")
-                .append("</div>")
-                .append("<div class=\"footer\">")
-                .append("<p>Gracias por su confianza. Para cualquier consulta, no dude en contactarnos.</p>")
-                .append("<p>Este documento es una factura oficial emitida por ").append(factura.getOrganizacion().getNombre()).append(".</p>")
                 .append("</div>")
                 .append("</div>")
                 .append("</body>")

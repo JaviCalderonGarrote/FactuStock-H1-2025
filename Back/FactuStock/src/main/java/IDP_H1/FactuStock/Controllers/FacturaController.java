@@ -3,6 +3,8 @@ package IDP_H1.FactuStock.Controllers;
 import IDP_H1.FactuStock.Entities.Factura;
 import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Entities.EmpresaPersonaFisica;
+import IDP_H1.FactuStock.Entities.EstadoFactura;
+import IDP_H1.FactuStock.Entities.FormaPago;
 import IDP_H1.FactuStock.Services.FacturaService;
 import IDP_H1.FactuStock.Services.ProductoService;
 import IDP_H1.FactuStock.Services.EmpresaPersonaFisicaService;
@@ -16,8 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -99,8 +99,33 @@ public class FacturaController {
             enviarCorreoFactura(nuevaFactura);
 
             return new ResponseEntity<>(nuevaFactura, HttpStatus.CREATED);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return new ResponseEntity<>("Error al crear la factura: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error inesperado al crear la factura: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> actualizarFactura(@PathVariable Long id, @RequestBody Factura facturaActualizada) {
+        try {
+            Factura facturaExistente = facturaService.obtenerPorId(id);
+            if (facturaExistente == null) {
+                return new ResponseEntity<>("Factura no encontrada.", HttpStatus.NOT_FOUND);
+            }
+
+            facturaExistente.setEstado(facturaActualizada.getEstado());
+            facturaExistente.setFormaPago(facturaActualizada.getFormaPago());
+
+            if (facturaExistente.getEstado() == EstadoFactura.COMPLETADA &&
+                    facturaExistente.getFormaPago() == FormaPago.NoCobrada) {
+                return new ResponseEntity<>("Una factura completada no puede estar sin cobrar.", HttpStatus.BAD_REQUEST);
+            }
+
+            Factura facturaGuardada = facturaService.guardar(facturaExistente);
+            return new ResponseEntity<>(facturaGuardada, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error al actualizar la factura: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -114,6 +139,7 @@ public class FacturaController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> descargarPDF(@PathVariable Long id) {
         try {
@@ -126,7 +152,6 @@ public class FacturaController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            // Usa el número de factura de la base de datos
             String filename = factura.getNumeroFactura().replaceAll("[^a-zA-Z0-9.-]", "_") + ".pdf";
             headers.setContentDispositionFormData("filename", filename);
 
@@ -136,8 +161,6 @@ public class FacturaController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
 
     private void enviarCorreoFactura(Factura factura) {
         try {
@@ -193,10 +216,9 @@ public class FacturaController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            // Manejar la excepción apropiadamente
+            // Aquí podrías manejar el error de envío de correo, por ejemplo, loguearlo o notificar al usuario
         }
     }
-
 
     private String generarHTMLCorreo(Factura factura) {
         String clienteNombre = factura.getEmpresaPersonaFisica().getNombre();
@@ -214,7 +236,6 @@ public class FacturaController {
                 ".header h2 { margin: 0; font-size: 24px; }" +
                 ".footer { font-size: 12px; color: #888; text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid #e1e1e1; }" +
                 ".content { padding: 20px; }" +
-
                 ".content h3 { color: #2E6DA4; font-size: 18px; }" +
                 ".content ul { padding-left: 20px; }" +
                 ".content li { margin-bottom: 10px; }" +

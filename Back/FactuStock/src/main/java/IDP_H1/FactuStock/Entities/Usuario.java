@@ -61,12 +61,6 @@ public class Usuario implements UserDetails {
         return List.of(new SimpleGrantedAuthority(rol.name()));
     }
 
-    @JsonProperty("roles") // Devuelve el rol como String en JSON
-    public List<String> getRoles() {
-        return getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .collect(Collectors.toList());
-    }
 
     @Override
     public String getPassword() {

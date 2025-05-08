@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -23,30 +24,34 @@ public class SecurityConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:5173")  // Actualiza el origen si es necesario
+                .allowedOrigins("http://localhost:5173") // Cambia esto en producción
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
-                .allowCredentials(true);  // Permitir cookies o credenciales si es necesario
+                .allowCredentials(true);
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors().and()
-                .csrf().disable()  // Desactivar CSRF, ya que usas JWT
-                .authorizeRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/register").permitAll()  // Rutas públicas de login y registro
-                        .requestMatchers("/api/public/**").permitAll()  // Otros endpoints públicos si los necesitas
-                        .requestMatchers("/auth/**", "/usuarios/forgot-password", "/usuarios/reset-password").permitAll()  // Rutas de recuperación de contraseña
-                        .requestMatchers("/organizaciones/logo/**").permitAll()  // Archivos de logos sin autenticación
-                        .requestMatchers("/api/email/enviar").permitAll()  // Archivos de imágenes sin autenticación
-                        .requestMatchers("/img-logo/**").permitAll()  // Archivos de imágenes sin autenticación
-
-                        .anyRequest().authenticated()  // Resto de las rutas requieren autenticación
+                .csrf().disable()
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/auth/login",
+                                "/auth/register",
+                                "/auth/**",
+                                "/usuarios/forgot-password",
+                                "/usuarios/reset-password",
+                                "/organizaciones/logo/**",
+                                "/api/email/enviar",
+                                "/img-logo/**",
+                                "/api/public/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
                 )
-                .authenticationProvider(authenticationProvider)  // Usar el provider de autenticación personalizado
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)  // Agregar el filtro JWT
-                .sessionManagement().disable();  // Deshabilitar la gestión de sesión, ya que usas JWT
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

@@ -93,7 +93,7 @@ const Sidebar = () => {
             </Link>
           </li>
           <li className="sidebar-item">
-            <Link to="/cash-register" className="sidebar-link">
+            <Link to="/caja" className="sidebar-link">
               <i className="fas fa-cash-register"></i>
               <span>Caja</span>
             </Link>

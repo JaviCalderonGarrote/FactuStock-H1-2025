@@ -216,7 +216,6 @@ public class FacturaController {
 
         } catch (Exception e) {
             e.printStackTrace();
-            // Aquí podrías manejar el error de envío de correo, por ejemplo, loguearlo o notificar al usuario
         }
     }
 

@@ -2,7 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Login from "./pages/login";
 import Home from "./pages/Home";
 import Facturas from "./pages/Facturas.jsx";
-import NuevaFacturaComponent from "./pages/NuevaFacturaComponent.jsx"; // Importa la nueva página
+import NuevaFacturaComponent from "./pages/NuevaFacturaComponent.jsx";
 import Products from "./pages/products.jsx";
 import CategoryProducts from "./pages/CategoryProducts.jsx";
 import CategoryGasto from "./pages/CategoryGasto.jsx";
@@ -14,6 +14,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import ResetPassword from "./pages/ResetPassword.jsx";
 import Registro from "./pages/Registro.jsx";
 import Mail from "./pages/Mail.jsx";
+import TPV from "./pages/TPV.jsx";
+import Caja from  "./pages/Caja.jsx"
 
 const App = () => {
     return (
@@ -31,8 +33,9 @@ const App = () => {
             <Route path="/usuarios/reset-password" element={<ResetPassword />} />
             <Route path="/registro/" element={<Registro />} />
             <Route path="/nueva-factura" element={<NuevaFacturaComponent />} />
-                <Route path="/mail" element={<Mail />} />
-
+            <Route path="/tpv" element={<TPV />} />
+                <Route path="/caja" element={<Caja />} />
+        <Route path="/mail" element={<Mail />} />
         </Routes>
     );
 };

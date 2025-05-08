@@ -28,8 +28,8 @@ public class Caja {
 
     @Enumerated(EnumType.STRING)
     private EstadoCaja estado = EstadoCaja.ABIERTA;
-}
 
-enum EstadoCaja {
-    ABIERTA, CERRADA
+    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
+    private Organizacion organizacion;
+
 }

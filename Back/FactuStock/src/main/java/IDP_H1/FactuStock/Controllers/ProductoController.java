@@ -24,7 +24,6 @@ public class ProductoController {
     @Autowired
     private CategoriaProductoService categoriaProductoService;
 
-    // Obtener productos por organización
     @GetMapping("/organizacion/{organizacionId}")
     public ResponseEntity<List<Producto>> obtenerProductosPorOrganizacion(@PathVariable Long organizacionId) {
         Organizacion organizacion = new Organizacion();
@@ -39,31 +38,34 @@ public class ProductoController {
         return new ResponseEntity<>(productos, HttpStatus.OK);
     }
 
-    // Obtener todas las categorías
     @GetMapping("/categorias")
     public ResponseEntity<List<CategoriaProducto>> obtenerCategorias() {
         List<CategoriaProducto> categorias = categoriaProductoService.obtenerTodas();
         return new ResponseEntity<>(categorias, HttpStatus.OK);
     }
 
-    // Obtener todos los productos
     @GetMapping
     public ResponseEntity<List<Producto>> obtenerTodos() {
         List<Producto> productos = productoService.obtenerTodos();
         return new ResponseEntity<>(productos, HttpStatus.OK);
     }
 
-    // Crear un nuevo producto
     @PostMapping
-    public ResponseEntity<Producto> guardar(@RequestBody Producto producto) {
-        if (producto.getIva() == null) {
-            producto.setIva(BigDecimal.valueOf(21.00)); // Set IVA default to 21% if not provided
+    public ResponseEntity<?> guardar(@RequestBody Producto producto) {
+        if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {
+            return new ResponseEntity<>("El nombre del producto no puede estar vacío", HttpStatus.BAD_REQUEST);
         }
-        Producto nuevoProducto = productoService.guardar(producto);
-        return new ResponseEntity<>(nuevoProducto, HttpStatus.CREATED);
+        if (producto.getIva() == null) {
+            producto.setIva(BigDecimal.valueOf(21.00));
+        }
+        try {
+            Producto nuevoProducto = productoService.guardar(producto);
+            return new ResponseEntity<>(nuevoProducto, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error al guardar el producto: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
-    // Obtener producto por ID
     @GetMapping("/{id}")
     public ResponseEntity<Producto> obtenerPorId(@PathVariable Long id) {
         Optional<Producto> producto = productoService.obtenerPorId(id);
@@ -71,7 +73,6 @@ public class ProductoController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Eliminar producto por ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         Optional<Producto> producto = productoService.obtenerPorId(id);
@@ -83,25 +84,32 @@ public class ProductoController {
         }
     }
 
-    // Actualizar producto
     @PutMapping("/{id}")
-    public ResponseEntity<Producto> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
+    public ResponseEntity<?> actualizarProducto(@PathVariable Long id, @RequestBody Producto producto) {
         Optional<Producto> productoExistente = productoService.obtenerPorId(id);
 
         if (productoExistente.isPresent()) {
             Producto productoActualizado = productoExistente.get();
 
-            // Actualizar los campos necesarios
+            // Verificar si el nombre es nulo o vacío
+            if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {
+                return new ResponseEntity<>("El nombre del producto no puede estar vacío", HttpStatus.BAD_REQUEST);
+            }
+
             productoActualizado.setNombre(producto.getNombre());
             productoActualizado.setPrecio(producto.getPrecio());
             productoActualizado.setCantidadStock(producto.getCantidadStock());
             productoActualizado.setIva(producto.getIva());
-            productoActualizado.setCategoria(producto.getCategoria()); // Actualizar categoría si es necesario
+            productoActualizado.setCategoria(producto.getCategoria());
 
-            productoService.guardar(productoActualizado);
-            return new ResponseEntity<>(productoActualizado, HttpStatus.OK);
+            try {
+                Producto guardado = productoService.guardar(productoActualizado);
+                return new ResponseEntity<>(guardado, HttpStatus.OK);
+            } catch (Exception e) {
+                return new ResponseEntity<>("Error al actualizar el producto: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>("Producto no encontrado", HttpStatus.NOT_FOUND);
         }
     }
 }

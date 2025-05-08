@@ -17,7 +17,6 @@ public class DetalleController {
     @Autowired
     private DetalleService detalleService;
 
-    // Obtener todos los detalles
     @GetMapping
     public ResponseEntity<List<Detalle>> obtenerTodos() {
         List<Detalle> detalles = detalleService.obtenerTodos();
@@ -27,7 +26,6 @@ public class DetalleController {
         return new ResponseEntity<>(detalles, HttpStatus.OK);
     }
 
-    // Obtener detalle por ID
     @GetMapping("/{id}")
     public ResponseEntity<Detalle> obtenerPorId(@PathVariable Long id) {
         Optional<Detalle> detalle = detalleService.obtenerPorId(id);
@@ -35,14 +33,12 @@ public class DetalleController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
-    // Guardar nuevo detalle
     @PostMapping
     public ResponseEntity<Detalle> guardar(@RequestBody Detalle detalle) {
         Detalle nuevoDetalle = detalleService.guardar(detalle);
         return new ResponseEntity<>(nuevoDetalle, HttpStatus.CREATED);
     }
 
-    // Actualizar detalle por ID
     @PutMapping("/{id}")
     public ResponseEntity<Detalle> actualizar(@PathVariable Long id, @RequestBody Detalle detalle) {
         Detalle detalleActualizado = detalleService.actualizar(id, detalle);
@@ -52,7 +48,6 @@ public class DetalleController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    // Eliminar detalle por ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         Optional<Detalle> detalle = detalleService.obtenerPorId(id);

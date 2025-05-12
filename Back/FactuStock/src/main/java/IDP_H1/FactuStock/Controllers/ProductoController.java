@@ -91,7 +91,6 @@ public class ProductoController {
         if (productoExistente.isPresent()) {
             Producto productoActualizado = productoExistente.get();
 
-            // Verificar si el nombre es nulo o vacío
             if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {
                 return new ResponseEntity<>("El nombre del producto no puede estar vacío", HttpStatus.BAD_REQUEST);
             }

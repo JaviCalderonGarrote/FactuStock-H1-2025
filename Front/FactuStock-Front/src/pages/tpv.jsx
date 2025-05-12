@@ -1,3 +1,4 @@
+// TPV.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -6,6 +7,7 @@ import Sidebar from "../components/Sidebar";
 import '../assets/tpv.css';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
+import { FaShoppingCart, FaUser, FaTrash, FaPrint } from 'react-icons/fa';
 
 const TPV = () => {
     const [selectedProducts, setSelectedProducts] = useState([]);
@@ -145,15 +147,14 @@ const TPV = () => {
     };
 
     const handleProductRemove = (productId) => {
-        const quantity = parseInt(keypadDisplay) || 1;
-        setSelectedProducts(prevProducts =>
-            prevProducts.map(p =>
+        setSelectedProducts(prevProducts => {
+            const updatedProducts = prevProducts.map(p =>
                 p.id === productId
-                    ? { ...p, quantity: Math.max(0, p.quantity - quantity) }
+                    ? { ...p, quantity: p.quantity > 1 ? p.quantity - 1 : 0 }
                     : p
-            ).filter(p => p.quantity > 0)
-        );
-        setKeypadDisplay('');
+            ).filter(p => p.quantity > 0);
+            return updatedProducts;
+        });
     };
 
     const handleKeypadInput = (value) => {
@@ -161,7 +162,11 @@ const TPV = () => {
             return;
         }
         if (value === 'C') {
-            setKeypadDisplay(prevDisplay => prevDisplay.slice(0, -1));
+            if (selectedProducts.length > 0) {
+                const lastProduct = selectedProducts[selectedProducts.length - 1];
+                handleProductRemove(lastProduct.id);
+            }
+            setKeypadDisplay('');
             return;
         }
         setKeypadDisplay(prevDisplay => prevDisplay + value);
@@ -190,7 +195,7 @@ const TPV = () => {
             .filter(cliente =>
                 cliente.nombre.toLowerCase().includes(inputValue.toLowerCase())
             )
-            .slice(0, 5) // Limitar a 5 resultados
+            .slice(0, 5)
             .map(cliente => ({
                 value: cliente.id,
                 label: cliente.nombre
@@ -342,19 +347,27 @@ const TPV = () => {
 
     const ActionButtons = ({ onAction }) => (
         <div className="action-buttons">
-            <button onClick={() => onAction('cobrar')}>Cobrar</button>
-            <button onClick={() => onAction('añadir-cliente')}>Añadir Cliente</button>
-            <button onClick={() => onAction('cancelar')}>Cancelar Venta</button>
-            <button onClick={() => onAction('imprimir')}>Imprimir Ticket</button>
+            <button onClick={() => onAction('cobrar')} className="action-button cobrar">
+                <FaShoppingCart /> Cobrar
+            </button>
+            <button onClick={() => onAction('añadir-cliente')} className="action-button cliente">
+                <FaUser /> Añadir Cliente
+            </button>
+            <button onClick={() => onAction('cancelar')} className="action-button cancelar">
+                <FaTrash /> Cancelar Venta
+            </button>
+            <button onClick={() => onAction('imprimir')} className="action-button imprimir">
+                <FaPrint /> Imprimir Ticket
+            </button>
         </div>
     );
 
     if (loading) {
-        return <div>Cargando...</div>;
+        return <div className="loading">Cargando...</div>;
     }
 
     if (error) {
-        return <div className="alert alert-danger text-center">{error}</div>;
+        return <div className="error">{error}</div>;
     }
 
     return (
@@ -363,7 +376,13 @@ const TPV = () => {
             <div className="tpv-container">
                 <div className="tpv-grid">
                     <div className="product-list-section">
-                        <ProductList products={selectedProducts} onRemove={handleProductRemove} />
+                        <h2>Carrito de Compras</h2>
+                        <div className="product-list-scroll">
+                            <ProductList products={selectedProducts} onRemove={handleProductRemove} />
+                        </div>
+                        <div className="total-section">
+                            <h3>Total: ${selectedProducts.reduce((total, product) => total + (product.precio * product.quantity), 0).toFixed(2)}</h3>
+                        </div>
                     </div>
                     <div className="product-grid-section">
                         {selectedCategory ? (

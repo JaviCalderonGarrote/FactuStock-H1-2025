@@ -38,14 +38,14 @@ const Products = () => {
         cantidadStock: '',
         iva: 21,
         categoriaId: '',
-        organizacionId: '' // Añadir organización al nuevo producto
+        organizacionId: ''
     });
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [productosPorPagina] = useState(9);
-    const [searchQuery, setSearchQuery] = useState(""); // Estado para búsqueda
-    const [inputFocused, setInputFocused] = useState(false); // Estado para manejar el foco del input
-    const [organizacion, setOrganizacion] = useState(null); // Guardar la organización
+    const [searchQuery, setSearchQuery] = useState("");
+    const [inputFocused, setInputFocused] = useState(false);
+    const [organizacion, setOrganizacion] = useState(null);
     const token = localStorage.getItem("authToken");
 
     useEffect(() => {
@@ -56,7 +56,6 @@ const Products = () => {
 
         const fetchData = async () => {
             try {
-                // Obtener el ID de usuario del token
                 const decodedToken = JSON.parse(atob(token.split(".")[1]));
                 const userId = decodedToken?.idUsuario;
 
@@ -65,20 +64,17 @@ const Products = () => {
                     return;
                 }
 
-                // Obtener información del usuario
                 const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
                 setOrganizacion(userResponse.data.organizacion);
 
-                // Obtener productos de la organización
                 const productosResponse = await axios.get(`http://localhost:8080/productos/organizacion/${userResponse.data.organizacion.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setProductos(productosResponse.data);
 
-                // Obtener categorías de la organización
                 const categoriasResponse = await axios.get(`http://localhost:8080/categoriasProducto/organizacion/${userResponse.data.organizacion.id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -99,14 +95,13 @@ const Products = () => {
             return;
         }
 
-        // Añadir automáticamente la organización del usuario logeado al nuevo producto
         const productoData = {
             nombre: nuevoProducto.nombre,
             precio: nuevoProducto.precio,
             cantidadStock: nuevoProducto.cantidadStock,
             iva: nuevoProducto.iva,
             categoria: { id: nuevoProducto.categoriaId },
-            organizacion: { id: organizacion.id } // Aquí se asigna la organización
+            organizacion: { id: organizacion.id }
         };
 
         const request = nuevoProducto.id
@@ -116,8 +111,14 @@ const Products = () => {
         request
             .then(() => {
                 setShowModal(false);
-                Swal.fire('Éxito', `Producto ${nuevoProducto.id ? 'actualizado' : 'creado'} correctamente`, 'success');
-                setProductos(prevProductos => prevProductos.map(producto => producto.id === nuevoProducto.id ? nuevoProducto : producto));
+                Swal.fire({
+                    title: 'Éxito',
+                    text: `Producto ${nuevoProducto.id ? 'actualizado' : 'creado'} correctamente`,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.reload();
+                });
             })
             .catch(() => Swal.fire('Error', `Hubo un error al ${nuevoProducto.id ? 'actualizar' : 'crear'} el producto.`, 'error'));
     };
@@ -136,8 +137,14 @@ const Products = () => {
                 axios.delete(`http://localhost:8080/productos/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }).then(() => {
-                    setProductos(productos.filter(producto => producto.id !== id));
-                    Swal.fire('Eliminado', 'El producto ha sido eliminado correctamente', 'success');
+                    Swal.fire({
+                        title: 'Eliminado',
+                        text: 'El producto ha sido eliminado correctamente',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        window.location.reload();
+                    });
                 }).catch(() => Swal.fire('Error', 'Hubo un error al eliminar el producto', 'error'));
             }
         });
@@ -151,12 +158,11 @@ const Products = () => {
             cantidadStock: producto.cantidadStock,
             iva: producto.iva,
             categoriaId: producto.categoria?.id,
-            organizacionId: producto.organizacion?.id // Mostrar el ID de la organización
+            organizacionId: producto.organizacion?.id
         });
         setShowModal(true);
     };
 
-    // Verificamos que productos sea un array
     const productosFiltrados = Array.isArray(productos) ? productos
         .filter(producto =>
             producto.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -164,13 +170,12 @@ const Products = () => {
             (producto.categoria?.nombre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             producto.cantidadStock.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
             producto.iva.toString().toLowerCase().includes(searchQuery.toLowerCase())
-        )  // Filtrado por todos los campos
+        )
         .slice((currentPage - 1) * productosPorPagina, currentPage * productosPorPagina) : [];
 
     const totalPages = Math.ceil(productosFiltrados.length / productosPorPagina);
 
     const handleCrearProductoClick = () => {
-        // Verificamos si existen categorías antes de mostrar el modal
         if (categorias.length === 0) {
             Swal.fire({
                 title: 'Advertencia',
@@ -286,7 +291,6 @@ const Products = () => {
                         )}
                     </div>
 
-                    {/* Paginación */}
                     {totalPages > 1 && (
                         <nav aria-label="Page navigation">
                             <ul className="pagination justify-content-center">

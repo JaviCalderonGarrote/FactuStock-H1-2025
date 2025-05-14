@@ -2,10 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { FaPlusCircle, FaSearch } from "react-icons/fa";
+import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const CategoryProducts = () => {
-    // Estado que guarda las categorías
     const [categorias, setCategorias] = useState([]);
     const [error, setError] = useState(null);
     const [nuevaCategoria, setNuevaCategoria] = useState({ id: null, nombre: "" });
@@ -15,10 +14,9 @@ const CategoryProducts = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [organizacion, setOrganizacion] = useState(null);
     const [usuario, setUsuario] = useState(null);
-    const [inputFocused, setInputFocused] = useState(false); // Agregado el estado para saber si el input está enfocado
+    const [inputFocused, setInputFocused] = useState(false);
     const token = localStorage.getItem("authToken");
 
-    // useEffect para obtener los datos de usuario, organización y categorías
     useEffect(() => {
         if (!token) {
             setError("No se encontró un token de autenticación.");
@@ -56,7 +54,6 @@ const CategoryProducts = () => {
         fetchData();
     }, [token]);
 
-    // Función para manejar la creación y actualización de categorías
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -92,7 +89,6 @@ const CategoryProducts = () => {
             .catch(() => Swal.fire("Error", `Hubo un error al ${nuevaCategoria.id ? "actualizar" : "crear"} la categoría.`, "error"));
     };
 
-    // Función para eliminar una categoría
     const handleEliminar = (id) => {
         Swal.fire({
             title: "¿Estás seguro?",
@@ -117,11 +113,17 @@ const CategoryProducts = () => {
         });
     };
 
-    // Calculamos las páginas de las categorías y las categorías paginadas
-    const totalPages = Math.ceil(categorias.length / categoriasPorPagina);
-    const categoriasPaginadas = categorias
-        .filter((categoria) => categoria.nombre.toLowerCase().includes(searchQuery.toLowerCase()))
-        .slice((currentPage - 1) * categoriasPorPagina, currentPage * categoriasPorPagina);
+    const categoriasFiltradas = categorias.filter((categoria) =>
+        categoria.nombre.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const indexOfLastCategoria = currentPage * categoriasPorPagina;
+    const indexOfFirstCategoria = indexOfLastCategoria - categoriasPorPagina;
+    const categoriasPaginadas = categoriasFiltradas.slice(indexOfFirstCategoria, indexOfLastCategoria);
+
+    const totalPages = Math.ceil(categoriasFiltradas.length / categoriasPorPagina);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
         <div className="d-flex">
@@ -135,7 +137,7 @@ const CategoryProducts = () => {
 
                 <div className="d-flex justify-content-between mb-3">
                     <button
-                        className="btn"
+                        className="btn d-flex align-items-center"
                         style={{
                             backgroundColor: "#6f9fd7",
                             color: "#fff",
@@ -159,8 +161,8 @@ const CategoryProducts = () => {
                             placeholder="Buscar..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            onFocus={() => setInputFocused(true)}  // Establecemos el estado a true cuando el input es enfocado
-                            onBlur={() => setInputFocused(false)}   // Establecemos el estado a false cuando el input pierde el foco
+                            onFocus={() => setInputFocused(true)}
+                            onBlur={() => setInputFocused(false)}
                             style={{
                                 paddingLeft: "35px",
                                 borderRadius: "8px",
@@ -196,8 +198,8 @@ const CategoryProducts = () => {
                                 <td colSpan="3" className="text-center">No hay categorías de productos disponibles.</td>
                             </tr>
                         ) : (
-                            categoriasPaginadas.map((categoria) => (
-                                <tr key={categoria.id} style={{ backgroundColor: "#f8f9fa" }}>
+                            categoriasPaginadas.map((categoria, index) => (
+                                <tr key={categoria.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
                                     <td>{categoria.id}</td>
                                     <td>{categoria.nombre || "N/A"}</td>
                                     <td>
@@ -225,20 +227,37 @@ const CategoryProducts = () => {
                 </div>
 
                 {totalPages > 1 && (
-                    <nav aria-label="Page navigation">
+                    <nav aria-label="Page navigation" className="mt-4">
                         <ul className="pagination justify-content-center">
-                            {[...Array(totalPages).keys()].map((i) => (
-                                <li key={i} className={`page-item ${currentPage === i + 1 ? "active" : ""}`}>
-                                    <button className="page-link" onClick={() => setCurrentPage(i + 1)}>
-                                        {i + 1}
+                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} style={{color: '#6f9fd7', borderColor: '#6f9fd7'}}>
+                                    <FaChevronLeft />
+                                </button>
+                            </li>
+                            {[...Array(totalPages).keys()].map((number) => (
+                                <li key={number + 1} className={`page-item ${currentPage === number + 1 ? 'active' : ''}`}>
+                                    <button
+                                        className="page-link"
+                                        onClick={() => paginate(number + 1)}
+                                        style={{
+                                            backgroundColor: currentPage === number + 1 ? '#6f9fd7' : 'white',
+                                            color: currentPage === number + 1 ? 'white' : '#6f9fd7',
+                                            borderColor: '#6f9fd7'
+                                        }}
+                                    >
+                                        {number + 1}
                                     </button>
                                 </li>
                             ))}
+                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} style={{color: '#6f9fd7', borderColor: '#6f9fd7'}}>
+                                    <FaChevronRight />
+                                </button>
+                            </li>
                         </ul>
                     </nav>
                 )}
 
-                {/* Modal para agregar/editar categoría */}
                 {showModal && (
                     <div className="modal fade show" style={{ display: "block" }}>
                         <div className="modal-dialog modal-dialog-centered">
@@ -262,22 +281,11 @@ const CategoryProducts = () => {
                                                 required
                                             />
                                         </div>
-                                        <button
-                                            type="submit"
-                                            className="btn"
-                                            style={{ backgroundColor: "#a7c5eb", width: "100%" }}
-                                        >
-                                            {nuevaCategoria.id ? "Guardar Cambios" : "Guardar Categoría"}
-                                        </button>
+                                        <div className="d-flex justify-content-end">
+                                            <button type="button" className="btn btn-secondary me-2" onClick={() => setShowModal(false)}>Cancelar</button>
+                                            <button type="submit" className="btn btn-primary">{nuevaCategoria.id ? 'Actualizar Categoría' : 'Crear Categoría'}</button>
+                                        </div>
                                     </form>
-                                    <button
-                                        type="button"
-                                        className="btn btn-secondary mt-3"
-                                        onClick={() => setShowModal(false)}
-                                        style={{ width: "100%" }}
-                                    >
-                                        Cerrar
-                                    </button>
                                 </div>
                             </div>
                         </div>

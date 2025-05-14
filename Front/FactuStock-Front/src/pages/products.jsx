@@ -2,7 +2,7 @@ import Sidebar from "../components/Sidebar";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaPlusCircle, FaSearch } from "react-icons/fa";
+import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight, FaEllipsisH } from "react-icons/fa";
 
 // Componente para manejar errores
 class ErrorBoundary extends React.Component {
@@ -163,17 +163,23 @@ const Products = () => {
         setShowModal(true);
     };
 
-    const productosFiltrados = Array.isArray(productos) ? productos
-        .filter(producto =>
+    const productosFiltrados = Array.isArray(productos)
+        ? productos.filter(producto =>
             producto.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
             producto.precio.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
             (producto.categoria?.nombre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             producto.cantidadStock.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
             producto.iva.toString().toLowerCase().includes(searchQuery.toLowerCase())
         )
-        .slice((currentPage - 1) * productosPorPagina, currentPage * productosPorPagina) : [];
+        : [];
+
+    const indexOfLastProduct = currentPage * productosPorPagina;
+    const indexOfFirstProduct = indexOfLastProduct - productosPorPagina;
+    const currentProducts = productosFiltrados.slice(indexOfFirstProduct, indexOfLastProduct);
 
     const totalPages = Math.ceil(productosFiltrados.length / productosPorPagina);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     const handleCrearProductoClick = () => {
         if (categorias.length === 0) {
@@ -195,6 +201,73 @@ const Products = () => {
             });
             setShowModal(true);
         }
+    };
+
+    const renderPaginationButtons = () => {
+        const buttons = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) {
+                buttons.push(
+                    <button
+                        key={i}
+                        onClick={() => paginate(i)}
+                        className={`pagination-button ${currentPage === i ? 'active' : ''}`}
+                    >
+                        {i}
+                    </button>
+                );
+            }
+        } else {
+            buttons.push(
+                <button
+                    key={1}
+                    onClick={() => paginate(1)}
+                    className={`pagination-button ${currentPage === 1 ? 'active' : ''}`}
+                >
+                    1
+                </button>
+            );
+            buttons.push(
+                <button
+                    key={2}
+                    onClick={() => paginate(2)}
+                    className={`pagination-button ${currentPage === 2 ? 'active' : ''}`}
+                >
+                    2
+                </button>
+            );
+
+            if (currentPage > 3) {
+                buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            if (currentPage !== 1 && currentPage !== 2 && currentPage !== totalPages) {
+                buttons.push(
+                    <button
+                        key={currentPage}
+                        onClick={() => paginate(currentPage)}
+                        className="pagination-button active"
+                    >
+                        {currentPage}
+                    </button>
+                );
+            }
+
+            if (currentPage < totalPages - 2) {
+                buttons.push(<span key="ellipsis2" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            buttons.push(
+                <button
+                    key={totalPages}
+                    onClick={() => paginate(totalPages)}
+                    className={`pagination-button ${currentPage === totalPages ? 'active' : ''}`}
+                >
+                    {totalPages}
+                </button>
+            );
+        }
+        return buttons;
     };
 
     return (
@@ -250,7 +323,7 @@ const Products = () => {
                     </div>
 
                     <div className="table-responsive">
-                        {productosFiltrados.length === 0 ? (
+                        {currentProducts.length === 0 ? (
                             <table className="table">
                                 <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
                                 <tr>
@@ -272,11 +345,11 @@ const Products = () => {
                                 </tr>
                                 </thead>
                                 <tbody>
-                                {productosFiltrados.map((producto, index) => (
+                                {currentProducts.map((producto, index) => (
                                     <tr key={producto.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
                                         <td>{producto.id}</td>
                                         <td>{producto.nombre || 'N/A'}</td>
-                                        <td>${producto.precio ?? 'N/A'}</td>
+                                        <td>{producto.precio ?? 'N/A'}€</td>
                                         <td>{producto.categoria?.nombre || 'N/A'}</td>
                                         <td>{producto.cantidadStock ?? 'N/A'}</td>
                                         <td>{producto.iva ?? 'N/A'}%</td>
@@ -292,13 +365,37 @@ const Products = () => {
                     </div>
 
                     {totalPages > 1 && (
-                        <nav aria-label="Page navigation">
+                        <nav aria-label="Page navigation" className="mt-4">
                             <ul className="pagination justify-content-center">
-                                {[...Array(totalPages).keys()].map((i) => (
-                                    <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                        <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-                                    </li>
-                                ))}
+                                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                    <button
+                                        className="page-link"
+                                        onClick={() => paginate(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        style={{
+                                            backgroundColor: 'transparent',
+                                            color: '#6f9fd7',
+                                            border: 'none'
+                                        }}
+                                    >
+                                        <FaChevronLeft />
+                                    </button>
+                                </li>
+                                {renderPaginationButtons()}
+                                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                    <button
+                                        className="page-link"
+                                        onClick={() => paginate(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        style={{
+                                            backgroundColor: 'transparent',
+                                            color: '#6f9fd7',
+                                            border: 'none'
+                                        }}
+                                    >
+                                        <FaChevronRight />
+                                    </button>
+                                </li>
                             </ul>
                         </nav>
                     )}

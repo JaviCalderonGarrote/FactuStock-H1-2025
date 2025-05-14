@@ -111,4 +111,19 @@ public class ProductoController {
             return new ResponseEntity<>("Producto no encontrado", HttpStatus.NOT_FOUND);
         }
     }
+    @PostMapping("/lote")
+    public ResponseEntity<?> guardarLote(@RequestBody List<Producto> productos) {
+        try {
+            for (Producto producto : productos) {
+                if (producto.getIva() == null) {
+                    producto.setIva(BigDecimal.valueOf(21.00));
+                }
+            }
+            List<Producto> guardados = productoService.guardarTodos(productos);
+            return new ResponseEntity<>(guardados, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Error al guardar productos: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

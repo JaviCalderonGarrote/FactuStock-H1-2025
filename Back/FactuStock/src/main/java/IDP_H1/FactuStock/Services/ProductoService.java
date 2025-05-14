@@ -61,6 +61,10 @@ public class ProductoService {
         String body = generarCuerpoCorreo("Sin Stock", producto, "El producto se ha quedado sin stock.");
         emailService.enviarCorreoConAdjunto(to, subject, body, null);
     }
+    public List<Producto> guardarTodos(List<Producto> productos) {
+        return productoRepository.saveAll(productos);
+    }
+
 
     private String generarCuerpoCorreo(String tipoAlerta, Producto producto, String mensaje) {
         Organizacion organizacion = producto.getOrganizacion();

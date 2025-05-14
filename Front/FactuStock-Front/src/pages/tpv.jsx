@@ -1,5 +1,4 @@
-// TPV.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
@@ -7,7 +6,7 @@ import Sidebar from "../components/Sidebar";
 import '../assets/tpv.css';
 import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
-import { FaShoppingCart, FaUser, FaTrash, FaPrint } from 'react-icons/fa';
+import { FaShoppingCart, FaUser, FaTrash, FaPrint, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 const TPV = () => {
     const [selectedProducts, setSelectedProducts] = useState([]);
@@ -24,8 +23,38 @@ const TPV = () => {
     const [clientes, setClientes] = useState([]);
     const [selectedCliente, setSelectedCliente] = useState(null);
     const [clienteOptions, setClienteOptions] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalProducts, setTotalProducts] = useState(0);
+    const [windowSize, setWindowSize] = useState({
+        width: window.innerWidth,
+        height: window.innerHeight,
+    });
     const navigate = useNavigate();
     const token = localStorage.getItem("authToken");
+
+    const handleResize = useCallback(() => {
+        setWindowSize({
+            width: window.innerWidth,
+            height: window.innerHeight,
+        });
+    }, []);
+
+    useEffect(() => {
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [handleResize]);
+
+    const calculateProductsPerPage = useCallback(() => {
+        const gridWidth = windowSize.width > 768 ? windowSize.width / 2 : windowSize.width;
+        const gridHeight = windowSize.height * 0.6;
+        const productWidth = 200;
+        const productHeight = 200;
+        const columns = Math.floor(gridWidth / productWidth);
+        const rows = Math.floor(gridHeight / productHeight);
+        return columns * rows;
+    }, [windowSize]);
+
+    const productsPerPage = calculateProductsPerPage();
 
     useEffect(() => {
         if (!token) {
@@ -107,6 +136,7 @@ const TPV = () => {
 
     const handleCategorySelect = async (categoryId) => {
         setSelectedCategory(categoryId);
+        setCurrentPage(1);
         try {
             const productosResponse = await axios.get(
                 `http://localhost:8080/productos/organizacion/${organizacion.id}`,
@@ -115,7 +145,13 @@ const TPV = () => {
 
             const filteredProducts = productosResponse.data
                 .filter(product => product.categoria.id === categoryId && product.cantidadStock > 0);
+
+            if (filteredProducts.length === 0) {
+                Swal.fire("Sin productos", "Esta categoría no tiene productos disponibles.", "info");
+            }
+
             setProducts(filteredProducts);
+            setTotalProducts(filteredProducts.length);
         } catch (error) {
             console.error('Error al cargar productos:', error);
             Swal.fire("Error", "No se pudieron cargar los productos.", "error");
@@ -147,14 +183,16 @@ const TPV = () => {
     };
 
     const handleProductRemove = (productId) => {
+        const amountToRemove = parseInt(keypadDisplay) || 1;
         setSelectedProducts(prevProducts => {
             const updatedProducts = prevProducts.map(p =>
                 p.id === productId
-                    ? { ...p, quantity: p.quantity > 1 ? p.quantity - 1 : 0 }
+                    ? { ...p, quantity: Math.max(0, p.quantity - amountToRemove) }
                     : p
             ).filter(p => p.quantity > 0);
             return updatedProducts;
         });
+        setKeypadDisplay('');
     };
 
     const handleKeypadInput = (value) => {
@@ -162,10 +200,6 @@ const TPV = () => {
             return;
         }
         if (value === 'C') {
-            if (selectedProducts.length > 0) {
-                const lastProduct = selectedProducts[selectedProducts.length - 1];
-                handleProductRemove(lastProduct.id);
-            }
             setKeypadDisplay('');
             return;
         }
@@ -178,7 +212,15 @@ const TPV = () => {
                 Swal.fire("Error", "No hay productos seleccionados para cobrar.", "error");
                 return;
             }
-            handleFinalizarVenta();
+            const totalCarrito = selectedProducts.reduce((total, product) => total + (product.precio * product.quantity), 0);
+            const cantidadPagada = parseFloat(keypadDisplay);
+
+            if (cantidadPagada && cantidadPagada < totalCarrito) {
+                Swal.fire("Error", "La cantidad ingresada es menor que el total del carrito.", "error");
+                return;
+            }
+
+            handleFinalizarVenta(totalCarrito, cantidadPagada);
         } else if (action === 'añadir-cliente') {
             setShowClienteModal(true);
         } else if (action === 'cancelar') {
@@ -207,7 +249,7 @@ const TPV = () => {
         setSelectedCliente(selectedOption ? clientes.find(c => c.id === selectedOption.value) : null);
     };
 
-    const handleFinalizarVenta = async () => {
+    const handleFinalizarVenta = async (totalCarrito, cantidadPagada) => {
         try {
             if (selectedCliente && !clientes.some(c => c.id === selectedCliente.id)) {
                 throw new Error("Cliente seleccionado no válido");
@@ -254,10 +296,9 @@ const TPV = () => {
             }
 
             // Actualizar caja
-            const totalVenta = selectedProducts.reduce((total, product) => total + (product.precio * product.quantity), 0);
             const cajaActualizada = {
                 id: cajaAbierta.id,
-                totalIngresado: cajaAbierta.totalIngresado + totalVenta,
+                totalIngresado: cajaAbierta.totalIngresado + totalCarrito,
                 cantidadVentas: cajaAbierta.cantidadVentas + 1,
                 estado: cajaAbierta.estado,
                 organizacion: { id: organizacion.id }
@@ -267,14 +308,26 @@ const TPV = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            Swal.fire("Éxito", "Venta realizada correctamente", "success");
+            let mensaje = `Total: ${totalCarrito.toFixed(2)}€`;
+            if (cantidadPagada) {
+                const cambio = cantidadPagada - totalCarrito;
+                mensaje += `<br>Pagado: ${cantidadPagada.toFixed(2)}€<br>Cambio: ${cambio.toFixed(2)}€`;
+            }
+
+            Swal.fire({
+                title: "Venta realizada",
+                html: mensaje,
+                icon: "success"
+            });
+
             setSelectedProducts([]);
             setSelectedCliente(null);
+            setKeypadDisplay('');
 
             // Actualizar el estado de la caja abierta
             setCajaAbierta(prevCaja => ({
                 ...prevCaja,
-                totalIngresado: prevCaja.totalIngresado + totalVenta,
+                totalIngresado: prevCaja.totalIngresado + totalCarrito,
                 cantidadVentas: prevCaja.cantidadVentas + 1
             }));
 
@@ -296,15 +349,33 @@ const TPV = () => {
 
     const ProductList = ({ products, onRemove }) => (
         <div className="product-list">
-            {products.map(product => (
-                <div key={product.id} className="product-item">
-                    <span>{product.nombre}</span>
-                    <span>x{product.quantity}</span>
-                    <span>${product.precio.toFixed(2)}</span>
-                    <span>${(product.precio * product.quantity).toFixed(2)}</span>
-                    <button onClick={() => onRemove(product.id)} className="remove-button">X</button>
-                </div>
-            ))}
+            <div className="total-section">
+                <h3>Total: {products.reduce((total, product) => total + (product.precio * product.quantity), 0).toFixed(2)}€</h3>
+            </div>
+            <table className="product-table">
+                <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Total</th>
+                    <th>Acción</th>
+                </tr>
+                </thead>
+                <tbody>
+                {products.map(product => (
+                    <tr key={product.id} className="product-item">
+                        <td className="product-name">{product.nombre}</td>
+                        <td className="product-quantity">x{product.quantity}</td>
+                        <td className="product-price">{product.precio.toFixed(2)}€</td>
+                        <td className="product-total">{(product.precio * product.quantity).toFixed(2)}€</td>
+                        <td>
+                            <button onClick={() => onRemove(product.id)} className="remove-button">X</button>
+                        </td>
+                    </tr>
+                ))}
+                </tbody>
+            </table>
         </div>
     );
 
@@ -332,18 +403,99 @@ const TPV = () => {
         </div>
     );
 
-    const ProductGrid = ({ products, onProductSelect, onBackToCategories }) => (
-        <div className="product-grid">
-            <button onClick={onBackToCategories} className="back-button">Volver a Categorías</button>
-            {products.map(product => (
-                <button key={product.id} onClick={() => onProductSelect(product)} className="product-button">
-                    <h3>{product.nombre}</h3>
-                    <p>${product.precio.toFixed(2)}</p>
-                    <p>Stock: {product.cantidadStock}</p>
+    const MIN_COLUMNS_SMALL = 5;
+    const MIN_COLUMNS_LARGE = 6;
+    const MIN_ROWS = 2;
+
+    const ProductGrid = ({ products, onProductSelect, onBackToCategories }) => {
+        const gridRef = useRef(null);
+        const [gridSize, setGridSize] = useState({ columns: MIN_COLUMNS_SMALL, rows: MIN_ROWS });
+        const [currentPage, setCurrentPage] = useState(1);
+        const [productsPerPage, setProductsPerPage] = useState(MIN_COLUMNS_SMALL * MIN_ROWS);
+
+        useEffect(() => {
+            const updateGridSize = () => {
+                if (gridRef.current) {
+                    const rect = gridRef.current.getBoundingClientRect();
+                    const isLargeScreen = rect.width >= 1200;
+                    const minColumns = isLargeScreen ? MIN_COLUMNS_LARGE : MIN_COLUMNS_SMALL;
+
+                    const maxProductWidth = Math.floor(rect.width / minColumns);
+                    const maxProductHeight = Math.floor(rect.height / MIN_ROWS);
+                    const productSize = Math.min(maxProductWidth, maxProductHeight, 150);
+
+                    const columns = Math.max(minColumns, Math.floor(rect.width / productSize));
+                    const rows = Math.max(MIN_ROWS, Math.floor(rect.height / productSize));
+
+                    setGridSize({ columns, rows });
+                    setProductsPerPage(columns * rows);
+                }
+            };
+
+            updateGridSize();
+            window.addEventListener('resize', updateGridSize);
+            return () => window.removeEventListener('resize', updateGridSize);
+        }, []);
+
+        const totalPages = Math.ceil(products.length / productsPerPage);
+        const indexOfLastProduct = currentPage * productsPerPage;
+        const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
+        const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
+
+        const paginate = (pageNumber) => {
+            setCurrentPage(pageNumber);
+        };
+
+        return (
+            <div className="product-grid-container">
+                <button onClick={onBackToCategories} className="back-button">
+                    <FaChevronLeft /> Volver a Categorías
                 </button>
-            ))}
-        </div>
-    );
+                <div className="product-grid" ref={gridRef} style={{
+                    display: 'grid',
+                    gridTemplateColumns: `repeat(${gridSize.columns}, 1fr)`,
+                    gridTemplateRows: `repeat(${gridSize.rows}, 1fr)`,
+                    gap: '5px',
+                    justifyContent: 'center',
+                    alignContent: 'center',
+                    height: 'calc(100% - 60px)',
+                }}>
+                    {currentProducts.map(product => (
+                        <button key={product.id} onClick={() => onProductSelect(product)} className="product-button" style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            padding: '5px',
+                            height: '100%',
+                            width: '100%',
+                            minHeight: '100px',
+                            maxHeight: '150px',
+                            overflow: 'hidden',
+                        }}>
+                            <h3 style={{ fontSize: '1em', marginBottom: '5px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', width: '100%' }}>{product.nombre}</h3>
+                            <p style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '5px' }}>{product.precio.toFixed(2)}€</p>
+                            <p style={{ fontSize: '0.8em' }}>Stock: {product.cantidadStock}</p>
+                        </button>
+                    ))}
+                </div>
+                <div className="paginationtpv" style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '10px' }}>
+                    <button
+                        onClick={() => paginate(currentPage - 1)}
+                        disabled={currentPage === 1}
+                    >
+                        <FaChevronLeft />
+                    </button>
+                    <button
+                        onClick={() => paginate(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                    >
+                        <FaChevronRight />
+                    </button>
+                </div>
+            </div>
+        );
+    };
 
     const ActionButtons = ({ onAction }) => (
         <div className="action-buttons">
@@ -379,9 +531,6 @@ const TPV = () => {
                         <h2>Carrito de Compras</h2>
                         <div className="product-list-scroll">
                             <ProductList products={selectedProducts} onRemove={handleProductRemove} />
-                        </div>
-                        <div className="total-section">
-                            <h3>Total: ${selectedProducts.reduce((total, product) => total + (product.precio * product.quantity), 0).toFixed(2)}</h3>
                         </div>
                     </div>
                     <div className="product-grid-section">

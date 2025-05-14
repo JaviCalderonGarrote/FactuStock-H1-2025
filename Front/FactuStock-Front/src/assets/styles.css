@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
+/* Estilos generales */
 ::after,
 ::before {
     box-sizing: border-box;
@@ -26,21 +27,22 @@ body {
 
 .wrapper {
     display: flex;
-    min-height: 100vh;  /* Asegura que la altura del contenedor principal sea 100vh */
+    min-height: 100vh;
 }
 
 .main {
-    flex: 1;  /* Hace que el main ocupe el resto del espacio */
-    min-height: 100vh;  /* Asegura que la sección principal ocupe todo el espacio restante */
+    flex: 1;
+    min-height: 100vh;
     overflow: hidden;
     transition: all 0.35s ease-in-out;
     background-color: #fafbfe;
 }
 
+/* Estilos del sidebar */
 #sidebar {
-    width: 75px;  /* Reducido el ancho base */
-    min-width: 60px;  /* Reducido el mínimo */
-    height: 100vh;  /* Asegura que el sidebar ocupe toda la altura de la pantalla */
+    width: 75px;
+    min-width: 60px;
+    height: 100vh;
     z-index: 1000;
     transition: all 0.25s ease-in-out;
     background-color: #0e2238;
@@ -48,10 +50,9 @@ body {
     flex-direction: column;
 }
 
-/* Cuando el sidebar tiene hover, se expande */
 #sidebar:hover {
-    width: 220px;  /* Reducido el ancho cuando está en hover */
-    min-width: 220px;  /* Reducido el mínimo cuando está en hover */
+    width: 220px;
+    min-width: 220px;
 }
 
 .toggle-btn {
@@ -76,7 +77,6 @@ body {
     font-weight: 600;
 }
 
-/* Ocultar logo y los nombres de los enlaces cuando el sidebar no está expandido */
 #sidebar:not(:hover) .sidebar-logo,
 #sidebar:not(:hover) .sidebar-link span {
     display: none;
@@ -101,24 +101,21 @@ a.sidebar-link {
     margin-right: .75rem;
 }
 
-/* Cambios al pasar el ratón por encima de los enlaces */
 a.sidebar-link:hover {
     background-color: rgba(255, 255, 255, .075);
     border-left: 3px solid #3b7ddd;
 }
 
-/* Para los submenús dentro del sidebar */
 #sidebar:not(:hover) .sidebar-item .sidebar-dropdown {
     position: absolute;
     top: 0;
-    left: 60px;  /* Ajustado para el nuevo tamaño */
+    left: 60px;
     background-color: #0e2238;
     padding: 0;
     min-width: 15rem;
     display: none;
 }
 
-/* Mostrar las subopciones solo cuando el ratón está sobre el sidebar */
 #sidebar:hover .sidebar-item:hover .sidebar-dropdown {
     display: block;
     max-height: 15em;
@@ -126,9 +123,8 @@ a.sidebar-link:hover {
     opacity: 1;
 }
 
-/* Estilos para el Sidebar Footer (Logout) */
 .sidebar-footer {
-    margin-top: auto;  /* Esto empuja el área de footer (logout) al fondo */
+    margin-top: auto;
     padding: 1rem 1.5rem;
     background-color: #1b2d41;
     border-top: 1px solid #3b7ddd;
@@ -139,12 +135,10 @@ a.sidebar-link:hover {
 }
 
 .sidebar-footer:hover {
-    background-color: #1a2b38; /* Oscurecer el fondo al pasar el mouse */
+    background-color: #1a2b38;
     cursor: pointer;
-    border-top: 1px solid #3b7ddd;  /* Resalta el borde al hacer hover */
 }
 
-/* Estilos del enlace de logout */
 .sidebar-footer a {
     color: #FFF;
     font-size: 1.1rem;
@@ -155,8 +149,8 @@ a.sidebar-link:hover {
 }
 
 .sidebar-footer a:hover {
-    color: #ff4d4d;  /* Resalta el color cuando el mouse pasa por encima */
-    transform: scale(1.05);  /* Ligera animación de escala al hacer hover */
+    color: #ff4d4d;
+    transform: scale(1.05);
 }
 
 .sidebar-footer a i {
@@ -174,7 +168,8 @@ a.sidebar-link:hover {
 .username {
     font-weight: 600;
 }
-/* Estilo para el modal */
+
+/* Estilos del modal */
 .modal-dialog {
     max-width: 600px;
 }
@@ -210,7 +205,6 @@ a.sidebar-link:hover {
     font-size: 1.5rem;
 }
 
-/* Botones */
 .btn-secondary {
     background-color: #6c757d;
     border-color: #6c757d;
@@ -221,7 +215,6 @@ a.sidebar-link:hover {
     border-color: #007bff;
 }
 
-/* Añadir transiciones suaves para la apertura y cierre del modal */
 .modal.fade .modal-dialog {
     transform: translate(0, -50px);
     transition: transform 0.3s ease-out;
@@ -230,64 +223,8 @@ a.sidebar-link:hover {
 .modal.show .modal-dialog {
     transform: translate(0, 0);
 }
-/* Estilo para el modal */
-.modal-dialog {
-    max-width: 600px;
-}
 
-.modal-content {
-    background-color: #f8f9fa;
-    border-radius: 15px;
-    border: none;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-}
-
-.modal-header {
-    background-color: #007bff;
-    color: white;
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-}
-
-.modal-title {
-    font-size: 1.25rem;
-    font-weight: bold;
-}
-
-.modal-footer {
-    display: flex;
-    justify-content: flex-end;
-}
-
-.btn-close {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 1.5rem;
-}
-
-/* Botones */
-.btn-secondary {
-    background-color: #6c757d;
-    border-color: #6c757d;
-}
-
-
-
-{
-    background-color: #007bff;
-    border-color: #007bff;
-}
-
-/* Añadir transiciones suaves para la apertura y cierre del modal */
-.modal.fade .modal-dialog {
-    transform: translate(0, -50px);
-    transition: transform 0.3s ease-out;
-}
-
-.modal.show .modal-dialog {
-    transform: translate(0, 0);
-}
+/* Estilos adicionales */
 .logo-preview {
     width: 100px;
     height: auto;
@@ -298,6 +235,7 @@ a.sidebar-link:hover {
     transform: scale(1.5);
     cursor: pointer;
 }
+
 .magnifying-glass-icon {
     transition: color 0.3s ease-in-out;
 }
@@ -306,42 +244,95 @@ a.sidebar-link:hover {
     color: #6f9fd7;
 }
 
-/* Botón de Agregar Producto */
 .btn:hover {
     background-color: white !important;
-    border: 2px solid #a7c5eb !important; /* Azul */
-    color: #a7c5eb !important; /* Cambia el texto a azul también */
+    border: 2px solid #a7c5eb !important;
+    color: #a7c5eb !important;
 }
-/* Añadir a tu archivo CSS */
+
 .search-icon {
     color: white;
     transition: color 0.3s ease;
 }
 
 .search-icon:hover {
-    color: #007bff; /* Azul */
+    color: #007bff;
 }
 
-/* CSS para manejar el color del placeholder */
 input:focus::placeholder,
 input:not(:focus)::placeholder {
-    color: #fff; /* Color por defecto */
+    color: #fff;
 }
 
 input:focus:valid::placeholder {
-    color: #007bff; /* Azul cuando se escribe */
+    color: #007bff;
 }
 
-
-/* Icono de búsqueda (lupa) */
 .position-relative .FaSearch:hover {
     color: #a7c5eb !important;
 }
 
-
-/* Estilos para la lupa y el campo de búsqueda */
 .form-control {
     transition: color 0.3s ease-in-out, border-color 0.3s ease-in-out;
 }
 
+/* Estilos de la paginación */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2rem;
+}
 
+.pagination-button {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    padding: 0.5rem 0.75rem;
+    margin: 0 0.25rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+}
+
+.pagination-button:hover {
+    background-color: #f3f4f6;
+}
+
+.pagination-button.active {
+    background-color: #6f9fd7;
+    border-color: #6f9fd7;
+    color: #ffffff;
+}
+
+.pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    color: #6b7280;
+    padding: 0.5rem 0.75rem;
+}
+
+.pagination-nav-button {
+    background-color: #ffffff;
+    border: 1px solid #d1d5db;
+    color: #374151;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.pagination-nav-button:hover:not(:disabled) {
+    background-color: #f3f4f6;
+}
+
+.pagination-nav-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

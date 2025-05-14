@@ -10,5 +10,6 @@ import java.util.List;
 @Repository
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     // Método para obtener productos por organización
+
     List<Producto> findByOrganizacion(Organizacion organizacion);
 }

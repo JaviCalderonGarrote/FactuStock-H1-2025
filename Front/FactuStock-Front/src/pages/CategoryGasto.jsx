@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { FaPlusCircle, FaSearch } from "react-icons/fa";
+import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 
 const CategoriaGastoComponent = () => {
     const [categoriasGasto, setCategoriasGasto] = useState([]);
@@ -114,16 +114,18 @@ const CategoriaGastoComponent = () => {
         });
     };
 
-    const totalPages = Math.ceil(categoriasGasto.length / categoriasPorPagina);
-    const categoriasPaginadas = categoriasGasto
-        .filter(categoria =>
-            categoria.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            categoria.id.toString().includes(searchQuery)
-        )
-        .slice(
-            (currentPage - 1) * categoriasPorPagina,
-            currentPage * categoriasPorPagina
-        );
+    const categoriasFiltradas = categoriasGasto.filter(categoria =>
+        categoria.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        categoria.id.toString().includes(searchQuery)
+    );
+
+    const indexOfLastCategoria = currentPage * categoriasPorPagina;
+    const indexOfFirstCategoria = indexOfLastCategoria - categoriasPorPagina;
+    const categoriasPaginadas = categoriasFiltradas.slice(indexOfFirstCategoria, indexOfLastCategoria);
+
+    const totalPages = Math.ceil(categoriasFiltradas.length / categoriasPorPagina);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
     return (
         <div className="d-flex">
@@ -206,13 +208,33 @@ const CategoriaGastoComponent = () => {
                 </div>
 
                 {totalPages > 1 && (
-                    <nav aria-label="Page navigation">
+                    <nav aria-label="Page navigation" className="mt-4">
                         <ul className="pagination justify-content-center">
-                            {[...Array(totalPages).keys()].map((i) => (
-                                <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                    <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
+                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} style={{color: '#6f9fd7', borderColor: '#6f9fd7'}}>
+                                    <FaChevronLeft />
+                                </button>
+                            </li>
+                            {[...Array(totalPages).keys()].map((number) => (
+                                <li key={number + 1} className={`page-item ${currentPage === number + 1 ? 'active' : ''}`}>
+                                    <button
+                                        className="page-link"
+                                        onClick={() => paginate(number + 1)}
+                                        style={{
+                                            backgroundColor: currentPage === number + 1 ? '#6f9fd7' : 'white',
+                                            color: currentPage === number + 1 ? 'white' : '#6f9fd7',
+                                            borderColor: '#6f9fd7'
+                                        }}
+                                    >
+                                        {number + 1}
+                                    </button>
                                 </li>
                             ))}
+                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} style={{color: '#6f9fd7', borderColor: '#6f9fd7'}}>
+                                    <FaChevronRight />
+                                </button>
+                            </li>
                         </ul>
                     </nav>
                 )}

@@ -2,6 +2,7 @@ package IDP_H1.FactuStock.Services;
 
 import IDP_H1.FactuStock.Entities.Caja;
 import IDP_H1.FactuStock.Entities.EstadoCaja;
+import IDP_H1.FactuStock.Entities.Ingreso;
 import IDP_H1.FactuStock.Repositories.CajaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,9 @@ public class CajaService {
 
     @Autowired
     private CajaRepository repository;
+
+    @Autowired
+    private IngresoService ingresoService;
 
     public List<Caja> obtenerTodas() {
         return repository.findAll();
@@ -76,7 +80,17 @@ public class CajaService {
         }
         caja.setEstado(EstadoCaja.CERRADA);
         caja.setFechaFin(LocalDateTime.now());
-        return guardar(caja);
+        Caja cajaCerrada = guardar(caja);
+
+        // Crear un ingreso cuando se cierra la caja
+        Ingreso ingreso = new Ingreso();
+        ingreso.setCaja(cajaCerrada);
+        ingreso.setMonto(cajaCerrada.getTotalIngresado());
+        ingreso.setFecha(LocalDateTime.now());
+        ingreso.setOrganizacion(cajaCerrada.getOrganizacion());
+        ingresoService.guardar(ingreso);
+
+        return cajaCerrada;
     }
 
     @Transactional

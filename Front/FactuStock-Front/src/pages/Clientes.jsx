@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { FaPlusCircle, FaSearch } from "react-icons/fa";
+import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight, FaEllipsisH } from "react-icons/fa";
 
 class ErrorBoundary extends React.Component {
     constructor(props) {
@@ -41,12 +41,12 @@ const EmpresaPersonaFisicaComponent = () => {
     });
     const [showModal, setShowModal] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
-    const [clientesPorPagina] = useState(9);
-    const [searchQuery, setSearchQuery] = useState(""); // Estado para la búsqueda
-    const [inputFocused, setInputFocused] = useState(false); // Estado para saber si el input está enfocado
+    const [empresasPorPagina] = useState(9);
+    const [searchQuery, setSearchQuery] = useState("");
+    const [inputFocused, setInputFocused] = useState(false);
     const token = localStorage.getItem("authToken");
-    const [usuario, setUsuario] = useState(null); // Definir estado para usuario
-    const [organizacion, setOrganizacion] = useState(null); // Definir estado para organizacion
+    const [usuario, setUsuario] = useState(null);
+    const [organizacion, setOrganizacion] = useState(null);
 
     useEffect(() => {
         if (!token) {
@@ -85,7 +85,6 @@ const EmpresaPersonaFisicaComponent = () => {
         fetchData();
     }, [token]);
 
-    // Manejo del formulario para crear/editar empresaPersonaFisica
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!nuevaEmpresaPersonaFisica.nombre || !nuevaEmpresaPersonaFisica.nifCif || !nuevaEmpresaPersonaFisica.mail) {
@@ -105,17 +104,16 @@ const EmpresaPersonaFisicaComponent = () => {
                 response = await axios.post("http://localhost:8080/EmpresaPersonaFisica", empresaData, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-                setEmpresaPersonaFisica([...empresaPersonaFisica, response.data]);
             }
 
             setShowModal(false);
             Swal.fire('Éxito', `Empresa ${nuevaEmpresaPersonaFisica.id ? 'actualizada' : 'creada'} correctamente`, 'success');
+            window.location.reload();
         } catch (err) {
             Swal.fire('Error', 'Hubo un error al procesar la solicitud.', 'error');
         }
     };
 
-    // Eliminar empresa
     const handleEliminar = (id) => {
         Swal.fire({
             title: '¿Estás seguro?',
@@ -138,21 +136,12 @@ const EmpresaPersonaFisicaComponent = () => {
         });
     };
 
-    // Preparar edición de empresa
     const handleEditar = (empresa) => {
         setNuevaEmpresaPersonaFisica(empresa);
         setShowModal(true);
     };
 
-    // Lógica de paginación
-    const totalPages = Math.ceil(empresaPersonaFisica.length / clientesPorPagina);
-    const empresaPersonaFisicaPaginada = empresaPersonaFisica.slice(
-        (currentPage - 1) * clientesPorPagina,
-        currentPage * clientesPorPagina
-    );
-
-    // Filtrar empresas por búsqueda
-    const filteredEmpresas = empresaPersonaFisicaPaginada.filter(empresa => {
+    const empresasFiltradas = empresaPersonaFisica.filter(empresa => {
         return (
             empresa.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
             empresa.nifCif.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -162,6 +151,108 @@ const EmpresaPersonaFisicaComponent = () => {
             empresa.tipo.toLowerCase().includes(searchQuery.toLowerCase())
         );
     });
+
+    const indexOfLastEmpresa = currentPage * empresasPorPagina;
+    const indexOfFirstEmpresa = indexOfLastEmpresa - empresasPorPagina;
+    const empresasPaginadas = empresasFiltradas.slice(indexOfFirstEmpresa, indexOfLastEmpresa);
+
+    const totalPages = Math.ceil(empresasFiltradas.length / empresasPorPagina);
+
+    const paginate = (pageNumber) => setCurrentPage(pageNumber);
+
+    const renderPaginationButtons = () => {
+        const buttons = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) {
+                buttons.push(
+                    <button
+                        key={i}
+                        onClick={() => paginate(i)}
+                        className={`pagination-button ${currentPage === i ? 'active' : ''}`}
+                        style={{
+                            backgroundColor: currentPage === i ? '#6f9fd7' : 'white',
+                            color: currentPage === i ? 'white' : '#6f9fd7',
+                            border: '1px solid #6f9fd7',
+                            borderRadius: '4px',
+                            padding: '5px 10px',
+                            margin: '0 2px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {i}
+                    </button>
+                );
+            }
+        } else {
+            buttons.push(
+                <button
+                    key={1}
+                    onClick={() => paginate(1)}
+                    className={`pagination-button ${currentPage === 1 ? 'active' : ''}`}
+                    style={{
+                        backgroundColor: currentPage === 1 ? '#6f9fd7' : 'white',
+                        color: currentPage === 1 ? 'white' : '#6f9fd7',
+                        border: '1px solid #6f9fd7',
+                        borderRadius: '4px',
+                        padding: '5px 10px',
+                        margin: '0 2px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    1
+                </button>
+            );
+
+            if (currentPage > 3) {
+                buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            for (let i = Math.max(2, currentPage - 1); i <= Math.min(currentPage + 1, totalPages - 1); i++) {
+                buttons.push(
+                    <button
+                        key={i}
+                        onClick={() => paginate(i)}
+                        className={`pagination-button ${currentPage === i ? 'active' : ''}`}
+                        style={{
+                            backgroundColor: currentPage === i ? '#6f9fd7' : 'white',
+                            color: currentPage === i ? 'white' : '#6f9fd7',
+                            border: '1px solid #6f9fd7',
+                            borderRadius: '4px',
+                            padding: '5px 10px',
+                            margin: '0 2px',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {i}
+                    </button>
+                );
+            }
+
+            if (currentPage < totalPages - 2) {
+                buttons.push(<span key="ellipsis2" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            buttons.push(
+                <button
+                    key={totalPages}
+                    onClick={() => paginate(totalPages)}
+                    className={`pagination-button ${currentPage === totalPages ? 'active' : ''}`}
+                    style={{
+                        backgroundColor: currentPage === totalPages ? '#6f9fd7' : 'white',
+                        color: currentPage === totalPages ? 'white' : '#6f9fd7',
+                        border: '1px solid #6f9fd7',
+                        borderRadius: '4px',
+                        padding: '5px 10px',
+                        margin: '0 2px',
+                        cursor: 'pointer'
+                    }}
+                >
+                    {totalPages}
+                </button>
+            );
+        }
+        return buttons;
+    };
 
     return (
         <div className="d-flex">
@@ -202,8 +293,8 @@ const EmpresaPersonaFisicaComponent = () => {
                                         placeholder="Buscar..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        onFocus={() => setInputFocused(true)} // Cambiar estado a true cuando el input esté enfocado
-                                        onBlur={() => setInputFocused(false)} // Cambiar estado a false cuando el input pierda el foco
+                                        onFocus={() => setInputFocused(true)}
+                                        onBlur={() => setInputFocused(false)}
                                         style={{
                                             paddingLeft: "35px",
                                             borderRadius: "8px",
@@ -239,7 +330,7 @@ const EmpresaPersonaFisicaComponent = () => {
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {filteredEmpresas.map((empresa, index) => (
+                                    {empresasPaginadas.map((empresa, index) => (
                                         <tr key={empresa.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
                                             <td>{empresa.id}</td>
                                             <td>{empresa.nombre || 'N/A'}</td>
@@ -258,15 +349,42 @@ const EmpresaPersonaFisicaComponent = () => {
                                 </table>
                             </div>
 
-                            {/* Paginación */}
                             {totalPages > 1 && (
-                                <nav aria-label="Page navigation">
+                                <nav aria-label="Page navigation" className="mt-4">
                                     <ul className="pagination justify-content-center">
-                                        {[...Array(totalPages).keys()].map((i) => (
-                                            <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                                <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-                                            </li>
-                                        ))}
+                                        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                            <button
+                                                className="page-link"
+                                                onClick={() => paginate(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                style={{
+                                                    backgroundColor: 'transparent',
+                                                    color: '#6f9fd7',
+                                                    border: '1px solid #6f9fd7',
+                                                    borderRadius: '4px',
+                                                    margin: '0 2px'
+                                                }}
+                                            >
+                                                <FaChevronLeft />
+                                            </button>
+                                        </li>
+                                        {renderPaginationButtons()}
+                                        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                            <button
+                                                className="page-link"
+                                                onClick={() => paginate(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                style={{
+                                                    backgroundColor: 'transparent',
+                                                    color: '#6f9fd7',
+                                                    border: '1px solid #6f9fd7',
+                                                    borderRadius: '4px',
+                                                    margin: '0 2px'
+                                                }}
+                                            >
+                                                <FaChevronRight />
+                                            </button>
+                                        </li>
                                     </ul>
                                 </nav>
                             )}
@@ -274,7 +392,6 @@ const EmpresaPersonaFisicaComponent = () => {
                     )}
                 </ErrorBoundary>
 
-                {/* Modal para agregar/editar empresa */}
                 {showModal && (
                     <div className="modal fade show" style={{ display: "block" }}>
                         <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: "800px" }}>
@@ -287,7 +404,6 @@ const EmpresaPersonaFisicaComponent = () => {
                                 </div>
                                 <div className="modal-body">
                                     <form onSubmit={handleSubmit}>
-                                        {/* Fila 1: Nombre y NIF/CIF */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Nombre</label>
@@ -312,8 +428,6 @@ const EmpresaPersonaFisicaComponent = () => {
                                                 />
                                             </div>
                                         </div>
-
-                                        {/* Fila 2: Teléfono y Dirección */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Teléfono</label>
@@ -336,8 +450,6 @@ const EmpresaPersonaFisicaComponent = () => {
                                                 />
                                             </div>
                                         </div>
-
-                                        {/* Fila 3: Web y Email */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Web</label>
@@ -361,8 +473,6 @@ const EmpresaPersonaFisicaComponent = () => {
                                                 />
                                             </div>
                                         </div>
-
-                                        {/* Fila 4: Tipo */}
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
                                                 <label className="form-label">Tipo</label>
@@ -375,14 +485,11 @@ const EmpresaPersonaFisicaComponent = () => {
                                                     <option value="CLIENTE">Cliente</option>
                                                     <option value="PROVEEDOR">Proveedor</option>
                                                     <option value="AMBOS">Ambos</option>
-
                                                 </select>
                                             </div>
                                         </div>
-
-                                        {/* Botones de Acción - uno debajo del otro */}
                                         <div className="d-flex flex-column gap-3 mt-3">
-                                            <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%' }}>
+                                            <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }}>
                                                 {nuevaEmpresaPersonaFisica.id ? 'Actualizar Empresa' : 'Crear Empresa'}
                                             </button>
                                             <button
@@ -400,7 +507,6 @@ const EmpresaPersonaFisicaComponent = () => {
                         </div>
                     </div>
                 )}
-
             </div>
         </div>
     );

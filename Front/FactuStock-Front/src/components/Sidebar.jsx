@@ -69,13 +69,13 @@ const Sidebar = () => {
             </Link>
           </li>
           <li className="sidebar-item">
-            <Link to="/expenses" className="sidebar-link">
+            <Link to="/gastos" className="sidebar-link">
               <i className="fas fa-money-bill-wave"></i>
               <span>Gastos</span>
             </Link>
           </li>
           <li className="sidebar-item">
-            <Link to="/income" className="sidebar-link">
+            <Link to="/ingresos" className="sidebar-link">
               <i className="fas fa-coins"></i>
               <span>Ingresos</span>
             </Link>

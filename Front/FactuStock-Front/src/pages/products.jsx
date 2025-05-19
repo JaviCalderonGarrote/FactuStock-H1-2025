@@ -2,7 +2,9 @@ import Sidebar from "../components/Sidebar";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight, FaEllipsisH } from "react-icons/fa";
+import {FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight, FaEllipsisH, FaSave} from "react-icons/fa";
+import {Button, Col, Form, Modal, Row} from "react-bootstrap";
+import Select from "react-select";
 
 // Componente para manejar errores
 class ErrorBoundary extends React.Component {
@@ -442,3 +444,5 @@ const Products = () => {
 };
 
 export default Products;
+
+

@@ -4,6 +4,9 @@ import IDP_H1.FactuStock.Entities.Gasto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+
 @Repository
 public interface GastoRepository extends JpaRepository<Gasto, Long> {
+    List<Gasto> findByOrganizacionId(Long organizacionId);
 }

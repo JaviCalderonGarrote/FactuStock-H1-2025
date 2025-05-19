@@ -16,6 +16,8 @@ import Registro from "./pages/Registro.jsx";
 import Mail from "./pages/Mail.jsx";
 import TPV from "./pages/TPV.jsx";
 import Caja from  "./pages/Caja.jsx"
+import Gastos from "./pages/Gastos.jsx";
+import IngresosComponent from "./pages/ingresos.jsx"; // Importamos el nuevo componente de Gastos
 
 const App = () => {
     return (
@@ -34,8 +36,11 @@ const App = () => {
             <Route path="/registro/" element={<Registro />} />
             <Route path="/nueva-factura" element={<NuevaFacturaComponent />} />
             <Route path="/tpv" element={<TPV />} />
-                <Route path="/caja" element={<Caja />} />
-        <Route path="/mail" element={<Mail />} />
+            <Route path="/caja" element={<Caja />} />
+            <Route path="/mail" element={<Mail />} />
+            <Route path="/gastos" element={<Gastos />} />
+                <Route path="/ingresos" element={<IngresosComponent />} />
+
         </Routes>
     );
 };

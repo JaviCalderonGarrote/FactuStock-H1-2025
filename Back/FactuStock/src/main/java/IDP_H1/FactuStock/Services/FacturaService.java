@@ -2,6 +2,8 @@ package IDP_H1.FactuStock.Services;
 
 import IDP_H1.FactuStock.Entities.Factura;
 import IDP_H1.FactuStock.Entities.Organizacion;
+import IDP_H1.FactuStock.Entities.EstadoFactura;
+import IDP_H1.FactuStock.Entities.Ingreso;
 import IDP_H1.FactuStock.Repositories.FacturaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -17,6 +19,9 @@ public class FacturaService {
 
     @Autowired
     private FacturaRepository facturaRepository;
+
+    @Autowired
+    private IngresoService ingresoService;
 
     public List<Factura> obtenerFacturasPorOrganizacion(Organizacion organizacion) {
         return facturaRepository.findByOrganizacion(organizacion);
@@ -40,7 +45,13 @@ public class FacturaService {
                     factura.setNumeroFactura(numeroFactura);
                 }
 
-                return facturaRepository.save(factura);
+                Factura facturaGuardada = facturaRepository.save(factura);
+
+                if (facturaGuardada.getEstado() == EstadoFactura.COMPLETADA) {
+                    crearIngresoParaFactura(facturaGuardada);
+                }
+
+                return facturaGuardada;
             } catch (DataIntegrityViolationException e) {
                 if (intento == maxIntentos - 1) {
                     throw new RuntimeException("No se pudo generar un número de factura único después de " + maxIntentos + " intentos", e);
@@ -75,5 +86,29 @@ public class FacturaService {
 
     public void eliminar(Long id) {
         facturaRepository.deleteById(id);
+    }
+
+    @Transactional
+    public Factura actualizarEstado(Long id, EstadoFactura nuevoEstado) {
+        Factura factura = facturaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Factura no encontrada"));
+
+        factura.setEstado(nuevoEstado);
+        Factura facturaActualizada = facturaRepository.save(factura);
+
+        if (nuevoEstado == EstadoFactura.COMPLETADA) {
+            crearIngresoParaFactura(facturaActualizada);
+        }
+
+        return facturaActualizada;
+    }
+
+    private void crearIngresoParaFactura(Factura factura) {
+        Ingreso ingreso = new Ingreso();
+        ingreso.setFactura(factura);
+        ingreso.setMonto(factura.getTotal());
+        ingreso.setFecha(LocalDateTime.now());
+        ingreso.setOrganizacion(factura.getOrganizacion());
+        ingresoService.guardar(ingreso);
     }
 }

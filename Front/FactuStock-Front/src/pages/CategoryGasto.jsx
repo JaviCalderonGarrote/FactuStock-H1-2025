@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight } from "react-icons/fa";
+import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight, FaEllipsisH } from "react-icons/fa";
 
 const CategoriaGastoComponent = () => {
     const [categoriasGasto, setCategoriasGasto] = useState([]);
@@ -127,6 +127,73 @@ const CategoriaGastoComponent = () => {
 
     const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
+    const renderPaginationButtons = () => {
+        const buttons = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) {
+                buttons.push(
+                    <button
+                        key={i}
+                        onClick={() => paginate(i)}
+                        className={`pagination-button ${currentPage === i ? 'active' : ''}`}
+                    >
+                        {i}
+                    </button>
+                );
+            }
+        } else {
+            buttons.push(
+                <button
+                    key={1}
+                    onClick={() => paginate(1)}
+                    className={`pagination-button ${currentPage === 1 ? 'active' : ''}`}
+                >
+                    1
+                </button>
+            );
+            buttons.push(
+                <button
+                    key={2}
+                    onClick={() => paginate(2)}
+                    className={`pagination-button ${currentPage === 2 ? 'active' : ''}`}
+                >
+                    2
+                </button>
+            );
+
+            if (currentPage > 3) {
+                buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            if (currentPage !== 1 && currentPage !== 2 && currentPage !== totalPages) {
+                buttons.push(
+                    <button
+                        key={currentPage}
+                        onClick={() => paginate(currentPage)}
+                        className="pagination-button active"
+                    >
+                        {currentPage}
+                    </button>
+                );
+            }
+
+            if (currentPage < totalPages - 2) {
+                buttons.push(<span key="ellipsis2" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            buttons.push(
+                <button
+                    key={totalPages}
+                    onClick={() => paginate(totalPages)}
+                    className={`pagination-button ${currentPage === totalPages ? 'active' : ''}`}
+                >
+                    {totalPages}
+                </button>
+            );
+        }
+        return buttons;
+    };
+
     return (
         <div className="d-flex">
             <Sidebar />
@@ -211,27 +278,31 @@ const CategoriaGastoComponent = () => {
                     <nav aria-label="Page navigation" className="mt-4">
                         <ul className="pagination justify-content-center">
                             <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                <button className="page-link" onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1} style={{color: '#6f9fd7', borderColor: '#6f9fd7'}}>
+                                <button
+                                    className="page-link"
+                                    onClick={() => paginate(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: '#6f9fd7',
+                                        border: 'none'
+                                    }}
+                                >
                                     <FaChevronLeft />
                                 </button>
                             </li>
-                            {[...Array(totalPages).keys()].map((number) => (
-                                <li key={number + 1} className={`page-item ${currentPage === number + 1 ? 'active' : ''}`}>
-                                    <button
-                                        className="page-link"
-                                        onClick={() => paginate(number + 1)}
-                                        style={{
-                                            backgroundColor: currentPage === number + 1 ? '#6f9fd7' : 'white',
-                                            color: currentPage === number + 1 ? 'white' : '#6f9fd7',
-                                            borderColor: '#6f9fd7'
-                                        }}
-                                    >
-                                        {number + 1}
-                                    </button>
-                                </li>
-                            ))}
+                            {renderPaginationButtons()}
                             <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                                <button className="page-link" onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages} style={{color: '#6f9fd7', borderColor: '#6f9fd7'}}>
+                                <button
+                                    className="page-link"
+                                    onClick={() => paginate(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: '#6f9fd7',
+                                        border: 'none'
+                                    }}
+                                >
                                     <FaChevronRight />
                                 </button>
                             </li>

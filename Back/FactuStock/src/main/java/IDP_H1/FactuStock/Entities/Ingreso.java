@@ -2,7 +2,6 @@ package IDP_H1.FactuStock.Entities;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,6 +22,9 @@ public class Ingreso {
 
     @Column(nullable = false)
     private LocalDateTime fecha;
+
     @ManyToOne
     private Organizacion organizacion;
+
+    private String motivo;
 }

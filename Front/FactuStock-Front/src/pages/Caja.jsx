@@ -3,7 +3,7 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
-import { FaSearch, FaPlusCircle, FaLock } from "react-icons/fa";
+import { FaSearch, FaPlusCircle, FaLock, FaChevronLeft, FaChevronRight, FaEllipsisH } from "react-icons/fa";
 import { Modal, Button, Form } from "react-bootstrap";
 
 const EstadoCaja = {
@@ -215,10 +215,76 @@ const CajaComponent = () => {
     cajasFiltradas.sort((a, b) => new Date(b.fechaInicio) - new Date(a.fechaInicio));
 
     const totalPages = Math.ceil(cajasFiltradas.length / cajasPorPagina);
-    const cajasPaginadas = cajasFiltradas.slice(
-        (currentPage - 1) * cajasPorPagina,
-        currentPage * cajasPorPagina
-    );
+    const indexOfLastCaja = currentPage * cajasPorPagina;
+    const indexOfFirstCaja = indexOfLastCaja - cajasPorPagina;
+    const cajasPaginadas = cajasFiltradas.slice(indexOfFirstCaja, indexOfLastCaja);
+
+    const renderPaginationButtons = () => {
+        const buttons = [];
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) {
+                buttons.push(
+                    <button
+                        key={i}
+                        onClick={() => setCurrentPage(i)}
+                        className={`pagination-button ${currentPage === i ? 'active' : ''}`}
+                    >
+                        {i}
+                    </button>
+                );
+            }
+        } else {
+            buttons.push(
+                <button
+                    key={1}
+                    onClick={() => setCurrentPage(1)}
+                    className={`pagination-button ${currentPage === 1 ? 'active' : ''}`}
+                >
+                    1
+                </button>
+            );
+            buttons.push(
+                <button
+                    key={2}
+                    onClick={() => setCurrentPage(2)}
+                    className={`pagination-button ${currentPage === 2 ? 'active' : ''}`}
+                >
+                    2
+                </button>
+            );
+
+            if (currentPage > 3) {
+                buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            if (currentPage !== 1 && currentPage !== 2 && currentPage !== totalPages) {
+                buttons.push(
+                    <button
+                        key={currentPage}
+                        onClick={() => setCurrentPage(currentPage)}
+                        className="pagination-button active"
+                    >
+                        {currentPage}
+                    </button>
+                );
+            }
+
+            if (currentPage < totalPages - 2) {
+                buttons.push(<span key="ellipsis2" className="pagination-ellipsis"><FaEllipsisH /></span>);
+            }
+
+            buttons.push(
+                <button
+                    key={totalPages}
+                    onClick={() => setCurrentPage(totalPages)}
+                    className={`pagination-button ${currentPage === totalPages ? 'active' : ''}`}
+                >
+                    {totalPages}
+                </button>
+            );
+        }
+        return buttons;
+    };
 
     return (
         <div className="d-flex">
@@ -272,52 +338,86 @@ const CajaComponent = () => {
                         </div>
 
                         <div className="table-responsive">
-                            <table className="table table-hover">
-                                <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
-                                <tr>
-                                    <th>Nombre</th>
-                                    <th>Fecha Inicio</th>
-                                    <th>Fecha Fin</th>
-                                    <th>Total Ingresado</th>
-                                    <th>Cantidad Ventas</th>
-                                    <th>Estado</th>
-                                    <th>Acción</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {cajasPaginadas.map((caja, index) => (
-                                    <tr key={caja.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                        <td>{caja.nombre || 'N/A'}</td>
-                                        <td>{caja.fechaInicio ? new Date(caja.fechaInicio).toLocaleDateString() : 'N/A'}</td>
-                                        <td>{caja.fechaFin ? new Date(caja.fechaFin).toLocaleDateString() : 'N/A'}</td>
-                                        <td>{caja.totalIngresado?.toFixed(2) || '0.00'}€</td>
-                                        <td>{caja.cantidadVentas || 0}</td>
-                                        <td>{getEstadoBadge(caja.estado)}</td>
-                                        <td>
-                                            {caja.estado === EstadoCaja.ABIERTA && (
-                                                <button
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() => handleCerrarCaja(caja.id)}
-                                                    title="Cerrar Caja"
-                                                >
-                                                    <FaLock />
-                                                </button>
-                                            )}
-                                        </td>
+                            {cajasPaginadas.length === 0 ? (
+                                <table className="table">
+                                    <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
+                                    <tr>
+                                        <th colSpan="7" className="text-center">No hay cajas disponibles</th>
                                     </tr>
-                                ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                </table>
+                            ) : (
+                                <table className="table table-hover">
+                                    <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Fecha Inicio</th>
+                                        <th>Fecha Fin</th>
+                                        <th>Total Ingresado</th>
+                                        <th>Cantidad Ventas</th>
+                                        <th>Estado</th>
+                                        <th>Acción</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {cajasPaginadas.map((caja, index) => (
+                                        <tr key={caja.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                            <td>{caja.nombre || 'N/A'}</td>
+                                            <td>{caja.fechaInicio ? new Date(caja.fechaInicio).toLocaleDateString() : 'N/A'}</td>
+                                            <td>{caja.fechaFin ? new Date(caja.fechaFin).toLocaleDateString() : 'N/A'}</td>
+                                            <td>{caja.totalIngresado?.toFixed(2) || '0.00'}€</td>
+                                            <td>{caja.cantidadVentas || 0}</td>
+                                            <td>{getEstadoBadge(caja.estado)}</td>
+                                            <td>
+                                                {caja.estado === EstadoCaja.ABIERTA && (
+                                                    <button
+                                                        className="btn btn-sm btn-danger"
+                                                        onClick={() => handleCerrarCaja(caja.id)}
+                                                        title="Cerrar Caja"
+                                                    >
+                                                        <FaLock />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            )}
                         </div>
 
                         {totalPages > 1 && (
-                            <nav aria-label="Page navigation">
+                            <nav aria-label="Page navigation" className="mt-4">
                                 <ul className="pagination justify-content-center">
-                                    {[...Array(totalPages).keys()].map((i) => (
-                                        <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                                            <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-                                        </li>
-                                    ))}
+                                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                        <button
+                                            className="page-link"
+                                            onClick={() => setCurrentPage(currentPage - 1)}
+                                            disabled={currentPage === 1}
+                                            style={{
+                                                backgroundColor: 'transparent',
+                                                color: '#6f9fd7',
+                                                border: 'none'
+                                            }}
+                                        >
+                                            <FaChevronLeft />
+                                        </button>
+                                    </li>
+                                    {renderPaginationButtons()}
+                                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                        <button
+                                            className="page-link"
+                                            onClick={() => setCurrentPage(currentPage + 1)}
+                                            disabled={currentPage === totalPages}
+                                            style={{
+                                                backgroundColor: 'transparent',
+                                                color: '#6f9fd7',
+                                                border: 'none'
+                                            }}
+                                        >
+                                            <FaChevronRight />
+                                        </button>
+                                    </li>
                                 </ul>
                             </nav>
                         )}

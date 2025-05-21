@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -43,5 +44,9 @@ public class EmpresaPersonaFisicaService {
     // Obtener empresas/personas físicas por idOrganizacion
     public List<EmpresaPersonaFisica> findByOrganizacion(Long idOrganizacion) {
         return repository.findByOrganizacionId(idOrganizacion);
+    }
+
+    public List<Map<String, Object>> obtenerTop6EmpresasConConteos(Long organizacionId) {
+        return repository.findTop6EmpresasWithFacturas(organizacionId);
     }
 }

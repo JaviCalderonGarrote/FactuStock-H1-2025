@@ -12,6 +12,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Optional<Usuario> findByUsernameIgnoreCase(String username);
     Optional<Usuario> findByMail(String mail);
     Optional<Usuario> findById(Long id);
+    Optional<Usuario> findByMailIgnoreCase(String mail);
 
     // Agregar este método para buscar usuario por token de restablecimiento de contraseña
     Optional<Usuario> findByPasswordResetToken(String passwordResetToken);

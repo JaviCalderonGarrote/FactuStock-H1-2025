@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -28,4 +29,10 @@ public class VentaService {
     public void eliminar(Long id) {
         repository.deleteById(id);
     }
+
+    public List<Map<String, Object>> obtenerVentasPorMes(Long organizacionId, int year) {
+        return repository.obtenerVentasPorMes(organizacionId, year);
+    }
+
+
 }

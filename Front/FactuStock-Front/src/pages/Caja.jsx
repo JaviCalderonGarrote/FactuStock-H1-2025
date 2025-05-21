@@ -423,31 +423,33 @@ const CajaComponent = () => {
                         )}
 
                         <Modal show={showModal} onHide={handleCloseModal}>
-                            <Modal.Header closeButton style={{backgroundColor: '#f0f8ff'}}>
-                                <Modal.Title style={{color: '#2c3e50'}}>Crear Nueva Caja</Modal.Title>
+                            <Modal.Header closeButton style={{backgroundColor: '#a7c5eb', color: '#fff'}}>
+                                <Modal.Title>Crear Nueva Caja</Modal.Title>
                             </Modal.Header>
-                            <Modal.Body style={{backgroundColor: '#f9f9f9'}}>
-                                <Form>
+                            <Modal.Body>
+                                <Form onSubmit={(e) => { e.preventDefault(); handleSaveNuevaCaja(); }}>
                                     <Form.Group className="mb-3">
-                                        <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Nombre de la Caja (Opcional)</Form.Label>
+                                        <Form.Label>Nombre de la Caja (Opcional)</Form.Label>
                                         <Form.Control
                                             type="text"
                                             value={nuevaCaja.nombre}
                                             onChange={(e) => setNuevaCaja({...nuevaCaja, nombre: e.target.value})}
-                                            style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
                                             placeholder="Dejar en blanco para nombre automático"
                                         />
                                     </Form.Group>
+                                    <Button type="submit" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff', border: 'none' }}>
+                                        Crear Caja
+                                    </Button>
                                 </Form>
+                                <Button
+                                    variant="secondary"
+                                    onClick={handleCloseModal}
+                                    className="mt-3"
+                                    style={{ width: '100%' }}
+                                >
+                                    Cerrar
+                                </Button>
                             </Modal.Body>
-                            <Modal.Footer style={{backgroundColor: '#f0f8ff'}}>
-                                <Button variant="secondary" onClick={handleCloseModal}>
-                                    Cancelar
-                                </Button>
-                                <Button variant="primary" onClick={handleSaveNuevaCaja}>
-                                    Crear Caja
-                                </Button>
-                            </Modal.Footer>
                         </Modal>
                     </>
                 )}

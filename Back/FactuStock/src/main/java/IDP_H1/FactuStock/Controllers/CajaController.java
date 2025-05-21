@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -90,23 +91,21 @@ public class CajaController {
         }
     }
 
-    @GetMapping("/abierta/organizacion/{organizacionId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE', 'VENDEDOR')")
-    public ResponseEntity<Caja> obtenerCajaAbiertaPorOrganizacion(@PathVariable Long organizacionId) {
-        logger.info("Solicitando caja abierta para la organización con ID: {}", organizacionId);
-        Optional<Caja> cajaAbierta = cajaService.obtenerCajaAbierta(organizacionId);
-        return cajaAbierta.map(c -> {
-            logger.info("Caja abierta encontrada: {}", c);
-            return ResponseEntity.ok(c);
-        }).orElseGet(() -> {
-            logger.warn("No se encontró ninguna caja abierta para la organización con ID: {}", organizacionId);
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        });
-    }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
         logger.error("Error no manejado en CajaController", e);
         return new ResponseEntity<>("Error interno del servidor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+
+    @GetMapping("/abierta/organizacion/{organizacionId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE', 'VENDEDOR')")
+    public ResponseEntity<Map<String, Object>> obtenerCajaAbiertaPorOrganizacion(@PathVariable Long organizacionId) {
+        logger.info("Solicitando caja abierta para la organización con ID: {}", organizacionId);
+        Map<String, Object> cajaInfo = cajaService.obtenerCajaAbiertaConTotal(organizacionId);
+        logger.info("Caja abierta obtenida: {}", cajaInfo);
+        return ResponseEntity.ok(cajaInfo);
+    }
+
 }

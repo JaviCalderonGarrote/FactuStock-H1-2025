@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -141,4 +142,13 @@ public class VentaController {
         logger.error("Error no manejado en VentaController", e);
         return new ResponseEntity<>("Error interno del servidor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
+
+    @GetMapping("/por-mes/{organizacionId}/{year}")
+    public ResponseEntity<List<Map<String, Object>>> obtenerVentasPorMes(
+            @PathVariable Long organizacionId,
+            @PathVariable int year) {
+        List<Map<String, Object>> ventas = ventaService.obtenerVentasPorMes(organizacionId, year);
+        return ResponseEntity.ok(ventas);
+    }
+
 }

@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -133,4 +134,21 @@ public class GastoController {
         logger.warn("No se encontró archivo para gasto con ID: {}", id);
         return ResponseEntity.notFound().build();
     }
+
+    @GetMapping("/total/{organizacionId}/{year}")
+    public ResponseEntity<Double> obtenerTotalGastosPorAno(@PathVariable Long organizacionId, @PathVariable int year) {
+        logger.info("Obteniendo total de gastos para la organización {} en el año {}", organizacionId, year);
+        Double totalGastos = gastoService.obtenerTotalGastosPorAno(organizacionId, year);
+        logger.info("Total de gastos obtenido: {}", totalGastos);
+        return ResponseEntity.ok(totalGastos);
+    }
+
+    @GetMapping("/mensuales/{organizacionId}/{year}")
+    public ResponseEntity<List<Map<String, Object>>> obtenerGastosMensuales(@PathVariable Long organizacionId, @PathVariable int year) {
+        logger.info("Obteniendo gastos mensuales para la organización {} en el año {}", organizacionId, year);
+        List<Map<String, Object>> gastosMensuales = gastoService.obtenerGastosMensuales(organizacionId, year);
+        logger.info("Se obtuvieron los gastos mensuales: {}", gastosMensuales);
+        return ResponseEntity.ok(gastosMensuales);
+    }
+
 }

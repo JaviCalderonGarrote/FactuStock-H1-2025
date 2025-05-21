@@ -11,9 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class CajaService {
@@ -82,7 +80,6 @@ public class CajaService {
         caja.setFechaFin(LocalDateTime.now());
         Caja cajaCerrada = guardar(caja);
 
-        // Crear un ingreso cuando se cierra la caja
         Ingreso ingreso = new Ingreso();
         ingreso.setCaja(cajaCerrada);
         ingreso.setMonto(cajaCerrada.getTotalIngresado());
@@ -123,4 +120,26 @@ public class CajaService {
         caja.setCantidadVentas(0);
         return guardar(caja);
     }
+
+    public Map<String, Object> obtenerCajaAbiertaConTotal(Long organizacionId) {
+        Map<String, Object> cajaInfo = new HashMap<>();
+        try {
+            Optional<Object> result = repository.obtenerCajaAbiertaConTotal(organizacionId);
+            if (result.isPresent()) {
+                Object[] data = (Object[]) result.get();  // 🔧 Cast correcto aquí
+                cajaInfo.put("nombre", data[0] != null ? data[0].toString() : "No hay caja abierta");
+                cajaInfo.put("totalIngresado", data[1] != null ? Double.parseDouble(data[1].toString()) : 0.0);
+            } else {
+                cajaInfo.put("nombre", "No hay caja abierta");
+                cajaInfo.put("totalIngresado", 0.0);
+            }
+        } catch (Exception e) {
+            log.error("Error al obtener caja abierta para organización {}: {}", organizacionId, e.getMessage());
+            cajaInfo.put("nombre", "Error al obtener información de la caja");
+            cajaInfo.put("totalIngresado", 0.0);
+        }
+        log.info("Información de caja obtenida: {}", cajaInfo);
+        return cajaInfo;
+    }
+
 }

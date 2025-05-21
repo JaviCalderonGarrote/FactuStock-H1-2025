@@ -26,5 +26,5 @@ public class Ingreso {
     @ManyToOne
     private Organizacion organizacion;
 
-    private String motivo;
+
 }

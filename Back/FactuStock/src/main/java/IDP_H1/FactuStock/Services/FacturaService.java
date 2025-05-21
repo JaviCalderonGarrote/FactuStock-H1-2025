@@ -111,4 +111,9 @@ public class FacturaService {
         ingreso.setOrganizacion(factura.getOrganizacion());
         ingresoService.guardar(ingreso);
     }
+
+
+    public long countFacturasNoCompletadasByOrganizacion(Long organizacionId) {
+        return facturaRepository.countFacturasNoCompletadasByOrganizacion(organizacionId);
+    }
 }

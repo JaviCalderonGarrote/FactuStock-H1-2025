@@ -276,4 +276,13 @@ public class FacturaController {
                 "</body>" +
                 "</html>";
     }
+    @GetMapping("/no-completadas/{organizacionId}")
+    public ResponseEntity<Long> countFacturasNoCompletadas(@PathVariable Long organizacionId) {
+        try {
+            long count = facturaService.countFacturasNoCompletadasByOrganizacion(organizacionId);
+            return ResponseEntity.ok(count);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }

@@ -1,10 +1,8 @@
 import Sidebar from "../components/Sidebar";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import {FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight, FaEllipsisH, FaSave} from "react-icons/fa";
-import {Button, Col, Form, Modal, Row} from "react-bootstrap";
-import Select from "react-select";
+import { FaPlusCircle, FaSearch, FaChevronLeft, FaChevronRight, FaEllipsisH } from "react-icons/fa";
 
 // Componente para manejar errores
 class ErrorBoundary extends React.Component {
@@ -50,45 +48,52 @@ const Products = () => {
     const [organizacion, setOrganizacion] = useState(null);
     const token = localStorage.getItem("authToken");
 
-    useEffect(() => {
+    const fetchData = useCallback(async () => {
         if (!token) {
             setError("No se encontró un token de autenticación.");
             return;
         }
 
-        const fetchData = async () => {
-            try {
-                const decodedToken = JSON.parse(atob(token.split(".")[1]));
-                const userId = decodedToken?.idUsuario;
+        try {
+            const decodedToken = JSON.parse(atob(token.split(".")[1]));
+            const userId = decodedToken?.idUsuario;
 
-                if (!userId) {
-                    setError("ID de usuario no encontrado en el token.");
-                    return;
-                }
-
-                const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-
-                setOrganizacion(userResponse.data.organizacion);
-
-                const productosResponse = await axios.get(`http://localhost:8080/productos/organizacion/${userResponse.data.organizacion.id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-                setProductos(productosResponse.data);
-
-                const categoriasResponse = await axios.get(`http://localhost:8080/categoriasProducto/organizacion/${userResponse.data.organizacion.id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                setCategorias(Array.isArray(categoriasResponse.data) ? categoriasResponse.data : []);
-            } catch (err) {
-                setError("Error al obtener los datos.");
+            if (!userId) {
+                setError("ID de usuario no encontrado en el token.");
+                return;
             }
-        };
 
-        fetchData();
+            const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            setOrganizacion(userResponse.data.organizacion);
+
+            const productosResponse = await axios.get(`http://localhost:8080/productos/organizacion/${userResponse.data.organizacion.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (Array.isArray(productosResponse.data)) {
+                setProductos(productosResponse.data.sort((a, b) => b.id - a.id));
+            } else {
+                console.error("La respuesta de productos no es un array:", productosResponse.data);
+                setProductos([]);
+            }
+
+            const categoriasResponse = await axios.get(`http://localhost:8080/categoriasProducto/organizacion/${userResponse.data.organizacion.id}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            setCategorias(Array.isArray(categoriasResponse.data) ? categoriasResponse.data : []);
+        } catch (err) {
+            console.error("Error al obtener los datos:", err);
+            setError("Error al obtener los datos: " + err.message);
+        }
     }, [token]);
+
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -119,10 +124,13 @@ const Products = () => {
                     icon: 'success',
                     confirmButtonText: 'OK'
                 }).then(() => {
-                    window.location.reload();
+                    fetchData();
                 });
             })
-            .catch(() => Swal.fire('Error', `Hubo un error al ${nuevoProducto.id ? 'actualizar' : 'crear'} el producto.`, 'error'));
+            .catch((error) => {
+                console.error("Error al crear/actualizar producto:", error);
+                Swal.fire('Error', `Hubo un error al ${nuevoProducto.id ? 'actualizar' : 'crear'} el producto: ${error.message}`, 'error');
+            });
     };
 
     const handleEliminar = (id) => {
@@ -145,9 +153,12 @@ const Products = () => {
                         icon: 'success',
                         confirmButtonText: 'OK'
                     }).then(() => {
-                        window.location.reload();
+                        fetchData();
                     });
-                }).catch(() => Swal.fire('Error', 'Hubo un error al eliminar el producto', 'error'));
+                }).catch((error) => {
+                    console.error("Error al eliminar producto:", error);
+                    Swal.fire('Error', `Hubo un error al eliminar el producto: ${error.message}`, 'error');
+                });
             }
         });
     };
@@ -165,15 +176,13 @@ const Products = () => {
         setShowModal(true);
     };
 
-    const productosFiltrados = Array.isArray(productos)
-        ? productos.filter(producto =>
-            producto.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            producto.precio.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (producto.categoria?.nombre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-            producto.cantidadStock.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
-            producto.iva.toString().toLowerCase().includes(searchQuery.toLowerCase())
-        )
-        : [];
+    const productosFiltrados = productos.filter(producto =>
+        producto.nombre.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        producto.precio.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (producto.categoria?.nombre || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        producto.cantidadStock.toString().toLowerCase().includes(searchQuery.toLowerCase()) ||
+        producto.iva.toString().toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const indexOfLastProduct = currentPage * productosPorPagina;
     const indexOfFirstProduct = indexOfLastProduct - productosPorPagina;
@@ -413,26 +422,40 @@ const Products = () => {
                                 </div>
                                 <div className="modal-body">
                                     <form onSubmit={handleSubmit}>
-                                        {["nombre", "precio", "cantidadStock", "iva"].map((campo, i) => (
+                                        {["nombre", "precio", "cantidadStock", "iva"].map((campo) => (
                                             <div className="form-group mb-3" key={campo}>
                                                 <label className="form-label">{campo.charAt(0).toUpperCase() + campo.slice(1)}</label>
-                                                <input type={campo === "nombre" ? "text" : "number"} className="form-control" name={campo} value={nuevoProducto[campo]} onChange={(e) => setNuevoProducto({ ...nuevoProducto, [campo]: e.target.value })} required />
+                                                <input
+                                                    type={campo === "nombre" ? "text" : "number"}
+                                                    className="form-control"
+                                                    name={campo}
+                                                    value={nuevoProducto[campo]}
+                                                    onChange={(e) => setNuevoProducto({ ...nuevoProducto, [campo]: e.target.value })}
+                                                    required
+                                                />
                                             </div>
                                         ))}
                                         <div className="form-group mb-3">
                                             <label className="form-label">Categoría</label>
-                                            <select className="form-control" value={nuevoProducto.categoriaId} onChange={(e) => setNuevoProducto({ ...nuevoProducto, categoriaId: e.target.value })} required>
+                                            <select
+                                                className="form-control"
+                                                value={nuevoProducto.categoriaId}
+                                                onChange={(e) => setNuevoProducto({ ...nuevoProducto, categoriaId: e.target.value })}
+                                                required
+                                            >
                                                 <option value="">Seleccionar Categoría</option>
-                                                {categorias && Array.isArray(categorias) && categorias.map((cat) => (
+                                                {categorias.map((cat) => (
                                                     <option key={cat.id} value={cat.id}>{cat.nombre}</option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div className="d-flex justify-content-end">
-                                            <button type="button" className="btn btn-secondary me-2" onClick={() => setShowModal(false)}>Cancelar</button>
-                                            <button type="submit" className="btn btn-primary">{nuevoProducto.id ? 'Actualizar Producto' : 'Crear Producto'}</button>
-                                        </div>
+                                        <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }}>
+                                            {nuevoProducto.id ? 'Guardar Cambios' : 'Guardar Producto'}
+                                        </button>
                                     </form>
+                                    <button type="button" className="btn btn-secondary mt-3" onClick={() => setShowModal(false)} style={{ width: '100%' }}>
+                                        Cerrar
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -444,5 +467,3 @@ const Products = () => {
 };
 
 export default Products;
-
-

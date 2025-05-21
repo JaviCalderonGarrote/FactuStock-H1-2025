@@ -68,7 +68,9 @@ const CategoryProducts = () => {
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                setCategorias(categoriasResponse.data.length ? categoriasResponse.data : []);
+                // Ordenar las categorías por ID de mayor a menor
+                const categoriasOrdenadas = categoriasResponse.data.sort((a, b) => b.id - a.id);
+                setCategorias(categoriasOrdenadas.length ? categoriasOrdenadas : []);
             } catch (err) {
                 setError("Error al obtener las categorías.");
             }

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
+import Swal from "sweetalert2";
 
 const Registro = () => {
     const navigate = useNavigate();
@@ -8,7 +9,7 @@ const Registro = () => {
     const [formData, setFormData] = useState({
         username: "",
         password: "",
-        confirmPassword: "", // Nuevo campo
+        confirmPassword: "",
         nombre: "",
         apellido: "",
         mail: "",
@@ -21,14 +22,12 @@ const Registro = () => {
             email: "",
             web: "",
             logo: "",
-            IBAN: ""
+            IBAN: "",
         },
     });
 
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -50,11 +49,11 @@ const Registro = () => {
     const validarUsuario = () => {
         const { username, nombre, apellido, mail, password, confirmPassword } = formData;
         if (!(username.trim() && nombre.trim() && apellido.trim() && mail.trim() && password.trim() && confirmPassword.trim())) {
-            setError("Por favor completa todos los campos obligatorios del usuario.");
+            Swal.fire("Error", "Por favor completa todos los campos obligatorios del usuario.", "error");
             return false;
         }
         if (password !== confirmPassword) {
-            setError("Las contraseñas no coinciden.");
+            Swal.fire("Error", "Las contraseñas no coinciden.", "error");
             return false;
         }
         return true;
@@ -74,18 +73,15 @@ const Registro = () => {
     const handleContinue = (e) => {
         e.preventDefault();
         if (!validarUsuario()) return;
-        setError("");
         setStep(2);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        setError("");
-        setSuccess("");
 
         if (!validarOrganizacion()) {
-            setError("Por favor completa todos los campos obligatorios de la organización.");
+            Swal.fire("Error", "Por favor completa todos los campos obligatorios de la organización.", "error");
             setIsSubmitting(false);
             return;
         }
@@ -97,14 +93,17 @@ const Registro = () => {
 
         try {
             await authService.register(payload);
-            setSuccess("Registro exitoso. Redirigiendo al inicio de sesión...");
+            Swal.fire("Éxito", "Registro exitoso. Redirigiendo al inicio de sesión...", "success");
             setTimeout(() => navigate("/"), 2000);
         } catch (err) {
-            if (err.response?.data?.message?.includes("organización con ese nombre")) {
-                setError("Ya existe una organización con ese nombre. Intenta con otro.");
-            } else {
-                setError("Error al registrar. Verifica los datos e intenta nuevamente.");
+            let errorMsg = "Error al registrar. Verifica los datos e intenta nuevamente.";
+
+            const backendMessage = err?.response?.data?.message;
+            if (backendMessage && typeof backendMessage === "string") {
+                errorMsg = backendMessage;
             }
+
+            Swal.fire("Error", errorMsg, "error");
         } finally {
             setIsSubmitting(false);
         }
@@ -113,7 +112,6 @@ const Registro = () => {
     return (
         <div className="container mt-5">
             <div className="card shadow p-4 mx-auto" style={{ maxWidth: "600px" }}>
-                {/* Logo de la aplicación (aquí puedes colocar tu logo) */}
                 <div className="text-center mb-4">
                     <img src="/LOGO-Letras.png" alt="Logo de la aplicación" style={{ width: "100px", height: "auto" }} />
                 </div>
@@ -121,9 +119,6 @@ const Registro = () => {
                 <h3 className="text-center mb-4">
                     {step === 1 ? "Registro de Usuario" : "Registro de Organización"}
                 </h3>
-
-                {error && <div className="alert alert-danger">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
 
                 <form onSubmit={step === 1 ? handleContinue : handleSubmit}>
                     {step === 1 && (
@@ -149,18 +144,7 @@ const Registro = () => {
                             <InputField label="NIF/CIF" name="organizacion.nifCif" value={formData.organizacion.nifCif} onChange={handleChange} required />
                             <InputField label="Email" name="organizacion.email" type="email" value={formData.organizacion.email} onChange={handleChange} required />
                             <InputField label="Sitio Web" name="organizacion.web" value={formData.organizacion.web} onChange={handleChange} />
-
-                            {/* Logo de la organización, solo si se ha ingresado una URL */}
-                            {formData.organizacion.logo && (
-                                <div className="text-center my-4">
-                                    <img
-                                        src={formData.organizacion.logo}
-                                        alt="Logo de la organización"
-                                        style={{ maxWidth: "150px", height: "auto" }}
-                                    />
-                                </div>
-                            )}
-
+                            <InputField label="Logo URL" name="organizacion.logo" value={formData.organizacion.logo} onChange={handleChange} />
                             <InputField label="IBAN" name="organizacion.IBAN" value={formData.organizacion.IBAN} onChange={handleChange} />
 
                             <button type="submit" className="btn btn-success w-100" disabled={isSubmitting}>

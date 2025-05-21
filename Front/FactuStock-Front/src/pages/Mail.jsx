@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import Select from "react-select";
 import axios from "axios";
 import Swal from "sweetalert2";
+import { FaPaperPlane } from "react-icons/fa";
 
 const Mail = () => {
     const [clientes, setClientes] = useState([]);
@@ -157,8 +158,9 @@ const Mail = () => {
     return (
         <div className="d-flex">
             <Sidebar />
-            <div className="container mt-5 mail-page">
+            <div className="container mt-4">
                 <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>Enviar Correo</h2>
+                {error && <div className="alert alert-danger text-center">{error}</div>}
                 <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
                     <div className="mb-3">
                         <label className="form-label">Seleccionar Cliente o Escribir Correo</label>
@@ -208,8 +210,12 @@ const Mail = () => {
                             onChange={handleChange}
                         />
                     </div>
-                    <button type="submit" className="btn btn-primary">
-                        <i className="fas fa-paper-plane me-2"></i>Enviar
+                    <button
+                        type="submit"
+                        className="btn"
+                        style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
+                    >
+                        <FaPaperPlane className="me-2" /> Enviar Correo
                     </button>
                 </form>
             </div>

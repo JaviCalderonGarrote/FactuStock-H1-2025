@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -85,11 +86,19 @@ public class EmpresaPersonaFisicaController {
 
     // Obtener empresas/personas físicas por idOrganizacion
     @GetMapping("/organizacion/{idOrganizacion}")
-    public ResponseEntity<List<EmpresaPersonaFisica>> getEmpresasByOrganizacion(@PathVariable Long idOrganizacion) {
+    public ResponseEntity<?> getEmpresasByOrganizacion(@PathVariable Long idOrganizacion) {
         List<EmpresaPersonaFisica> empresas = service.findByOrganizacion(idOrganizacion);
         if (empresas.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(empresas);
+            return ResponseEntity.ok().body(Map.of("message", "No hay datos en la base de datos para esta organización"));
         }
         return ResponseEntity.ok(empresas);
     }
+
+
+    @GetMapping("/top6-facturas/{organizacionId}")
+    public ResponseEntity<List<Map<String, Object>>> obtenerTop6EmpresasFacturas(@PathVariable Long organizacionId) {
+        List<Map<String, Object>> top6Empresas = service.obtenerTop6EmpresasConConteos(organizacionId);
+        return ResponseEntity.ok(top6Empresas);
+    }
+
 }

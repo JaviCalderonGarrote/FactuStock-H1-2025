@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -38,4 +39,17 @@ public class GastoService {
     public List<Gasto> obtenerPorOrganizacion(Long organizacionId) {
         return repository.findByOrganizacionId(organizacionId);
     }
+
+
+    @Transactional(readOnly = true)
+    public Double obtenerTotalGastosPorAno(Long organizacionId, int year) {
+        Double total = repository.sumMontoByOrganizacionIdAndYear(organizacionId, year);
+        return total != null ? total : 0.0;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> obtenerGastosMensuales(Long organizacionId, int year) {
+        return repository.getGastosMensuales(organizacionId, year);
+    }
+
 }

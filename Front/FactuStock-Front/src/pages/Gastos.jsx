@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import {FaSearch, FaPlusCircle, FaPencilAlt, FaSave, FaDownload, FaChevronLeft, FaChevronRight, FaEllipsisH} from "react-icons/fa";
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import Select from "react-select";
+import Home from "./Home.jsx";
 
 const EstadoGasto = {
     RECIBIDO: "RECIBIDO",
@@ -18,7 +19,6 @@ const FormaPagoGasto = {
     TRANSFERENCIA: "TRANSFERENCIA",
     NO_PAGADA: "NO_PAGADA"
 };
-
 const GastosComponent = () => {
     const [gastos, setGastos] = useState([]);
     const [error, setError] = useState(null);
@@ -36,7 +36,8 @@ const GastosComponent = () => {
         formaPagoGasto: FormaPagoGasto.NO_PAGADA,
         categoriaGasto: null,
         empresaPersonaFisica: null,
-        archivo: null
+        archivo: null,
+        fecha: new Date().toISOString().split('T')[0] // Fecha actual por defecto
     });
     const [categorias, setCategorias] = useState([]);
     const [empresasPersonasFisicas, setEmpresasPersonasFisicas] = useState([]);
@@ -266,7 +267,9 @@ const GastosComponent = () => {
                 formaPagoGasto: newGasto.formaPagoGasto,
                 categoriaGasto: newGasto.categoriaGasto ? { id: newGasto.categoriaGasto.value } : null,
                 empresaPersonaFisica: { id: newGasto.empresaPersonaFisica.value },
-                organizacion: { id: organizacion.id }
+                organizacion: { id: organizacion.id },
+                fecha: new Date(newGasto.fecha).toISOString()
+
             }));
             if (newGasto.archivo) {
                 formData.append('archivo', newGasto.archivo);
@@ -287,7 +290,9 @@ const GastosComponent = () => {
                 formaPagoGasto: FormaPagoGasto.NO_PAGADA,
                 categoriaGasto: null,
                 empresaPersonaFisica: null,
-                archivo: null
+                archivo: null,
+                fecha: new Date().toISOString().split('T')[0]
+
             });
 
             Swal.fire({
@@ -389,11 +394,9 @@ const GastosComponent = () => {
                     2
                 </button>
             );
-
             if (currentPage > 3) {
                 buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
             }
-
             if (currentPage !== 1 && currentPage !== 2 && currentPage !== totalPages) {
                 buttons.push(
                     <button
@@ -419,339 +422,346 @@ const GastosComponent = () => {
                     {totalPages}
                 </button>
             );
-        }
-        return buttons;
-    };
 
-    return (
-        <div className="d-flex">
-            <Sidebar />
-            <div className="container mt-4">
-                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>
-                    Registro de Gastos
-                </h2>
+            return buttons;
+        };};
 
-                {error ? (
-                    <div className="alert alert-danger text-center">{error}</div>
-                ) : (
-                    <>
-                        <div className="d-flex justify-content-between mb-3">
-                            <button
-                                className="btn d-flex align-items-center"
-                                style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
-                                onClick={() => setShowNewGastoModal(true)}
-                            >
-                                <FaPlusCircle className="me-2" />
-                                Añadir nuevo Gasto
-                            </button>
+        return (
+            <div className="d-flex">
+                <Sidebar />
+                <div className="container mt-4">
+                    <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>
+                        Registro de Gastos
+                    </h2>
 
-                            <div className="position-relative" style={{ width: "250px" }}>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Buscar..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onFocus={() => setInputFocused(true)}
-                                    onBlur={() => setInputFocused(false)}
-                                    style={{
-                                        paddingLeft: "35px",
-                                        borderRadius: "8px",
-                                        border: "1px solid #ccc",
-                                        backgroundColor: inputFocused || searchQuery ? "#ffffff" : "#6f9fd7",
-                                        color: inputFocused || searchQuery ? "#000" : "#fff",
-                                    }}
-                                />
-                                <FaSearch
-                                    className="position-absolute"
-                                    style={{
-                                        left: "10px",
-                                        top: "25%",
-                                        color: inputFocused || searchQuery ? "#6f9fd7" : "#fff",
-                                        fontSize: "18px"
-                                    }}
-                                />
+                    {error ? (
+                        <div className="alert alert-danger text-center">{error}</div>
+                    ) : (
+                        <>
+                            <div className="d-flex justify-content-between mb-3">
+                                <button
+                                    className="btn d-flex align-items-center"
+                                    style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
+                                    onClick={() => setShowNewGastoModal(true)}
+                                >
+                                    <FaPlusCircle className="me-2" />
+                                    Añadir nuevo Gasto
+                                </button>
+
+                                <div className="position-relative" style={{ width: "250px" }}>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        placeholder="Buscar..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        onFocus={() => setInputFocused(true)}
+                                        onBlur={() => setInputFocused(false)}
+                                        style={{
+                                            paddingLeft: "35px",
+                                            borderRadius: "8px",
+                                            border: "1px solid #ccc",
+                                            backgroundColor: inputFocused || searchQuery ? "#ffffff" : "#6f9fd7",
+                                            color: inputFocused || searchQuery ? "#000" : "#fff",
+                                        }}
+                                    />
+                                    <FaSearch
+                                        className="position-absolute"
+                                        style={{
+                                            left: "10px",
+                                            top: "25%",
+                                            color: inputFocused || searchQuery ? "#6f9fd7" : "#fff",
+                                            fontSize: "18px"
+                                        }}
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        <div className="table-responsive">
-                            <table className="table table-hover">
-                                <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
-                                <tr>
-                                    <th>Número de Factura</th>
-                                    <th>Empresa/Persona</th>
-                                    <th>Categoría</th>
-                                    <th>Monto</th>
-                                    <th>Estado</th>
-                                    <th>Forma de Pago</th>
-                                    <th>Acción</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {gastosPaginados.map((gasto, index) => (
-                                    <tr key={gasto.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                        <td>{gasto.numFactura}</td>
-                                        <td>{gasto.empresaPersonaFisica?.nombre || 'N/A'}</td>
-                                        <td>{gasto.categoriaGasto?.nombre || 'N/A'}</td>
-                                        <td>{gasto.monto?.toFixed(2) || '0.00'}€</td>
-                                        <td>{getEstadoBadge(gasto.estado)}</td>
-                                        <td>{getFormaPagoBadge(gasto.formaPagoGasto)}</td>
-                                        <td>
-                                            <button
-                                                className="btn btn-sm btn-outline-primary me-2"
-                                                title="Editar Gasto"
-                                                onClick={() => handleEdit(gasto)}
-                                            >
-                                                <FaPencilAlt />
-                                            </button>
-                                            {gasto.nombreArchivoFactura && (
-                                                <button
-                                                    className="btn btn-sm btn-outline-success"
-                                                    title="Descargar Factura"
-                                                    onClick={() => handleDownload(gasto.id)}
-                                                >
-                                                    <FaDownload />
-                                                </button>
-                                            )}
-                                        </td>
+                            <div className="table-responsive">
+                                <table className="table table-hover">
+                                    <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Número de Factura</th>
+                                        <th>Empresa/Persona</th>
+                                        <th>Categoría</th>
+                                        <th>Monto</th>
+                                        <th>Estado</th>
+                                        <th>Forma de Pago</th>
+                                        <th>Acción</th>
                                     </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                    {gastosPaginados.map((gasto, index) => (
+                                        <tr key={gasto.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                            <td>{new Date(gasto.fecha).toLocaleDateString()}</td>
+                                            <td>{gasto.numFactura}</td>
+                                            <td>{gasto.empresaPersonaFisica?.nombre || 'N/A'}</td>
+                                            <td>{gasto.categoriaGasto?.nombre || 'N/A'}</td>
+                                            <td>{gasto.monto?.toFixed(2) || '0.00'}€</td>
+                                            <td>{getEstadoBadge(gasto.estado)}</td>
+                                            <td>{getFormaPagoBadge(gasto.formaPagoGasto)}</td>
+                                            <td>
+                                                <button
+                                                    className="btn btn-sm btn-outline-primary me-2"
+                                                    title="Editar Gasto"
+                                                    onClick={() => handleEdit(gasto)}
+                                                >
+                                                    <FaPencilAlt />
+                                                </button>
+                                                {gasto.nombreArchivoFactura && (
+                                                    <button
+                                                        className="btn btn-sm btn-outline-success"
+                                                        title="Descargar Factura"
+                                                        onClick={() => handleDownload(gasto.id)}
+                                                    >
+                                                        <FaDownload />
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                        {totalPages > 1 && (
-                            <nav aria-label="Page navigation" className="mt-4">
-                                <ul className="pagination justify-content-center">
-                                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                        <button
-                                            className="page-link"
-                                            onClick={() => paginate(currentPage - 1)}
-                                            disabled={currentPage === 1}
-                                            style={{
-                                                backgroundColor: 'transparent',
-                                                color: '#6f9fd7',
-                                                border: 'none'
-                                            }}
-                                        >
-                                            <FaChevronLeft />
-                                        </button>
-                                    </li>
-                                    {renderPaginationButtons()}
-                                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                                        <button
-                                            className="page-link"
-                                            onClick={() => paginate(currentPage + 1)}
-                                            disabled={currentPage === totalPages}
-                                            style={{
-                                                backgroundColor: 'transparent',
-                                                color: '#6f9fd7',
-                                                border: 'none'
-                                            }}
-                                        >
-                                            <FaChevronRight />
-                                        </button>
-                                    </li>
-                                </ul>
-                            </nav>
-                        )}
-
-                        {/* Modal para editar gasto */}
-                        <Modal show={showEditModal} onHide={handleCloseEditModal} size="lg">
-                            <Modal.Header closeButton style={{backgroundColor: '#f0f8ff'}}>
-                                <Modal.Title style={{color: '#2c3e50'}}>Editar Gasto</Modal.Title>
-                            </Modal.Header>
-                            <Modal.Body style={{backgroundColor: '#f9f9f9'}}>
-                                {editingGasto && (
-                                    <Form>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Estado</Form.Label>
-                                            <Form.Control
-                                                as="select"
-                                                value={editingGasto.tempEstado}
-                                                onChange={handleEstadoChange}
-                                                style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
+                            {totalPages > 1 && (
+                                <nav aria-label="Page navigation" className="mt-4">
+                                    <ul className="pagination justify-content-center">
+                                        <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                            <button
+                                                className="page-link"
+                                                onClick={() => paginate(currentPage - 1)}
+                                                disabled={currentPage === 1}
+                                                style={{
+                                                    backgroundColor: 'transparent',
+                                                    color: '#6f9fd7',
+                                                    border: 'none'
+                                                }}
                                             >
-                                                {Object.values(EstadoGasto).map(estado => (
-                                                    <option key={estado} value={estado}>{estado}</option>
-                                                ))}
-                                            </Form.Control>
-                                        </Form.Group>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Forma de Pago</Form.Label>
-                                            <Form.Control
-                                                as="select"
-                                                value={editingGasto.tempFormaPago}
-                                                onChange={handleFormaPagoChange}
-                                                style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
-                                                disabled={!editingGasto.tempEstado}
+                                                <FaChevronLeft />
+                                            </button>
+                                        </li>
+                                        {renderPaginationButtons()}
+                                        <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                            <button
+                                                className="page-link"
+                                                onClick={() => paginate(currentPage + 1)}
+                                                disabled={currentPage === totalPages}
+                                                style={{
+                                                    backgroundColor: 'transparent',
+                                                    color: '#6f9fd7',
+                                                    border: 'none'
+                                                }}
                                             >
-                                                {editingGasto.tempEstado === EstadoGasto.RECIBIDO && (
-                                                    <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
-                                                )}
-                                                {editingGasto.tempEstado === EstadoGasto.COMPLETADO && (
-                                                    <>
-                                                        <option value={FormaPagoGasto.EFECTIVO}>Efectivo</option>
-                                                        <option value={FormaPagoGasto.TARJETA}>Tarjeta</option>
-                                                        <option value={FormaPagoGasto.TRANSFERENCIA}>Transferencia</option>
-                                                    </>
-                                                )}
-                                                {editingGasto.tempEstado === EstadoGasto.ERROR && (
-                                                    <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
-                                                )}
-                                            </Form.Control>
-                                        </Form.Group>
-                                    </Form>
-                                )}
-                            </Modal.Body>
-                            <Modal.Footer style={{backgroundColor: '#f0f8ff'}}>
-                                <Button variant="secondary" onClick={handleCloseEditModal}>
-                                    Cerrar
-                                </Button>
-                                <Button variant="primary" onClick={handleSaveChanges}>
-                                    Guardar Cambios
-                                </Button>
-                            </Modal.Footer>
-                        </Modal>
+                                                <FaChevronRight />
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            )}
 
-                        {/* Modal para nuevo gasto */}
-                        <Modal show={showNewGastoModal} onHide={() => setShowNewGastoModal(false)} size="lg">
-                            <Modal.Header closeButton style={{backgroundColor: '#f0f8ff'}}>
-                                <Modal.Title style={{color: '#2c3e50'}}>Nuevo Gasto</Modal.Title>
-                            </Modal.Header>
-                            <Modal.Body style={{backgroundColor: '#f9f9f9', padding: '20px'}}>
-                                <Form>
-                                    <Row>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Monto</Form.Label>
-                                                <Form.Control
-                                                    type="number"
-                                                    name="monto"
-                                                    value={newGasto.monto}
-                                                    onChange={handleNewGastoChange}
-                                                    style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Número de Factura</Form.Label>
-                                                <Form.Control
-                                                    type="text"
-                                                    name="numFactura"
-                                                    value={newGasto.numFactura}
-                                                    onChange={handleNewGastoChange}
-                                                    style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col md={6}>
+                            {/* Modal para editar gasto */}
+                            <Modal show={showEditModal} onHide={handleCloseEditModal} size="lg">
+                                <Modal.Header closeButton style={{backgroundColor: '#f0f8ff'}}>
+                                    <Modal.Title style={{color: '#2c3e50'}}>Editar Gasto</Modal.Title>
+                                </Modal.Header>
+                                <Modal.Body style={{backgroundColor: '#f9f9f9'}}>
+                                    {editingGasto && (
+                                        <Form>
                                             <Form.Group className="mb-3">
                                                 <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Estado</Form.Label>
                                                 <Form.Control
                                                     as="select"
-                                                    name="estado"
-                                                    value={newGasto.estado}
-                                                    onChange={handleNewGastoChange}
+                                                    value={editingGasto.tempEstado}
+                                                    onChange={handleEstadoChange}
                                                     style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
                                                 >
-                                                    <option value="">Seleccione un estado</option>
                                                     {Object.values(EstadoGasto).map(estado => (
                                                         <option key={estado} value={estado}>{estado}</option>
                                                     ))}
                                                 </Form.Control>
                                             </Form.Group>
-                                        </Col>
-                                        <Col md={6}>
                                             <Form.Group className="mb-3">
                                                 <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Forma de Pago</Form.Label>
                                                 <Form.Control
                                                     as="select"
-                                                    name="formaPagoGasto"
-                                                    value={newGasto.formaPagoGasto}
-                                                    onChange={handleNewGastoChange}
+                                                    value={editingGasto.tempFormaPago}
+                                                    onChange={handleFormaPagoChange}
                                                     style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
-                                                    disabled={!newGasto.estado}
+                                                    disabled={!editingGasto.tempEstado}
                                                 >
-                                                    <option value="">Seleccione una forma de pago</option>
-                                                    {newGasto.estado === EstadoGasto.RECIBIDO && (
+                                                    {editingGasto.tempEstado === EstadoGasto.RECIBIDO && (
                                                         <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
                                                     )}
-                                                    {newGasto.estado === EstadoGasto.COMPLETADO && (
+                                                    {editingGasto.tempEstado === EstadoGasto.COMPLETADO && (
                                                         <>
                                                             <option value={FormaPagoGasto.EFECTIVO}>Efectivo</option>
                                                             <option value={FormaPagoGasto.TARJETA}>Tarjeta</option>
                                                             <option value={FormaPagoGasto.TRANSFERENCIA}>Transferencia</option>
                                                         </>
                                                     )}
-                                                    {newGasto.estado === EstadoGasto.ERROR && (
+                                                    {editingGasto.tempEstado === EstadoGasto.ERROR && (
                                                         <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
                                                     )}
                                                 </Form.Control>
                                             </Form.Group>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Categoría</Form.Label>
+                                        </Form>
+                                    )}
+                                </Modal.Body>
+                                <Modal.Footer style={{backgroundColor: '#f0f8ff'}}>
+                                    <Button variant="secondary" onClick={handleCloseEditModal}>
+                                        Cerrar
+                                    </Button>
+                                    <Button variant="primary" onClick={handleSaveChanges}>
+                                        Guardar Cambios
+                                    </Button>
+                                </Modal.Footer>
+                            </Modal>
 
-                                                <Select
-                                                    options={categorias}
-                                                    value={newGasto.categoriaGasto}
-                                                    onChange={(selectedOption) => handleSelectChange(selectedOption, { name: "categoriaGasto" })}
-                                                    placeholder="Seleccione una categoría"
-                                                    isClearable
-                                                    isSearchable
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Empresa o Persona Física</Form.Label>
-                                                <Select
-                                                    options={empresasPersonasFisicas}
-                                                    value={newGasto.empresaPersonaFisica}
-                                                    onChange={(selectedOption) => handleSelectChange(selectedOption, { name: "empresaPersonaFisica" })}
-                                                    placeholder="Seleccione una empresa o persona física"
-                                                    isClearable
-                                                    isSearchable
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Archivo de Factura</Form.Label>
-                                                <Form.Control
-                                                    type="file"
-                                                    onChange={handleNewGastoChange}
-                                                    name="archivo"
-                                                    style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                </Form>
-                            </Modal.Body>
-                            <Modal.Footer style={{backgroundColor: '#f0f8ff'}}>
-                                <Button variant="secondary" onClick={() => setShowNewGastoModal(false)}>
-                                    Cerrar
-                                </Button>
-                                <Button variant="primary" onClick={handleSaveNewGasto}>
-                                    <FaSave className="me-2" /> Guardar Gasto
-                                </Button>
-                            </Modal.Footer>
-                        </Modal>
-                    </>
-                )}
+                            {/* Modal para nuevo gasto */}
+                            <Modal show={showNewGastoModal} onHide={() => setShowNewGastoModal(false)} size="lg">
+                                <Modal.Header closeButton style={{backgroundColor: '#a7c5eb', color: '#fff'}}>
+                                    <Modal.Title>Nuevo Gasto</Modal.Title>
+                                </Modal.Header>
+                                <Modal.Body>
+                                    <Form onSubmit={handleSaveNewGasto}>
+                                        <Row>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Fecha</Form.Label>
+                                                    <Form.Control
+                                                        type="date"
+                                                        name="fecha"
+                                                        value={newGasto.fecha}
+                                                        onChange={handleNewGastoChange}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Monto</Form.Label>
+                                                    <Form.Control
+                                                        type="number"
+                                                        name="monto"
+                                                        value={newGasto.monto}
+                                                        onChange={handleNewGastoChange}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Número de Factura</Form.Label>
+                                                    <Form.Control
+                                                        type="text"
+                                                        name="numFactura"
+                                                        value={newGasto.numFactura}
+                                                        onChange={handleNewGastoChange}
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Estado</Form.Label>
+                                                    <Form.Control
+                                                        as="select"
+                                                        name="estado"
+                                                        value={newGasto.estado}
+                                                        onChange={handleNewGastoChange}
+                                                    >
+                                                        <option value="">Seleccione un estado</option>
+                                                        {Object.values(EstadoGasto).map(estado => (
+                                                            <option key={estado} value={estado}>{estado}</option>
+                                                        ))}
+                                                    </Form.Control>
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Forma de Pago</Form.Label>
+                                                    <Form.Control
+                                                        as="select"
+                                                        name="formaPagoGasto"
+                                                        value={newGasto.formaPagoGasto}
+                                                        onChange={handleNewGastoChange}
+                                                        disabled={!newGasto.estado}
+                                                    >
+                                                        <option value="">Seleccione una forma de pago</option>
+                                                        {newGasto.estado === EstadoGasto.RECIBIDO && (
+                                                            <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
+                                                        )}
+                                                        {newGasto.estado === EstadoGasto.COMPLETADO && (
+                                                            <>
+                                                                <option value={FormaPagoGasto.EFECTIVO}>Efectivo</option>
+                                                                <option value={FormaPagoGasto.TARJETA}>Tarjeta</option>
+                                                                <option value={FormaPagoGasto.TRANSFERENCIA}>Transferencia</option>
+                                                            </>
+                                                        )}
+                                                        {newGasto.estado === EstadoGasto.ERROR && (
+                                                            <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
+                                                        )}
+                                                    </Form.Control>
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Categoría</Form.Label>
+                                                    <Select
+                                                        options={categorias}
+                                                        value={newGasto.categoriaGasto}
+                                                        onChange={(selectedOption) => handleSelectChange(selectedOption, { name: "categoriaGasto" })}
+                                                        placeholder="Seleccione una categoría"
+                                                        isClearable
+                                                        isSearchable
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                        <Row>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Empresa o Persona Física</Form.Label>
+                                                    <Select
+                                                        options={empresasPersonasFisicas}
+                                                        value={newGasto.empresaPersonaFisica}
+                                                        onChange={(selectedOption) => handleSelectChange(selectedOption, { name: "empresaPersonaFisica" })}
+                                                        placeholder="Seleccione una empresa o persona física"
+                                                        isClearable
+                                                        isSearchable
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Group className="mb-3">
+                                                    <Form.Label>Archivo de Factura</Form.Label>
+                                                    <Form.Control
+                                                        type="file"
+                                                        onChange={handleNewGastoChange}
+                                                        name="archivo"
+                                                    />
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                        <Button type="submit" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff', border: 'none' }}>
+                                            Guardar Gasto
+                                        </Button>
+                                    </Form>
+                                    <Button variant="secondary" onClick={() => setShowNewGastoModal(false)} className="mt-3" style={{ width: '100%' }}>
+                                        Cerrar
+                                    </Button>
+                                </Modal.Body>
+                            </Modal>
+
+
+                        </>
+                    )}
+                </div>
             </div>
-        </div>
-    );
-};
+        );
+    };
 
-export default GastosComponent;
+    export default GastosComponent;

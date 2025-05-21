@@ -15,7 +15,7 @@ const NuevaFacturaComponent = () => {
     const navigate = useNavigate();
     const [factura, setFactura] = useState({
         fecha: "",
-        empresaPersonaFisicaId: "",
+        empresaPersonaFisica: null,
         estado: "ENVIADA",
         formaCobro: "NoCobrada",
         organizacion: null,
@@ -92,7 +92,10 @@ const NuevaFacturaComponent = () => {
                     `http://localhost:8080/EmpresaPersonaFisica/organizacion/${userResponse.data.organizacion.id}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
-                setEmpresasPersonaFisica(empresaResponse.data);
+                setEmpresasPersonaFisica(empresaResponse.data.map(emp => ({
+                    value: emp.id,
+                    label: `${emp.nombre} (${emp.tipo})`
+                })));
 
                 const productosResponse = await axios.get(
                     `http://localhost:8080/productos/organizacion/${userResponse.data.organizacion.id}`,
@@ -108,8 +111,7 @@ const NuevaFacturaComponent = () => {
         fetchData();
     }, [token]);
 
-    const handleChange = (e) => {
-        const { name, value } = e.target;
+    const handleChange = (name, value) => {
         setFactura({ ...factura, [name]: value });
     };
 
@@ -179,7 +181,7 @@ const NuevaFacturaComponent = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!factura.fecha || !factura.empresaPersonaFisicaId) {
+        if (!factura.fecha || !factura.empresaPersonaFisica) {
             Swal.fire("Error", "Por favor selecciona una empresa/persona física y una fecha.", "error");
             return;
         }
@@ -222,7 +224,7 @@ const NuevaFacturaComponent = () => {
                 organizacion: organizacion,
                 usuario: usuario,
                 numeroFactura: numeroFactura,
-                empresaPersonaFisica: { id: factura.empresaPersonaFisicaId },
+                empresaPersonaFisica: { id: factura.empresaPersonaFisica.value },
                 formaPago: factura.formaCobro,
                 detalles: factura.detalles,
                 total: factura.total,
@@ -281,20 +283,14 @@ const NuevaFacturaComponent = () => {
                     <div className="row justify-content-center">
                         <div className="col-12 col-md-6 mb-3">
                             <label className="form-label">Empresa/Persona Física</label>
-                            <select
-                                className="form-control"
-                                name="empresaPersonaFisicaId"
-                                value={factura.empresaPersonaFisicaId}
-                                onChange={handleChange}
-                                required
-                            >
-                                <option value="">Selecciona una empresa/persona...</option>
-                                {empresasPersonaFisica.map((empresa) => (
-                                    <option key={empresa.id} value={empresa.id}>
-                                        {empresa.nombre} ({empresa.tipo})
-                                    </option>
-                                ))}
-                            </select>
+                            <Select
+                                options={empresasPersonaFisica}
+                                value={factura.empresaPersonaFisica}
+                                onChange={(selectedOption) => handleChange("empresaPersonaFisica", selectedOption)}
+                                placeholder="Selecciona una empresa/persona..."
+                                isClearable
+                                isSearchable
+                            />
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
@@ -304,7 +300,7 @@ const NuevaFacturaComponent = () => {
                                 className="form-control"
                                 name="fecha"
                                 value={factura.fecha}
-                                onChange={handleChange}
+                                onChange={(e) => handleChange("fecha", e.target.value)}
                                 required
                             />
                         </div>

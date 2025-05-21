@@ -4,7 +4,6 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import '../assets/tpv.css';
-import { Modal, Button, Form } from 'react-bootstrap';
 import Select from 'react-select';
 import { FaShoppingCart, FaUser, FaTrash, FaPrint, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
@@ -55,6 +54,24 @@ const TPV = () => {
     }, [windowSize]);
 
     const productsPerPage = calculateProductsPerPage();
+
+    const verificarDatosNecesarios = () => {
+        let mensajesError = [];
+
+        if (categories.length === 0) {
+            mensajesError.push("No hay categorías disponibles.");
+        }
+
+        if (products.length === 0) {
+            mensajesError.push("No hay productos disponibles.");
+        }
+
+        if (clientes.length === 0) {
+            mensajesError.push("No hay clientes registrados.");
+        }
+
+        return mensajesError;
+    };
 
     useEffect(() => {
         if (!token) {
@@ -115,6 +132,19 @@ const TPV = () => {
                 );
 
                 setClientes(clientesResponse.data);
+
+                // Verificar datos necesarios
+                const errores = verificarDatosNecesarios();
+                if (errores.length > 0) {
+                    const mensajeError = errores.join("\n");
+                    Swal.fire({
+                        title: "Datos faltantes",
+                        html: `Para utilizar el TPV, es necesario tener:<br>${errores.map(e => `- ${e}`).join("<br>")}`,
+                        icon: "warning",
+                        confirmButtonText: "Entendido"
+                    });
+                }
+
             } catch (error) {
                 console.error("Error al cargar datos:", error);
                 if (error.response && error.response.status === 403) {
@@ -207,6 +237,17 @@ const TPV = () => {
     };
 
     const handleAction = async (action) => {
+        const errores = verificarDatosNecesarios();
+        if (errores.length > 0) {
+            Swal.fire({
+                title: "No se puede realizar la acción",
+                html: `Faltan datos necesarios:<br>${errores.map(e => `- ${e}`).join("<br>")}`,
+                icon: "warning",
+                confirmButtonText: "Entendido"
+            });
+            return;
+        }
+
         if (action === 'cobrar') {
             if (selectedProducts.length === 0) {
                 Swal.fire("Error", "No hay productos seleccionados para cobrar.", "error");
@@ -271,14 +312,37 @@ const TPV = () => {
                 }))
             };
 
-            const response = await axios.post('http://localhost:8080/ventas', ventaData, {
+            const ventaResponse = await axios.post('http://localhost:8080/ventas', ventaData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            console.log("Respuesta del servidor:", response.data);
+            const ventaId = ventaResponse.data.id;
+
+            for (const product of selectedProducts) {
+                try {
+                    const detalleResponse = await axios.post('http://localhost:8080/detalles', {
+                        venta: { id: ventaId },
+                        producto: { id: product.id },
+                        cantidad: product.quantity,
+                        precioUnitario: parseFloat(product.precio),
+                        iva: parseFloat(product.iva),
+                        subtotal: parseFloat((product.precio * product.quantity).toFixed(2)),
+                        nombre: product.nombre
+                    }, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    console.log("Detalle creado:", detalleResponse.data);
+                } catch (detalleError) {
+                    console.error("Error al crear detalle:", detalleError.response?.data || detalleError.message);
+                    throw new Error(`Error al crear detalle: ${detalleError.response?.data?.message || detalleError.message}`);
+                }
+            }
 
             // Actualizar stock
             for (const product of selectedProducts) {
@@ -497,22 +561,27 @@ const TPV = () => {
         );
     };
 
-    const ActionButtons = ({ onAction }) => (
-        <div className="action-buttons">
-            <button onClick={() => onAction('cobrar')} className="action-button cobrar">
-                <FaShoppingCart /> Cobrar
-            </button>
-            <button onClick={() => onAction('añadir-cliente')} className="action-button cliente">
-                <FaUser /> Añadir Cliente
-            </button>
-            <button onClick={() => onAction('cancelar')} className="action-button cancelar">
-                <FaTrash /> Cancelar Venta
-            </button>
-            <button onClick={() => onAction('imprimir')} className="action-button imprimir">
-                <FaPrint /> Imprimir Ticket
-            </button>
-        </div>
-    );
+    const ActionButtons = ({ onAction }) => {
+        const errores = verificarDatosNecesarios();
+        const disabled = errores.length > 0;
+
+        return (
+            <div className="action-buttons">
+                <button onClick={() => onAction('cobrar')} className="action-button cobrar" disabled={disabled}>
+                    <FaShoppingCart /> Cobrar
+                </button>
+                <button onClick={() => onAction('añadir-cliente')} className="action-button cliente" disabled={disabled}>
+                    <FaUser /> Añadir Cliente
+                </button>
+                <button onClick={() => onAction('cancelar')} className="action-button cancelar" disabled={disabled}>
+                    <FaTrash /> Cancelar Venta
+                </button>
+                <button onClick={() => onAction('imprimir')} className="action-button imprimir" disabled={disabled}>
+                    <FaPrint /> Imprimir Ticket
+                </button>
+            </div>
+        );
+    };
 
     if (loading) {
         return <div className="loading">Cargando...</div>;
@@ -553,41 +622,58 @@ const TPV = () => {
                 </div>
             </div>
 
-            <Modal show={showClienteModal} onHide={() => setShowClienteModal(false)}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Seleccionar Cliente</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form.Group>
-                        <Form.Label>Cliente</Form.Label>
-                        <Select
-                            value={selectedCliente ? { value: selectedCliente.id, label: selectedCliente.nombre } : null}
-                            onChange={handleClienteSelect}
-                            onInputChange={handleClienteSearch}
-                            options={clienteOptions}
-                            isClearable
-                            isSearchable
-                            placeholder="Buscar cliente..."
-                            noOptionsMessage={() => "No se encontraron clientes"}
-                        />
-                    </Form.Group>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowClienteModal(false)}>
-                        Cancelar
-                    </Button>
-                    <Button variant="primary" onClick={() => {
-                        setShowClienteModal(false);
-                        if (selectedCliente) {
-                            Swal.fire("Cliente seleccionado", `Se ha asignado el cliente: ${selectedCliente.nombre}`, "success");
-                        } else {
-                            Swal.fire("Sin cliente", "No se ha asignado ningún cliente a la venta", "info");
-                        }
-                    }}>
-                        Confirmar
-                    </Button>
-                </Modal.Footer>
-            </Modal>
+            {showClienteModal && (
+                <div className="modal fade show" style={{ display: "block" }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content shadow-lg rounded">
+                            <div className="modal-header" style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
+                                <h5 className="modal-title">Seleccionar Cliente</h5>
+                                <button type="button" className="btn-close" onClick={() => setShowClienteModal(false)}></button>
+                            </div>
+                            <div className="modal-body">
+                                <form>
+                                    <div className="form-group mb-3">
+                                        <label className="form-label">Cliente</label>
+                                        <Select
+                                            value={selectedCliente ? { value: selectedCliente.id, label: selectedCliente.nombre } : null}
+                                            onChange={handleClienteSelect}
+                                            onInputChange={handleClienteSearch}
+                                            options={clienteOptions}
+                                            isClearable
+                                            isSearchable
+                                            placeholder="Buscar cliente..."
+                                            noOptionsMessage={() => "No se encontraron clientes"}
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="btn"
+                                        style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }}
+                                        onClick={() => {
+                                            setShowClienteModal(false);
+                                            if (selectedCliente) {
+                                                Swal.fire("Cliente seleccionado", `Se ha asignado el cliente: ${selectedCliente.nombre}`, "success");
+                                            } else {
+                                                Swal.fire("Sin cliente", "No se ha asignado ningún cliente a la venta", "info");
+                                            }
+                                        }}
+                                    >
+                                        Confirmar
+                                    </button>
+                                </form>
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary mt-3"
+                                    onClick={() => setShowClienteModal(false)}
+                                    style={{ width: '100%' }}
+                                >
+                                    Cerrar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

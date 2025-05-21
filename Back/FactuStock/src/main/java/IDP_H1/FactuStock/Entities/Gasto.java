@@ -3,6 +3,8 @@ package IDP_H1.FactuStock.Entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Data
 public class Gasto {
@@ -29,20 +31,19 @@ public class Gasto {
     private String nombreArchivoFactura;
 
     @ManyToOne
-    @JoinColumn(name = "organizacion_id", nullable = false)
     private Organizacion organizacion;
 
     @ManyToOne
-    @JoinColumn(name = "usuario_id")
     private Usuario usuario;
 
     @ManyToOne
-    @JoinColumn(name = "categoria_gasto_id")
     private CategoriaGasto categoriaGasto;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "empresa_persona_fisica_id")
     private EmpresaPersonaFisica empresaPersonaFisica;
+
+    @Column(nullable = false)
+    private LocalDateTime fecha;
 }
 
 enum EstadoGasto {

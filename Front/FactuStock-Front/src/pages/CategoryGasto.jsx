@@ -45,7 +45,9 @@ const CategoriaGastoComponent = () => {
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                setCategoriasGasto(categoriasResponse.data.length ? categoriasResponse.data : []);
+                // Ordenar las categorías por ID de mayor a menor
+                const categoriasOrdenadas = categoriasResponse.data.sort((a, b) => b.id - a.id);
+                setCategoriasGasto(categoriasOrdenadas.length ? categoriasOrdenadas : []);
             } catch (err) {
                 setError("Error al obtener las categorías.");
             }
@@ -331,7 +333,7 @@ const CategoriaGastoComponent = () => {
                                                 required
                                             />
                                         </div>
-                                        <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%' }}>
+                                        <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }}>
                                             {nuevaCategoria.id ? 'Guardar Cambios' : 'Guardar Categoría'}
                                         </button>
                                     </form>

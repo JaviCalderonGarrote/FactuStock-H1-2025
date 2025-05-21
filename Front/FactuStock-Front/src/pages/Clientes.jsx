@@ -76,9 +76,18 @@ const EmpresaPersonaFisicaComponent = () => {
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                setEmpresaPersonaFisica(empresaResponse.data);
+                if (empresaResponse.data.message) {
+                    // No hay datos
+                    setEmpresaPersonaFisica([]);
+                    setError(null);
+                } else {
+                    // Hay datos
+                    setEmpresaPersonaFisica(empresaResponse.data);
+                    setError(null);
+                }
             } catch (err) {
-                setError("Error al obtener los datos.");
+                console.error("Error al obtener los datos:", err);
+                setError("Error al obtener los datos: " + err.message);
             }
         };
 
@@ -108,32 +117,47 @@ const EmpresaPersonaFisicaComponent = () => {
 
             setShowModal(false);
             Swal.fire('Éxito', `Empresa ${nuevaEmpresaPersonaFisica.id ? 'actualizada' : 'creada'} correctamente`, 'success');
-            window.location.reload();
+
+            // Actualizar la lista de empresas
+            const empresaResponse = await axios.get(
+                `http://localhost:8080/EmpresaPersonaFisica/organizacion/${organizacion.id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setEmpresaPersonaFisica(empresaResponse.data);
         } catch (err) {
-            Swal.fire('Error', 'Hubo un error al procesar la solicitud.', 'error');
+            Swal.fire('Error', 'Hubo un error al procesar la solicitud: ' + err.message, 'error');
         }
     };
 
-    const handleEliminar = (id) => {
-        Swal.fire({
-            title: '¿Estás seguro?',
-            text: 'Esta empresa será eliminada permanentemente.',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminarla'
-        }).then((result) => {
+    const handleEliminar = async (id) => {
+        try {
+            const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                text: 'Esta empresa será eliminada permanentemente.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminarla'
+            });
+
             if (result.isConfirmed) {
-                axios.delete(`http://localhost:8080/EmpresaPersonaFisica/${id}`, {
+                await axios.delete(`http://localhost:8080/EmpresaPersonaFisica/${id}`, {
                     headers: { Authorization: `Bearer ${token}` }
-                }).then(() => {
-                    setEmpresaPersonaFisica(empresaPersonaFisica.filter(empresa => empresa.id !== id));
-                    Swal.fire('Eliminado', 'La empresa ha sido eliminada correctamente', 'success');
-                    window.location.reload();
-                }).catch(() => Swal.fire('Error', 'Hubo un error al eliminar la empresa', 'error'));
+                });
+
+                Swal.fire('Eliminado', 'La empresa ha sido eliminada correctamente', 'success');
+
+                // Actualizar la lista de empresas
+                const empresaResponse = await axios.get(
+                    `http://localhost:8080/EmpresaPersonaFisica/organizacion/${organizacion.id}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setEmpresaPersonaFisica(empresaResponse.data);
             }
-        });
+        } catch (error) {
+            Swal.fire('Error', 'Hubo un error al eliminar la empresa: ' + error.message, 'error');
+        }
     };
 
     const handleEditar = (empresa) => {
@@ -330,21 +354,29 @@ const EmpresaPersonaFisicaComponent = () => {
                                     </tr>
                                     </thead>
                                     <tbody>
-                                    {empresasPaginadas.map((empresa, index) => (
-                                        <tr key={empresa.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                            <td>{empresa.id}</td>
-                                            <td>{empresa.nombre || 'N/A'}</td>
-                                            <td>{empresa.nifCif || 'N/A'}</td>
-                                            <td>{empresa.mail || 'N/A'}</td>
-                                            <td>{empresa.telefono || 'N/A'}</td>
-                                            <td>{empresa.direccion || 'N/A'}</td>
-                                            <td>{empresa.tipo || 'N/A'}</td>
-                                            <td>
-                                                <button className="btn btn-sm btn-outline-secondary mx-1" onClick={() => handleEditar(empresa)}>✏️</button>
-                                                <button className="btn btn-sm btn-outline-danger mx-1" onClick={() => handleEliminar(empresa.id)}>🗑️</button>
+                                    {empresasPaginadas.length === 0 ? (
+                                        <tr>
+                                            <td colSpan="8" className="text-center">
+                                                No hay datos disponibles en la base de datos.
                                             </td>
                                         </tr>
-                                    ))}
+                                    ) : (
+                                        empresasPaginadas.map((empresa, index) => (
+                                            <tr key={empresa.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                                <td>{empresa.id}</td>
+                                                <td>{empresa.nombre || 'N/A'}</td>
+                                                <td>{empresa.nifCif || 'N/A'}</td>
+                                                <td>{empresa.mail || 'N/A'}</td>
+                                                <td>{empresa.telefono || 'N/A'}</td>
+                                                <td>{empresa.direccion || 'N/A'}</td>
+                                                <td>{empresa.tipo || 'N/A'}</td>
+                                                <td>
+                                                    <button className="btn btn-sm btn-outline-secondary mx-1" onClick={() => handleEditar(empresa)}>✏️</button>
+                                                    <button className="btn btn-sm btn-outline-danger mx-1" onClick={() => handleEliminar(empresa.id)}>🗑️</button>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                     </tbody>
                                 </table>
                             </div>

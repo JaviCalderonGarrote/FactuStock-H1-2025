@@ -4,7 +4,6 @@ import axios from "axios";
 import Swal from "sweetalert2";
 import { FaSave, FaKey } from "react-icons/fa";
 import Modal from "react-bootstrap/Modal";
-import Button from "react-bootstrap/Button";
 
 const Perfil = () => {
     const [usuario, setUsuario] = useState({
@@ -14,7 +13,7 @@ const Perfil = () => {
         nombre: "",
         apellido: "",
         telefono: "",
-        rol: "", // Agregado campo rol
+        rol: "",
     });
 
     const [error, setError] = useState(null);
@@ -23,10 +22,10 @@ const Perfil = () => {
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordError, setPasswordError] = useState("");
 
     const token = localStorage.getItem("authToken");
 
-    // Función para decodificar el token JWT
     const decodeToken = (token) => {
         try {
             const tokenParts = token.split(".");
@@ -37,8 +36,8 @@ const Perfil = () => {
 
             const base64Url = tokenParts[1];
             const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const decoded = atob(base64);  // Decodifica correctamente el base64
-            return JSON.parse(decoded);  // Devuelve el payload decodificado
+            const decoded = atob(base64);
+            return JSON.parse(decoded);
         } catch (error) {
             setError("Error al decodificar el token.");
             console.error(error);
@@ -46,7 +45,6 @@ const Perfil = () => {
         }
     };
 
-    // Fetch user data when the component mounts
     useEffect(() => {
         if (!token) {
             setError("No se encontró un token de autenticación.");
@@ -68,7 +66,7 @@ const Perfil = () => {
                 });
 
                 if (response.data) {
-                    setUsuario(response.data); // Establece los datos del usuario al estado
+                    setUsuario(response.data);
                 } else {
                     setError("No se encontró la información del usuario.");
                 }
@@ -78,7 +76,7 @@ const Perfil = () => {
             }
         };
 
-        fetchData(); // Llama la función para obtener los datos del usuario
+        fetchData();
     }, [token]);
 
     const handleChange = (e) => {
@@ -120,15 +118,31 @@ const Perfil = () => {
         }
     };
 
+    const validatePassword = (password) => {
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        return regex.test(password);
+    };
+
     const handleChangePassword = async (e) => {
         e.preventDefault();
 
-        if (!oldPassword || !newPassword || newPassword !== confirmPassword) {
-            Swal.fire("Error", "Por favor verifica que la contraseña antigua y la nueva sean correctas.", "error");
+        if (!oldPassword) {
+            setPasswordError("Por favor, introduce tu contraseña actual.");
+            return;
+        }
+
+        if (!validatePassword(newPassword)) {
+            setPasswordError("La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordError("Las contraseñas nuevas no coinciden.");
             return;
         }
 
         setLoading(true);
+        setPasswordError("");
 
         try {
             await axios.patch(`http://localhost:8080/usuarios/${usuario.id}/password`, {
@@ -146,16 +160,14 @@ const Perfil = () => {
                 confirmButtonText: "OK",
             }).then(() => {
                 setShowPasswordModal(false);
+                setOldPassword("");
+                setNewPassword("");
+                setConfirmPassword("");
             });
 
         } catch (err) {
             setLoading(false);
-            Swal.fire({
-                title: "Error",
-                text: err.response?.data?.message || "Hubo un error al actualizar la contraseña.",
-                icon: "error",
-                confirmButtonText: "OK",
-            });
+            setPasswordError(err.response?.data?.message || "Hubo un error al actualizar la contraseña.");
         }
     };
 
@@ -241,7 +253,6 @@ const Perfil = () => {
                             </div>
                         </div>
 
-                        {/* Nuevo campo de rol */}
                         <div className="col-12 col-md-6 mb-3">
                             <div className="form-group">
                                 <label className="form-label">Rol</label>
@@ -279,10 +290,9 @@ const Perfil = () => {
                     </div>
                 </form>
 
-                {/* Modal para cambiar la contraseña */}
-                <Modal show={showPasswordModal} onHide={() => setShowPasswordModal(false)} aria-labelledby="modal-title">
-                    <Modal.Header closeButton>
-                        <Modal.Title id="modal-title">Cambiar Contraseña</Modal.Title>
+                <Modal show={showPasswordModal} onHide={() => setShowPasswordModal(false)} centered>
+                    <Modal.Header closeButton style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
+                        <Modal.Title>Cambiar Contraseña</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
                         <form onSubmit={handleChangePassword}>
@@ -322,12 +332,15 @@ const Perfil = () => {
                                 />
                             </div>
 
-                            <div className="mb-3 text-center">
-                                <button type="submit" className="btn btn-primary" disabled={loading}>
-                                    {loading ? "Actualizando..." : "Actualizar Contraseña"}
-                                </button>
-                            </div>
+                            {passwordError && <div className="alert alert-danger">{passwordError}</div>}
+
+                            <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }}>
+                                {loading ? "Actualizando..." : "Actualizar Contraseña"}
+                            </button>
                         </form>
+                        <button type="button" className="btn btn-secondary mt-3" onClick={() => setShowPasswordModal(false)} style={{ width: '100%' }}>
+                            Cerrar
+                        </button>
                     </Modal.Body>
                 </Modal>
             </div>

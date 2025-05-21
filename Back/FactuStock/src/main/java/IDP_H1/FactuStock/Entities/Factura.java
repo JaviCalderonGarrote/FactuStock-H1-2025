@@ -19,13 +19,13 @@ public class Factura {
     @Column(nullable = false, unique = true)
     private String numeroFactura;
 
-    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
+    @ManyToOne(fetch = FetchType.EAGER)
     private Organizacion organizacion;
 
-    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
+    @ManyToOne(fetch = FetchType.EAGER)
     private EmpresaPersonaFisica empresaPersonaFisica;
 
-    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
+    @ManyToOne(fetch = FetchType.EAGER)
     private Usuario usuario;
 
     @Column(nullable = false)

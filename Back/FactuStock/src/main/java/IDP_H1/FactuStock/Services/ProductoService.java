@@ -6,11 +6,13 @@ import IDP_H1.FactuStock.Repositories.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 public class ProductoService {
+
     @Autowired
     private ProductoRepository productoRepository;
 
@@ -39,7 +41,17 @@ public class ProductoService {
         return productoRepository.findByOrganizacion(organizacion);
     }
 
+    public List<Producto> guardarTodos(List<Producto> productos) {
+        if (productos == null || productos.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return productoRepository.saveAll(productos);
+    }
+
     private void verificarStockYEnviarCorreo(Producto producto) {
+        if (producto == null || producto.getOrganizacion() == null) {
+            return;
+        }
         if (producto.getCantidadStock() <= 5 && producto.getCantidadStock() > 0) {
             enviarCorreoStockBajo(producto);
         } else if (producto.getCantidadStock() == 0) {
@@ -61,10 +73,6 @@ public class ProductoService {
         String body = generarCuerpoCorreo("Sin Stock", producto, "El producto se ha quedado sin stock.");
         emailService.enviarCorreoConAdjunto(to, subject, body, null);
     }
-    public List<Producto> guardarTodos(List<Producto> productos) {
-        return productoRepository.saveAll(productos);
-    }
-
 
     private String generarCuerpoCorreo(String tipoAlerta, Producto producto, String mensaje) {
         Organizacion organizacion = producto.getOrganizacion();
@@ -97,12 +105,10 @@ public class ProductoService {
                 "    <li><strong>Cantidad en stock:</strong> " + producto.getCantidadStock() + "</li>" +
                 "    <li><strong>Precio:</strong> $" + producto.getPrecio() + "</li>" +
                 "</ul>" +
-                "<p>Por favor, tome las medidas necesarias para reabastecer el inventario.</p>" +
-                "<p>Atentamente,</p>" +
-                "<p><strong>Sistema de Gestión de Inventario</strong></p>" +
+                "<p>Por favor, tome las acciones necesarias para reabastecer el producto.</p>" +
                 "</div>" +
                 "<div class='footer'>" +
-                "<p>Este es un mensaje automático, por favor no responda a este correo.</p>" +
+                "<p>Este es un mensaje automático. Por favor no responda a este correo.</p>" +
                 "</div>" +
                 "</div>" +
                 "</body>" +

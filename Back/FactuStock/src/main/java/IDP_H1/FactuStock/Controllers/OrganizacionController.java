@@ -21,7 +21,7 @@ import java.util.Optional;
 public class OrganizacionController {
 
     // Cambiar ruta a 'img-logo' en lugar de 'logos'
-    private static final String LOGO_DIRECTORY = "src/main/resources/static/img-logo/";
+    static final String LOGO_DIRECTORY = "src/main/resources/static/img-logo/";
 
     @Autowired
     private OrganizacionRepository organizacionRepository;

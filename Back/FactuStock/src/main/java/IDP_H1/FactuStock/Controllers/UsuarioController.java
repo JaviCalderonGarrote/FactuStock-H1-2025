@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/usuarios")
-@CrossOrigin(origins = "http://localhost:5173") // Permitir solo a localhost:5173
+@CrossOrigin(origins = "http://localhost:5173")
 public class UsuarioController {
 
     @Autowired
@@ -23,90 +23,86 @@ public class UsuarioController {
     @GetMapping
     public ResponseEntity<List<Usuario>> obtenerTodos() {
         List<Usuario> usuarios = usuarioService.obtenerTodos();
-        return new ResponseEntity<>(usuarios, HttpStatus.OK);
+        return ResponseEntity.ok(usuarios);
     }
 
     // Obtener usuario por ID
     @GetMapping("/{id}")
     public ResponseEntity<Usuario> obtenerPorId(@PathVariable Long id) {
-        Optional<Usuario> usuario = usuarioService.obtenerPorId(id);
-        return usuario.map(ResponseEntity::ok)
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        return usuarioService.obtenerPorId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Obtener usuario por username
     @GetMapping("/username/{username}")
     public ResponseEntity<Usuario> obtenerPorUsername(@PathVariable String username) {
-        Optional<Usuario> usuario = usuarioService.obtenerPorUsername(username);
-        return usuario.map(ResponseEntity::ok)
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        return usuarioService.obtenerPorUsername(username)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Guardar nuevo usuario
     @PostMapping
     public ResponseEntity<Usuario> guardar(@RequestBody Usuario usuario) {
         Usuario nuevoUsuario = usuarioService.guardar(usuario);
-        return new ResponseEntity<>(nuevoUsuario, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(nuevoUsuario);
     }
 
-    // Actualizar usuario por ID
+    // Actualizar usuario
     @PutMapping("/{id}")
-    public ResponseEntity<Usuario> actualizar(@PathVariable Long id, @RequestBody Usuario usuarioActualizado) {
+    public ResponseEntity<Usuario> actualizar(@PathVariable Long id, @RequestBody Usuario datosActualizados) {
         Optional<Usuario> usuarioOpt = usuarioService.obtenerPorId(id);
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
-            usuario.setNombre(usuarioActualizado.getNombre());
-            usuario.setApellido(usuarioActualizado.getApellido());
-            usuario.setMail(usuarioActualizado.getMail());
-            usuario.setTelefono(usuarioActualizado.getTelefono());
-            usuario.setRol(usuarioActualizado.getRol());
-
-            Usuario usuarioGuardado = usuarioService.guardar(usuario);
-            return new ResponseEntity<>(usuarioGuardado, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            usuario.setNombre(datosActualizados.getNombre());
+            usuario.setApellido(datosActualizados.getApellido());
+            usuario.setMail(datosActualizados.getMail());
+            usuario.setTelefono(datosActualizados.getTelefono());
+            usuario.setRol(datosActualizados.getRol());
+            Usuario actualizado = usuarioService.guardar(usuario);
+            return ResponseEntity.ok(actualizado);
         }
+        return ResponseEntity.notFound().build();
     }
 
-    // Eliminar usuario por ID
+    // Eliminar usuario
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-        Optional<Usuario> usuario = usuarioService.obtenerPorId(id);
-        if (usuario.isPresent()) {
+        if (usuarioService.obtenerPorId(id).isPresent()) {
             usuarioService.eliminar(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.noContent().build();
         }
+        return ResponseEntity.notFound().build();
     }
 
-    // Cambiar contraseña
+    // Cambiar contraseña (requiere oldPassword y newPassword)
     @PatchMapping("/{id}/password")
-    public ResponseEntity<String> cambiarPassword(@PathVariable Long id, @RequestBody Map<String, String> passwords) {
-        String oldPassword = passwords.get("oldPassword");
-        String newPassword = passwords.get("newPassword");
+    public ResponseEntity<String> cambiarPassword(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        String oldPassword = request.get("oldPassword");
+        String newPassword = request.get("newPassword");
 
         if (oldPassword == null || newPassword == null || newPassword.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("La contraseña nueva no puede estar vacía.");
+            return ResponseEntity.badRequest().body("Faltan datos de contraseña.");
         }
 
-        boolean success = usuarioService.cambiarPassword(id, oldPassword, newPassword);
-        if (success) {
+        boolean cambio = usuarioService.cambiarPassword(id, oldPassword, newPassword);
+        if (cambio) {
             return ResponseEntity.ok("Contraseña actualizada correctamente.");
         } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error al cambiar la contraseña. Verifique la contraseña actual.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Contraseña actual incorrecta.");
         }
     }
 
-    // Recuperar contraseña
+    // Enviar email de recuperación de contraseña
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> request) {
         String usernameOrEmail = request.get("usernameOrEmail");
+        if (usernameOrEmail == null || usernameOrEmail.isEmpty()) {
+            return ResponseEntity.badRequest().body("Falta el nombre de usuario o correo.");
+        }
 
-        // Buscar por username
         Optional<Usuario> usuarioOpt = usuarioService.obtenerPorUsername(usernameOrEmail);
-
-        // Si no lo encontramos por username, buscar por email
         if (usuarioOpt.isEmpty()) {
             usuarioOpt = usuarioService.obtenerPorEmail(usernameOrEmail);
         }
@@ -115,27 +111,39 @@ public class UsuarioController {
             Usuario usuario = usuarioOpt.get();
             String token = usuarioService.generatePasswordResetToken(usuario);
 
-            // Enviar el correo con el enlace de recuperación
-            usuarioService.sendPasswordResetEmail(usuario, token);
-            return ResponseEntity.ok("Se ha enviado un correo con instrucciones para cambiar la contraseña.");
+            try {
+                // Capturamos excepciones generales en vez de MessagingException específica
+                usuarioService.sendPasswordResetEmail(usuario, token);
+                return ResponseEntity.ok("Correo enviado con el enlace para restablecer la contraseña.");
+            } catch (Exception e) {
+                e.printStackTrace();
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al enviar el correo.");
+            }
+
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Usuario no encontrado.");
         }
     }
 
-    // Restablecer contraseña con el token
+    // Restablecer contraseña con token
     @PostMapping("/reset-password")
-    public ResponseEntity<String> resetPassword(@RequestBody Map<String, String> request) {
+    public ResponseEntity<String> resetPassword(@RequestBody(required = false) Map<String, String> request) {
+        if (request == null) {
+            return ResponseEntity.badRequest().body("Faltan datos para restablecer la contraseña.");
+        }
+
         String token = request.get("token");
         String newPassword = request.get("newPassword");
 
-        // Llamar al servicio para restablecer la contraseña
-        boolean result = usuarioService.resetPasswordWithToken(token, newPassword);
+        if (token == null || newPassword == null || newPassword.isEmpty()) {
+            return ResponseEntity.badRequest().body("Faltan datos para restablecer la contraseña.");
+        }
 
-        if (result) {
-            return ResponseEntity.ok("Contraseña restablecida exitosamente.");
+        boolean success = usuarioService.resetPasswordWithToken(token, newPassword);
+        if (success) {
+            return ResponseEntity.ok("Contraseña restablecida correctamente.");
         } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El token es inválido o ha expirado.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token inválido o expirado.");
         }
     }
 }

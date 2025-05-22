@@ -59,7 +59,9 @@ public class IngresoService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerIngresosMensuales(Long organizacionId, int year) {
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("El id de organización no puede ser null");
+        }
         return repository.getIngresosMensuales(organizacionId, year);
     }
-
 }

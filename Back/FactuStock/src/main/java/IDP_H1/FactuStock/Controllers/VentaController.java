@@ -147,6 +147,10 @@ public class VentaController {
     public ResponseEntity<List<Map<String, Object>>> obtenerVentasPorMes(
             @PathVariable Long organizacionId,
             @PathVariable int year) {
+        // Validación para año inválido
+        if (year <= 0) {
+            throw new IllegalArgumentException("El año debe ser un valor positivo.");
+        }
         List<Map<String, Object>> ventas = ventaService.obtenerVentasPorMes(organizacionId, year);
         return ResponseEntity.ok(ventas);
     }

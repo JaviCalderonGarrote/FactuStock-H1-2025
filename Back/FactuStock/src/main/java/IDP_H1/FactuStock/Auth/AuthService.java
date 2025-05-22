@@ -121,9 +121,12 @@ public class AuthService {
             throw e;
         } catch (DataIntegrityViolationException e) {
             logger.error("Error de integridad de datos al registrar el usuario {}: {}", normalizedUsername, e.getMessage());
-            if (e.getMessage().contains("username")) {
+
+            String message = e.getMessage() != null ? e.getMessage().toLowerCase() : "";
+
+            if (message.contains("username") || message.contains("usuario") || message.contains("user")) {
                 throw new IllegalArgumentException("El nombre de usuario ya está en uso.");
-            } else if (e.getMessage().contains("mail")) {
+            } else if (message.contains("mail") || message.contains("email") || message.contains("correo")) {
                 throw new IllegalArgumentException("El correo electrónico ya está en uso.");
             } else {
                 throw new IllegalArgumentException("Error al registrar el usuario debido a un conflicto de datos.");

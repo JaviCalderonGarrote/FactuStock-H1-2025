@@ -28,8 +28,12 @@ public class CategoriaGastoService {
     public void eliminar(Long id) {
         repository.deleteById(id);
     }
-    // Obtener categorías por organización
+
+    // ✅ VALIDACIÓN AGREGADA AQUÍ
     public List<CategoriaGasto> obtenerPorOrganizacion(Long idOrganizacion) {
+        if (idOrganizacion == null) {
+            throw new NullPointerException("El ID de la organización no puede ser null");
+        }
         return repository.findByOrganizacionId(idOrganizacion);
     }
 }

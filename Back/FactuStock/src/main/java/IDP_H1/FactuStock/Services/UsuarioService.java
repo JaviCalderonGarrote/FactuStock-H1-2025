@@ -26,37 +26,30 @@ public class UsuarioService {
     @Autowired
     private JavaMailSender mailSender;
 
-    // Obtener todos los usuarios
     public List<Usuario> obtenerTodos() {
         return repository.findAll();
     }
 
-    // Obtener usuario por ID
     public Optional<Usuario> obtenerPorId(Long id) {
         return repository.findById(id);
     }
 
-    // Obtener usuario por username
     public Optional<Usuario> obtenerPorUsername(String username) {
         return repository.findByUsername(username);
     }
 
-    // Obtener usuario por email
     public Optional<Usuario> obtenerPorEmail(String mail) {
         return repository.findByMail(mail);
     }
 
-    // Guardar o actualizar usuario
     public Usuario guardar(Usuario usuario) {
         return repository.save(usuario);
     }
 
-    // Eliminar usuario por ID
     public void eliminar(Long id) {
         repository.deleteById(id);
     }
 
-    // Cambiar contraseña del usuario
     public boolean cambiarPassword(Long id, String oldPassword, String newPassword) {
         Optional<Usuario> usuarioOpt = repository.findById(id);
         if (usuarioOpt.isPresent()) {
@@ -73,7 +66,6 @@ public class UsuarioService {
         return false;
     }
 
-    // Generar token para recuperación de contraseña
     public String generatePasswordResetToken(Usuario usuario) {
         String token = UUID.randomUUID().toString();
         usuario.setPasswordResetToken(token);
@@ -81,7 +73,6 @@ public class UsuarioService {
         return token;
     }
 
-    // Resetear contraseña con token
     public boolean resetPasswordWithToken(String token, String newPassword) {
         Optional<Usuario> usuarioOpt = repository.findByPasswordResetToken(token);
         if (usuarioOpt.isPresent()) {
@@ -94,8 +85,14 @@ public class UsuarioService {
         return false;
     }
 
-    // Enviar correo para recuperación de contraseña
     public void sendPasswordResetEmail(Usuario usuario, String token) {
+        if (usuario == null) {
+            throw new NullPointerException("Usuario no puede ser null");
+        }
+        if (token == null) {
+            throw new NullPointerException("Token no puede ser null");
+        }
+
         String resetUrl = "http://localhost:5173/usuarios/reset-password?token=" + token;
         String subject = "Recuperación de Contraseña";
 
@@ -139,17 +136,17 @@ public class UsuarioService {
                 "</html>";
 
         MimeMessage mimeMessage = mailSender.createMimeMessage();
-        MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
-
         try {
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "UTF-8");
             helper.setTo(usuario.getMail());
             helper.setSubject(subject);
-            helper.setText(mensaje, true);  // Set to true to send HTML content
+            helper.setText(mensaje, true);  // Enviar contenido HTML
 
             mailSender.send(mimeMessage);
+
         } catch (MessagingException e) {
-            e.printStackTrace();
-            // Manejar el error de envío de correo
+            // Envolvemos en RuntimeException para que Mockito pueda simularla en tests
+            throw new RuntimeException("Error al enviar correo", e);
         }
     }
 }

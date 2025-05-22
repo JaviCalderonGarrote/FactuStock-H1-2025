@@ -3,6 +3,7 @@ package IDP_H1.FactuStock.Entities;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +32,7 @@ public class Venta {
     @ManyToOne
     private Organizacion organizacion;
 
-
-    @ManyToOne(fetch = FetchType.EAGER)  // Cargamos la relación inmediatamente
+    @ManyToOne(fetch = FetchType.EAGER)
     private EmpresaPersonaFisica empresaPersonaFisica;
 
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -47,13 +47,16 @@ public class Venta {
 
     // Métodos para manejar la relación bidireccional con Detalle
     public void addDetalle(Detalle detalle) {
-        detalles.add(detalle);
-        detalle.setVenta(this);
+        if (detalle != null) {
+            detalles.add(detalle);
+            detalle.setVenta(this);
+        }
     }
 
     public void removeDetalle(Detalle detalle) {
-        detalles.remove(detalle);
-        detalle.setVenta(null);
+        if (detalle != null) {
+            detalles.remove(detalle);
+            detalle.setVenta(null);
+        }
     }
-
 }

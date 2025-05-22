@@ -46,10 +46,4 @@ public class Gasto {
     private LocalDateTime fecha;
 }
 
-enum EstadoGasto {
-    RECIBIDO, COMPLETADO, ERROR
-}
 
-enum FormaPagoGasto {
-    EFECTIVO, TARJETA, TRANSFERENCIA, NO_PAGADA
-}

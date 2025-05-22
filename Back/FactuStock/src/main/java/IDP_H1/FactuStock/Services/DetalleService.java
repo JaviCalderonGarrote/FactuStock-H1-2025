@@ -71,13 +71,21 @@ public class DetalleService {
     public Map<String, Long> obtenerTop5ProductosMasVendidos(Long organizacionId) {
         logger.info("Obteniendo top 5 productos más vendidos para la organización: {}", organizacionId);
         List<Object[]> resultados = detalleRepository.findTop5ProductosMasVendidos(organizacionId);
+
+        if (resultados == null) {
+            logger.warn("La consulta de top 5 productos más vendidos devolvió null");
+            return Map.of();  // Retorna un mapa vacío si no hay resultados
+        }
+
         logger.info("Se encontraron {} resultados para el top 5", resultados.size());
+
         Map<String, Long> top5 = resultados.stream()
                 .limit(5)
                 .collect(Collectors.toMap(
                         row -> (String) row[0],
                         row -> (Long) row[1]
                 ));
+
         logger.info("Top 5 productos más vendidos: {}", top5);
         return top5;
     }

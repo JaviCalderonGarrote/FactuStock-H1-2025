@@ -6,7 +6,6 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 @Service
@@ -29,9 +28,9 @@ public class EmailService {
             }
 
             mailSender.send(message);
-        } catch (MessagingException e) {
-            e.printStackTrace();
-            // Aquí puedes registrar el error o lanzar una excepción personalizada si lo deseas
+        } catch (Exception e) {
+            // Lanzamos RuntimeException con el mensaje original para facilitar pruebas
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 }

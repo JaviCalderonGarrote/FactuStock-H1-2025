@@ -40,7 +40,6 @@ public class GastoService {
         return repository.findByOrganizacionId(organizacionId);
     }
 
-
     @Transactional(readOnly = true)
     public Double obtenerTotalGastosPorAno(Long organizacionId, int year) {
         Double total = repository.sumMontoByOrganizacionIdAndYear(organizacionId, year);
@@ -49,7 +48,9 @@ public class GastoService {
 
     @Transactional(readOnly = true)
     public List<Map<String, Object>> obtenerGastosMensuales(Long organizacionId, int year) {
+        if (organizacionId == null) {
+            throw new IllegalArgumentException("El id de organización no puede ser null");
+        }
         return repository.getGastosMensuales(organizacionId, year);
     }
-
 }

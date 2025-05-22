@@ -5,7 +5,6 @@ import IDP_H1.FactuStock.Services.IngresoService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -100,12 +99,13 @@ public class IngresoController {
 
     @GetMapping("/mensuales/{organizacionId}/{year}")
     public ResponseEntity<List<Map<String, Object>>> obtenerIngresosMensuales(@PathVariable Long organizacionId, @PathVariable int year) {
+        if (organizacionId == null || organizacionId <= 0) {
+            throw new IllegalArgumentException("El ID de organización debe ser un número positivo.");
+        }
         logger.info("Obteniendo ingresos mensuales para la organización {} en el año {}", organizacionId, year);
         List<Map<String, Object>> ingresosMensuales = ingresoService.obtenerIngresosMensuales(organizacionId, year);
         logger.info("Se obtuvieron los ingresos mensuales: {}", ingresosMensuales);
         return ResponseEntity.ok(ingresosMensuales);
     }
-
-
 
 }

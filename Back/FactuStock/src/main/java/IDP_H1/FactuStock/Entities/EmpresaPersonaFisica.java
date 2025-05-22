@@ -29,7 +29,5 @@ public class EmpresaPersonaFisica {
     private Organizacion organizacion;
 }
 
-enum TipoEmpresa {
-    CLIENTE, PROVEEDOR, AMBOS
-}
+
 

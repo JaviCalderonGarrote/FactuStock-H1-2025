@@ -21,12 +21,12 @@ public class OrganizacionService {
     @Autowired
     private OrganizacionRepository organizacionRepository;
 
-    // Método para crear una nueva organización
+    // Crear una nueva organización
     public Organizacion crearOrganizacion(Organizacion organizacion) {
         return organizacionRepository.save(organizacion);
     }
 
-    // Método para actualizar una organización
+    // Actualizar organización existente
     public Optional<Organizacion> actualizarOrganizacion(Long id, Organizacion organizacionActualizada) {
         Optional<Organizacion> organizacionExistente = organizacionRepository.findById(id);
         if (organizacionExistente.isPresent()) {
@@ -43,18 +43,19 @@ public class OrganizacionService {
         return Optional.empty();
     }
 
-    // Método para subir el logo de una organización
+    // Subir logo para organización
     public String uploadLogo(Long id, MultipartFile file) throws IOException {
         Optional<Organizacion> organizacionOptional = organizacionRepository.findById(id);
         if (organizacionOptional.isPresent()) {
             Organizacion organizacion = organizacionOptional.get();
 
             String originalFilename = file.getOriginalFilename();
-            if (originalFilename == null || (!originalFilename.endsWith(".png") && !originalFilename.endsWith(".jpg"))) {
+            if (originalFilename == null ||
+                    !(originalFilename.toLowerCase().endsWith(".png") || originalFilename.toLowerCase().endsWith(".jpg"))) {
                 throw new IOException("Solo se permiten archivos PNG o JPG.");
             }
 
-            // Eliminar el logo anterior si existe
+            // Eliminar logo anterior si existe
             if (organizacion.getLogo() != null) {
                 File oldLogo = new File(LOGO_DIRECTORY + organizacion.getLogo());
                 if (oldLogo.exists()) {
@@ -62,14 +63,14 @@ public class OrganizacionService {
                 }
             }
 
-            // Guardar el nuevo logo
+            // Guardar nuevo logo
             String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
             String newFilename = "Logo-" + id + extension;
             Path path = Paths.get(LOGO_DIRECTORY + newFilename);
-            Files.createDirectories(path.getParent()); // Asegurar que la carpeta exista
+            Files.createDirectories(path.getParent()); // Crear carpeta si no existe
             Files.write(path, file.getBytes());
 
-            // Actualizar logo en la base de datos
+            // Actualizar logo en la entidad y guardar
             organizacion.setLogo(newFilename);
             organizacionRepository.save(organizacion);
 
@@ -78,9 +79,17 @@ public class OrganizacionService {
         throw new IOException("Organización no encontrada.");
     }
 
-    // Método para obtener el logo de una organización
+    // Obtener logo desde archivo
     public byte[] getLogo(String filename) throws IOException {
+        // Validar que filename no contenga rutas relativas peligrosas
+        if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            throw new IOException("Ruta inválida para el logo.");
+        }
+
         Path path = Paths.get(LOGO_DIRECTORY + filename);
+        if (!Files.exists(path)) {
+            throw new IOException("Archivo no encontrado: " + path.toString());
+        }
         return Files.readAllBytes(path);
     }
 }

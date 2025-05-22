@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private String message;  // Add this field
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -35,16 +36,14 @@ public class AuthController {
             return ResponseEntity.internalServerError().body(new ErrorResponse("Error en el registro"));
         }
     }
-}
 
-class ErrorResponse {
-    private String message;
-
-    public ErrorResponse(String message) {
+    // Add these methods
+    public void setMessage(String message) {
         this.message = message;
     }
 
     public String getMessage() {
-        return message;
+        return this.message;
     }
 }
+

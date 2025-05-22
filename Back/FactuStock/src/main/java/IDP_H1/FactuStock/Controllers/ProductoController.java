@@ -111,6 +111,7 @@ public class ProductoController {
             return new ResponseEntity<>("Producto no encontrado", HttpStatus.NOT_FOUND);
         }
     }
+
     @PostMapping("/lote")
     public ResponseEntity<?> guardarLote(@RequestBody List<Producto> productos) {
         try {
@@ -125,5 +126,4 @@ public class ProductoController {
             return new ResponseEntity<>("Error al guardar productos: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
 }

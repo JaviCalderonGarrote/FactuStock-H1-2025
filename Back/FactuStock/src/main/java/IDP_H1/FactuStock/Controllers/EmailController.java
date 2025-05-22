@@ -18,22 +18,29 @@ public class EmailController {
     @Autowired
     private JavaMailSender emailSender;
 
+    // Setter para inyectar mock en tests
+    public void setEmailSender(JavaMailSender emailSender) {
+        this.emailSender = emailSender;
+    }
+
     @PostMapping("/enviar")
     public ResponseEntity<String> enviarCorreo(
             @RequestParam("cliente") String destinatario,
             @RequestParam("asunto") String asunto,
             @RequestParam("mensaje") String mensaje,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo) {
+
         try {
             MimeMessage mimeMessage = emailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            boolean tieneAdjunto = archivo != null && !archivo.isEmpty();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, tieneAdjunto, "UTF-8");
 
             helper.setFrom("factustock.idp@gmail.com");
             helper.setTo(destinatario);
             helper.setSubject(asunto);
-            helper.setText(mensaje, true);  // true indica que el contenido es HTML
+            helper.setText(mensaje, true);
 
-            if (archivo != null && !archivo.isEmpty()) {
+            if (tieneAdjunto) {
                 helper.addAttachment(archivo.getOriginalFilename(), archivo);
             }
 
@@ -42,7 +49,12 @@ public class EmailController {
             return ResponseEntity.ok("Correo enviado correctamente");
         } catch (MessagingException e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error al enviar el correo: " + e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body("Error al enviar el correo: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError()
+                    .body("Error inesperado al enviar el correo: " + e.getMessage());
         }
     }
 
@@ -51,6 +63,17 @@ public class EmailController {
             @RequestParam("cliente") String destinatario,
             @RequestParam("asunto") String asunto,
             @RequestParam("mensaje") String mensaje) {
+
+        if (destinatario == null) {
+            throw new NullPointerException("El destinatario no puede ser null");
+        }
+        if (asunto == null) {
+            throw new NullPointerException("El asunto no puede ser null");
+        }
+        if (mensaje == null) {
+            throw new NullPointerException("El mensaje no puede ser null");
+        }
+
         try {
             SimpleMailMessage mailMessage = new SimpleMailMessage();
             mailMessage.setFrom("factustock.idp@gmail.com");
@@ -63,7 +86,8 @@ public class EmailController {
             return ResponseEntity.ok("Correo simple enviado correctamente");
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Error al enviar el correo simple: " + e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body("Error al enviar el correo simple: " + e.getMessage());
         }
     }
 }

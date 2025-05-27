@@ -117,8 +117,8 @@ const Mail = () => {
                 method: "POST",
                 body: data,
                 headers: {
-                    "Authorization": `Bearer ${token}`,
-                }
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
             if (response.ok) {
@@ -159,12 +159,20 @@ const Mail = () => {
         <div className="d-flex">
             <Sidebar />
             <div className="container mt-4">
-                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>Enviar Correo</h2>
+                <h2
+                    className="text-center mb-4"
+                    style={{ borderBottom: "2px solid #a7c5eb", paddingBottom: "10px" }}
+                >
+                    Enviar Correo
+                </h2>
                 {error && <div className="alert alert-danger text-center">{error}</div>}
                 <form onSubmit={handleSubmit} className="card p-4 shadow-sm">
                     <div className="mb-3">
-                        <label className="form-label">Seleccionar Cliente o Escribir Correo</label>
+                        <label htmlFor="select-cliente" className="form-label">
+                            Seleccionar Cliente o Escribir Correo
+                        </label>
                         <Select
+                            inputId="select-cliente"
                             options={clientOptions}
                             value={selectedCliente}
                             onChange={handleSelectChange}
@@ -180,9 +188,12 @@ const Mail = () => {
                         />
                     </div>
                     <div className="mb-3">
-                        <label className="form-label">Asunto</label>
+                        <label htmlFor="asunto" className="form-label">
+                            Asunto
+                        </label>
                         <input
                             type="text"
+                            id="asunto"
                             name="asunto"
                             className="form-control"
                             value={formData.asunto}
@@ -191,8 +202,11 @@ const Mail = () => {
                         />
                     </div>
                     <div className="mb-3">
-                        <label className="form-label">Mensaje</label>
+                        <label htmlFor="mensaje" className="form-label">
+                            Mensaje
+                        </label>
                         <textarea
+                            id="mensaje"
                             name="mensaje"
                             className="form-control"
                             rows="5"
@@ -202,9 +216,12 @@ const Mail = () => {
                         ></textarea>
                     </div>
                     <div className="mb-3">
-                        <label className="form-label">Adjuntar archivo</label>
+                        <label htmlFor="archivo" className="form-label">
+                            Adjuntar archivo
+                        </label>
                         <input
                             type="file"
+                            id="archivo"
                             name="archivo"
                             className="form-control"
                             onChange={handleChange}
@@ -213,7 +230,13 @@ const Mail = () => {
                     <button
                         type="submit"
                         className="btn"
-                        style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
+                        style={{
+                            backgroundColor: "#6f9fd7",
+                            color: "#fff",
+                            borderRadius: "8px",
+                            padding: "8px 16px",
+                            border: "none",
+                        }}
                     >
                         <FaPaperPlane className="me-2" /> Enviar Correo
                     </button>

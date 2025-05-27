@@ -4,8 +4,8 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import '../assets/tpv.css';
-import Select from 'react-select';
 import { FaShoppingCart, FaUser, FaTrash, FaPrint, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import Select from 'react-select';
 
 const TPV = () => {
     const [selectedProducts, setSelectedProducts] = useState([]);
@@ -55,24 +55,6 @@ const TPV = () => {
 
     const productsPerPage = calculateProductsPerPage();
 
-    const verificarDatosNecesarios = () => {
-        let mensajesError = [];
-
-        if (categories.length === 0) {
-            mensajesError.push("No hay categorías disponibles.");
-        }
-
-        if (products.length === 0) {
-            mensajesError.push("No hay productos disponibles.");
-        }
-
-        if (clientes.length === 0) {
-            mensajesError.push("No hay clientes registrados.");
-        }
-
-        return mensajesError;
-    };
-
     useEffect(() => {
         if (!token) {
             setError("No se encontró un token de autenticación.");
@@ -108,10 +90,14 @@ const TPV = () => {
                         title: "No hay caja abierta",
                         text: "Es necesario abrir una caja para usar el TPV",
                         icon: "warning",
-                        confirmButtonText: "Ir a Gestión de Cajas"
+                        confirmButtonText: "Ir a Gestión de Cajas",
+                        showCancelButton: true,
+                        cancelButtonText: "Cancelar"
                     }).then((result) => {
                         if (result.isConfirmed) {
                             navigate('/caja');
+                        } else {
+                            navigate('/dashboard');
                         }
                     });
                     return;
@@ -132,19 +118,10 @@ const TPV = () => {
                 );
 
                 setClientes(clientesResponse.data);
-
-                // Verificar datos necesarios
-                const errores = verificarDatosNecesarios();
-                if (errores.length > 0) {
-                    const mensajeError = errores.join("\n");
-                    Swal.fire({
-                        title: "Datos faltantes",
-                        html: `Para utilizar el TPV, es necesario tener:<br>${errores.map(e => `- ${e}`).join("<br>")}`,
-                        icon: "warning",
-                        confirmButtonText: "Entendido"
-                    });
-                }
-
+                setClienteOptions(clientesResponse.data.map(cliente => ({
+                    value: cliente.id,
+                    label: cliente.nombre
+                })));
             } catch (error) {
                 console.error("Error al cargar datos:", error);
                 if (error.response && error.response.status === 403) {
@@ -177,14 +154,36 @@ const TPV = () => {
                 .filter(product => product.categoria.id === categoryId && product.cantidadStock > 0);
 
             if (filteredProducts.length === 0) {
-                Swal.fire("Sin productos", "Esta categoría no tiene productos disponibles.", "info");
+                Swal.fire({
+                    title: "Sin productos",
+                    text: "Esta categoría no tiene productos disponibles. ¿Desea crear nuevos productos?",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonText: "Crear productos",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/products');
+                    }
+                });
             }
 
             setProducts(filteredProducts);
             setTotalProducts(filteredProducts.length);
         } catch (error) {
             console.error('Error al cargar productos:', error);
-            Swal.fire("Error", "No se pudieron cargar los productos.", "error");
+            Swal.fire({
+                title: "Error",
+                text: "No se pudieron cargar los productos. ¿Desea crear nuevos productos?",
+                icon: "error",
+                showCancelButton: true,
+                confirmButtonText: "Crear productos",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    navigate('/products');
+                }
+            });
         }
     };
 
@@ -237,17 +236,6 @@ const TPV = () => {
     };
 
     const handleAction = async (action) => {
-        const errores = verificarDatosNecesarios();
-        if (errores.length > 0) {
-            Swal.fire({
-                title: "No se puede realizar la acción",
-                html: `Faltan datos necesarios:<br>${errores.map(e => `- ${e}`).join("<br>")}`,
-                icon: "warning",
-                confirmButtonText: "Entendido"
-            });
-            return;
-        }
-
         if (action === 'cobrar') {
             if (selectedProducts.length === 0) {
                 Swal.fire("Error", "No hay productos seleccionados para cobrar.", "error");
@@ -273,25 +261,12 @@ const TPV = () => {
         }
     };
 
-    const handleClienteSearch = (inputValue) => {
-        const filtered = clientes
-            .filter(cliente =>
-                cliente.nombre.toLowerCase().includes(inputValue.toLowerCase())
-            )
-            .slice(0, 5)
-            .map(cliente => ({
-                value: cliente.id,
-                label: cliente.nombre
-            }));
-        setClienteOptions(filtered);
-    };
-
-    const handleClienteSelect = (selectedOption) => {
-        setSelectedCliente(selectedOption ? clientes.find(c => c.id === selectedOption.value) : null);
-    };
-
     const handleFinalizarVenta = async (totalCarrito, cantidadPagada) => {
         try {
+            if (!cajaAbierta) {
+                throw new Error("No hay una caja abierta para realizar la venta");
+            }
+
             if (selectedCliente && !clientes.some(c => c.id === selectedCliente.id)) {
                 throw new Error("Cliente seleccionado no válido");
             }
@@ -312,37 +287,14 @@ const TPV = () => {
                 }))
             };
 
-            const ventaResponse = await axios.post('http://localhost:8080/ventas', ventaData, {
+            const response = await axios.post('http://localhost:8080/ventas', ventaData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            const ventaId = ventaResponse.data.id;
-
-            for (const product of selectedProducts) {
-                try {
-                    const detalleResponse = await axios.post('http://localhost:8080/detalles', {
-                        venta: { id: ventaId },
-                        producto: { id: product.id },
-                        cantidad: product.quantity,
-                        precioUnitario: parseFloat(product.precio),
-                        iva: parseFloat(product.iva),
-                        subtotal: parseFloat((product.precio * product.quantity).toFixed(2)),
-                        nombre: product.nombre
-                    }, {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-                    console.log("Detalle creado:", detalleResponse.data);
-                } catch (detalleError) {
-                    console.error("Error al crear detalle:", detalleError.response?.data || detalleError.message);
-                    throw new Error(`Error al crear detalle: ${detalleError.response?.data?.message || detalleError.message}`);
-                }
-            }
+            console.log("Respuesta del servidor:", response.data);
 
             // Actualizar stock
             for (const product of selectedProducts) {
@@ -407,7 +359,23 @@ const TPV = () => {
             } else if (error.message) {
                 errorMessage += ": " + error.message;
             }
-            Swal.fire("Error", errorMessage, "error");
+
+            if (errorMessage.includes("No hay una caja abierta para realizar la venta")) {
+                Swal.fire({
+                    title: "Error",
+                    text: "No hay una caja abierta para realizar la venta. ¿Desea abrir una caja?",
+                    icon: "error",
+                    showCancelButton: true,
+                    confirmButtonText: "Abrir caja",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/caja');
+                    }
+                });
+            } else {
+                Swal.fire("Error", errorMessage, "error");
+            }
         }
     };
 
@@ -561,34 +529,46 @@ const TPV = () => {
         );
     };
 
-    const ActionButtons = ({ onAction }) => {
-        const errores = verificarDatosNecesarios();
-        const disabled = errores.length > 0;
-
-        return (
-            <div className="action-buttons">
-                <button onClick={() => onAction('cobrar')} className="action-button cobrar" disabled={disabled}>
-                    <FaShoppingCart /> Cobrar
-                </button>
-                <button onClick={() => onAction('añadir-cliente')} className="action-button cliente" disabled={disabled}>
-                    <FaUser /> Añadir Cliente
-                </button>
-                <button onClick={() => onAction('cancelar')} className="action-button cancelar" disabled={disabled}>
-                    <FaTrash /> Cancelar Venta
-                </button>
-                <button onClick={() => onAction('imprimir')} className="action-button imprimir" disabled={disabled}>
-                    <FaPrint /> Imprimir Ticket
-                </button>
-            </div>
-        );
-    };
+    const ActionButtons = ({ onAction }) => (
+        <div className="action-buttons">
+            <button onClick={() => onAction('cobrar')} className="action-button cobrar">
+                <FaShoppingCart /> Cobrar
+            </button>
+            <button onClick={() => onAction('añadir-cliente')} className="action-button cliente">
+                <FaUser /> Añadir Cliente
+            </button>
+            <button onClick={() => onAction('cancelar')} className="action-button cancelar">
+                <FaTrash /> Cancelar Venta
+            </button>
+            <button onClick={() => onAction('imprimir')} className="action-button imprimir">
+                <FaPrint /> Imprimir Ticket
+            </button>
+        </div>
+    );
 
     if (loading) {
         return <div className="loading">Cargando...</div>;
     }
 
     if (error) {
-        return <div className="error">{error}</div>;
+        return (
+            <div className="error-container">
+                <div className="error">{error}</div>
+                <ActionButtons onAction={handleAction} />
+            </div>
+        );
+    }
+
+    if (!cajaAbierta) {
+        return (
+            <div className="no-caja-abierta">
+                <h2>No hay caja abierta</h2>
+                <p>Es necesario abrir una caja para usar el TPV.</p>
+                <button onClick={() => navigate('/caja')} className="btn btn-primary">
+                    Ir a Gestión de Cajas
+                </button>
+            </div>
+        );
     }
 
     return (
@@ -623,7 +603,7 @@ const TPV = () => {
             </div>
 
             {showClienteModal && (
-                <div className="modal fade show" style={{ display: "block" }}>
+                <div className="modal fade show" style={{ display: "block" }} data-testid="cliente-modal">
                     <div className="modal-dialog modal-dialog-centered">
                         <div className="modal-content shadow-lg rounded">
                             <div className="modal-header" style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
@@ -633,16 +613,17 @@ const TPV = () => {
                             <div className="modal-body">
                                 <form>
                                     <div className="form-group mb-3">
-                                        <label className="form-label">Cliente</label>
+                                        <label htmlFor="cliente" className="form-label">Cliente</label>
                                         <Select
-                                            value={selectedCliente ? { value: selectedCliente.id, label: selectedCliente.nombre } : null}
-                                            onChange={handleClienteSelect}
-                                            onInputChange={handleClienteSearch}
                                             options={clienteOptions}
+                                            value={selectedCliente ? { value: selectedCliente.id, label: selectedCliente.nombre } : null}
+                                            onChange={(selectedOption) => {
+                                                const cliente = clientes.find(c => c.id === selectedOption.value);
+                                                setSelectedCliente(cliente);
+                                            }}
+                                            placeholder="Buscar cliente..."
                                             isClearable
                                             isSearchable
-                                            placeholder="Buscar cliente..."
-                                            noOptionsMessage={() => "No se encontraron clientes"}
                                         />
                                     </div>
                                     <button
@@ -658,15 +639,10 @@ const TPV = () => {
                                             }
                                         }}
                                     >
-                                        Confirmar
+                                        Confirmar Selección
                                     </button>
                                 </form>
-                                <button
-                                    type="button"
-                                    className="btn btn-secondary mt-3"
-                                    onClick={() => setShowClienteModal(false)}
-                                    style={{ width: '100%' }}
-                                >
+                                <button type="button" className="btn btn-secondary mt-3" onClick={() => setShowClienteModal(false)} style={{ width: '100%' }}>
                                     Cerrar
                                 </button>
                             </div>

@@ -31,145 +31,247 @@ const Registro = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-
         if (name.startsWith("organizacion.")) {
             const field = name.split(".")[1];
             setFormData((prev) => ({
                 ...prev,
-                organizacion: {
-                    ...prev.organizacion,
-                    [field]: value,
-                },
+                organizacion: { ...prev.organizacion, [field]: value },
             }));
         } else {
             setFormData((prev) => ({ ...prev, [name]: value }));
         }
     };
 
-    const validarUsuario = () => {
+    const validarContraseña = (password) => {
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        return regex.test(password);
+    };
+
+    const validarUsuario = async () => {
         const { username, nombre, apellido, mail, password, confirmPassword } = formData;
-        if (!(username.trim() && nombre.trim() && apellido.trim() && mail.trim() && password.trim() && confirmPassword.trim())) {
-            Swal.fire("Error", "Por favor completa todos los campos obligatorios del usuario.", "error");
+
+        if (!username || !nombre || !apellido || !mail || !password || !confirmPassword) {
+            await Swal.fire({
+                title: "Campos incompletos",
+                text: "Por favor, completa todos los campos obligatorios.",
+                icon: "warning",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#3085d6"
+            });
             return false;
         }
+
         if (password !== confirmPassword) {
-            Swal.fire("Error", "Las contraseñas no coinciden.", "error");
+            await Swal.fire({
+                title: "Contraseñas no coinciden",
+                text: "Las contraseñas ingresadas no coinciden.",
+                icon: "warning",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#3085d6"
+            });
+            return false;
+        }
+
+        if (!validarContraseña(password)) {
+            await Swal.fire({
+                title: "Contraseña inválida",
+                text: "La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.",
+                icon: "warning",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#3085d6"
+            });
+            return false;
+        }
+
+        try {
+            const usernameExists = await authService.checkUsernameExists(username);
+            if (usernameExists) {
+                await Swal.fire({
+                    title: "Usuario no válido",
+                    text: "El nombre de usuario ya está en uso. Por favor, cambia el usuario.",
+                    icon: "warning",
+                    confirmButtonText: "Entendido",
+                    confirmButtonColor: "#3085d6"
+                });
+                return false;
+            }
+
+            const emailExists = await authService.checkEmailExists(mail);
+            if (emailExists) {
+                await Swal.fire({
+                    title: "Correo no válido",
+                    text: "El correo electrónico ya está en uso. Por favor, cambia el correo.",
+                    icon: "warning",
+                    confirmButtonText: "Entendido",
+                    confirmButtonColor: "#3085d6"
+                });
+                return false;
+            }
+        } catch (error) {
+            console.error("Error al verificar usuario/email:", error);
+            await Swal.fire({
+                title: "Error de conexión",
+                text: "Error al verificar la información. Por favor, intenta de nuevo.",
+                icon: "error",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#d33"
+            });
+            return false;
+        }
+
+        return true;
+    };
+
+    const validarOrganizacion = () => {
+        const { nombre, direccion, telefono, nifCif, email } = formData.organizacion;
+        if (!nombre || !direccion || !telefono || !nifCif || !email) {
+            Swal.fire({
+                title: "Datos incompletos",
+                text: "Por favor completa todos los campos obligatorios de la organización.",
+                icon: "warning",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#3085d6"
+            });
             return false;
         }
         return true;
     };
 
-    const validarOrganizacion = () => {
-        const org = formData.organizacion;
-        return (
-            org.nombre.trim() &&
-            org.direccion.trim() &&
-            org.telefono.trim() &&
-            org.nifCif.trim() &&
-            org.email.trim()
-        );
-    };
-
-    const handleContinue = (e) => {
+    const handleContinue = async (e) => {
         e.preventDefault();
-        if (!validarUsuario()) return;
-        setStep(2);
+        setIsSubmitting(true);
+        const isValid = await validarUsuario();
+        setIsSubmitting(false);
+        if (isValid) setStep(2);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-
         if (!validarOrganizacion()) {
-            Swal.fire("Error", "Por favor completa todos los campos obligatorios de la organización.", "error");
             setIsSubmitting(false);
             return;
         }
 
-        const payload = {
-            ...formData,
-            rol: "Administrador",
-        };
-
         try {
-            await authService.register(payload);
-            Swal.fire("Éxito", "Registro exitoso. Redirigiendo al inicio de sesión...", "success");
-            setTimeout(() => navigate("/"), 2000);
+            await authService.register({ ...formData, rol: "Administrador" });
+            await Swal.fire({
+                title: "¡Registro exitoso!",
+                text: "Tu cuenta ha sido creada correctamente. Serás redirigido al inicio de sesión.",
+                icon: "success",
+                confirmButtonText: "Continuar",
+                confirmButtonColor: "#28a745"
+            });
+            navigate("/");
         } catch (err) {
-            let errorMsg = "Error al registrar. Verifica los datos e intenta nuevamente.";
-
-            const backendMessage = err?.response?.data?.message;
-            if (backendMessage && typeof backendMessage === "string") {
-                errorMsg = backendMessage;
-            }
-
-            Swal.fire("Error", errorMsg, "error");
+            const errorMsg = err?.response?.data?.message || "Error al registrar. Verifica los datos e intenta nuevamente.";
+            await Swal.fire({
+                title: "Error en el registro",
+                text: errorMsg,
+                icon: "error",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#d33"
+            });
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const InputField = ({ label, name, value, onChange, required = false, type = "text" }) => (
+        <div className="mb-3">
+            <label htmlFor={name} className="form-label" style={{ color: "#6f9fd7" }}>
+                {label} {required && <span className="text-danger">*</span>}
+            </label>
+            <input
+                id={name}
+                type={type}
+                name={name}
+                className="form-control"
+                value={value}
+                onChange={onChange}
+                required={required}
+                style={{ borderRadius: "8px", borderColor: "#a7c5eb" }}
+            />
+        </div>
+    );
+
     return (
-        <div className="container mt-5">
-            <div className="card shadow p-4 mx-auto" style={{ maxWidth: "600px" }}>
-                <div className="text-center mb-4">
-                    <img src="/LOGO-Letras.png" alt="Logo de la aplicación" style={{ width: "100px", height: "auto" }} />
+        <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
+            <div className="card p-4 shadow" style={{ width: "50rem", borderRadius: "15px" }}>
+                <div className="text-center mb-3">
+                    <img src="/LOGO-Letras.png" alt="Logo" style={{ height: "100px" }} />
                 </div>
 
-                <h3 className="text-center mb-4">
+                <h3 className="text-center mb-4" style={{ color: "#2c3e50", borderBottom: "2px solid #a7c5eb", paddingBottom: "10px" }}>
                     {step === 1 ? "Registro de Usuario" : "Registro de Organización"}
                 </h3>
 
-                <form onSubmit={step === 1 ? handleContinue : handleSubmit}>
-                    {step === 1 && (
-                        <>
-                            <InputField label="Username" name="username" value={formData.username} onChange={handleChange} required />
-                            <InputField label="Nombre" name="nombre" value={formData.nombre} onChange={handleChange} required />
-                            <InputField label="Apellido" name="apellido" value={formData.apellido} onChange={handleChange} required />
-                            <InputField label="Correo electrónico" name="mail" type="email" value={formData.mail} onChange={handleChange} required />
-                            <InputField label="Contraseña" name="password" type="password" value={formData.password} onChange={handleChange} required />
-                            <InputField label="Confirmar Contraseña" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
+                <form onSubmit={step === 1 ? handleContinue : handleSubmit} data-testid="registro-form">
+                    <div className="row">
+                        {step === 1 ? (
+                            <>
+                                <div className="col-md-6">
+                                    <InputField label="Username" name="username" value={formData.username} onChange={handleChange} required />
+                                    <InputField label="Nombre" name="nombre" value={formData.nombre} onChange={handleChange} required />
+                                    <InputField label="Apellido" name="apellido" value={formData.apellido} onChange={handleChange} required />
+                                </div>
+                                <div className="col-md-6">
+                                    <InputField label="Correo electrónico" name="mail" type="email" value={formData.mail} onChange={handleChange} required />
+                                    <InputField label="Contraseña" name="password" type="password" value={formData.password} onChange={handleChange} required />
+                                    <InputField label="Confirmar Contraseña" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="col-md-6">
+                                    <InputField label="Nombre de la organización" name="organizacion.nombre" value={formData.organizacion.nombre} onChange={handleChange} required />
+                                    <InputField label="Dirección" name="organizacion.direccion" value={formData.organizacion.direccion} onChange={handleChange} required />
+                                    <InputField label="Teléfono" name="organizacion.telefono" value={formData.organizacion.telefono} onChange={handleChange} required />
+                                    <InputField label="NIF/CIF" name="organizacion.nifCif" value={formData.organizacion.nifCif} onChange={handleChange} required />
+                                </div>
+                                <div className="col-md-6">
+                                    <InputField label="Email" name="organizacion.email" type="email" value={formData.organizacion.email} onChange={handleChange} required />
+                                    <InputField label="Sitio Web" name="organizacion.web" value={formData.organizacion.web} onChange={handleChange} />
+                                    <InputField label="Logo URL" name="organizacion.logo" value={formData.organizacion.logo} onChange={handleChange} />
+                                    <InputField label="IBAN" name="organizacion.IBAN" value={formData.organizacion.IBAN} onChange={handleChange} />
+                                </div>
+                            </>
+                        )}
+                    </div>
 
-                            <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting}>
-                                Continuar
+                    <div className="d-flex gap-2 mt-3">
+                        {step === 2 && (
+                            <button
+                                type="button"
+                                className="btn flex-fill"
+                                onClick={() => setStep(1)}
+                                disabled={isSubmitting}
+                                style={{ backgroundColor: "#a7c5eb", color: "#fff", borderRadius: "8px" }}
+                            >
+                                Volver
                             </button>
-                        </>
-                    )}
-
-                    {step === 2 && (
-                        <>
-                            <InputField label="Nombre de la organización" name="organizacion.nombre" value={formData.organizacion.nombre} onChange={handleChange} required />
-                            <InputField label="Dirección" name="organizacion.direccion" value={formData.organizacion.direccion} onChange={handleChange} required />
-                            <InputField label="Teléfono" name="organizacion.telefono" value={formData.organizacion.telefono} onChange={handleChange} required />
-                            <InputField label="NIF/CIF" name="organizacion.nifCif" value={formData.organizacion.nifCif} onChange={handleChange} required />
-                            <InputField label="Email" name="organizacion.email" type="email" value={formData.organizacion.email} onChange={handleChange} required />
-                            <InputField label="Sitio Web" name="organizacion.web" value={formData.organizacion.web} onChange={handleChange} />
-                            <InputField label="Logo URL" name="organizacion.logo" value={formData.organizacion.logo} onChange={handleChange} />
-                            <InputField label="IBAN" name="organizacion.IBAN" value={formData.organizacion.IBAN} onChange={handleChange} />
-
-                            <button type="submit" className="btn btn-success w-100" disabled={isSubmitting}>
-                                {isSubmitting ? "Registrando..." : "Registrarse"}
-                            </button>
-                        </>
-                    )}
+                        )}
+                        <button
+                            type="submit"
+                            className="btn flex-fill"
+                            style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px" }}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? "Procesando..." : (step === 1 ? "Continuar" : "Registrarse")}
+                        </button>
+                    </div>
                 </form>
+                <button
+                    type="button"
+                    className="btn btn-link mt-3"
+                    onClick={() => navigate("/")}
+                    style={{ color: "#6f9fd7" }}
+                >
+                    Volver al inicio
+                </button>
             </div>
         </div>
     );
 };
-
-const InputField = ({ label, name, value, onChange, required = false, type = "text" }) => (
-    <div className="mb-2">
-        <label className="form-label">{label}</label>
-        <input
-            type={type}
-            name={name}
-            className="form-control"
-            value={value}
-            onChange={onChange}
-            required={required}
-        />
-    </div>
-);
 
 export default Registro;

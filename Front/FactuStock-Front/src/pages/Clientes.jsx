@@ -438,10 +438,11 @@ const EmpresaPersonaFisicaComponent = () => {
                                     <form onSubmit={handleSubmit}>
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">Nombre</label>
+                                                <label htmlFor="nombre" className="form-label">Nombre</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
+                                                    id="nombre"
                                                     name="nombre"
                                                     value={nuevaEmpresaPersonaFisica.nombre}
                                                     onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
@@ -449,10 +450,11 @@ const EmpresaPersonaFisicaComponent = () => {
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">NIF/CIF</label>
+                                                <label htmlFor="nifCif" className="form-label">NIF/CIF</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
+                                                    id="nifCif"
                                                     name="nifCif"
                                                     value={nuevaEmpresaPersonaFisica.nifCif}
                                                     onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
@@ -462,20 +464,22 @@ const EmpresaPersonaFisicaComponent = () => {
                                         </div>
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">Teléfono</label>
+                                                <label htmlFor="telefono" className="form-label">Teléfono</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
+                                                    id="telefono"
                                                     name="telefono"
                                                     value={nuevaEmpresaPersonaFisica.telefono}
                                                     onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">Dirección</label>
+                                                <label htmlFor="direccion" className="form-label">Dirección</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
+                                                    id="direccion"
                                                     name="direccion"
                                                     value={nuevaEmpresaPersonaFisica.direccion}
                                                     onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
@@ -484,20 +488,22 @@ const EmpresaPersonaFisicaComponent = () => {
                                         </div>
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">Web</label>
+                                                <label htmlFor="web" className="form-label">Web</label>
                                                 <input
                                                     type="text"
                                                     className="form-control"
+                                                    id="web"
                                                     name="web"
                                                     value={nuevaEmpresaPersonaFisica.web}
                                                     onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
                                                 />
                                             </div>
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">Email</label>
+                                                <label htmlFor="mail" className="form-label">Email</label>
                                                 <input
                                                     type="email"
                                                     className="form-control"
+                                                    id="mail"
                                                     name="mail"
                                                     value={nuevaEmpresaPersonaFisica.mail}
                                                     onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}
@@ -507,9 +513,10 @@ const EmpresaPersonaFisicaComponent = () => {
                                         </div>
                                         <div className="row">
                                             <div className="col-md-6 mb-3">
-                                                <label className="form-label">Tipo</label>
+                                                <label htmlFor="tipo" className="form-label">Tipo</label>
                                                 <select
                                                     className="form-control"
+                                                    id="tipo"
                                                     name="tipo"
                                                     value={nuevaEmpresaPersonaFisica.tipo}
                                                     onChange={(e) => setNuevaEmpresaPersonaFisica({ ...nuevaEmpresaPersonaFisica, [e.target.name]: e.target.value })}

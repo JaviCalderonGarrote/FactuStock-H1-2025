@@ -219,68 +219,77 @@ const CajaComponent = () => {
     const indexOfFirstCaja = indexOfLastCaja - cajasPorPagina;
     const cajasPaginadas = cajasFiltradas.slice(indexOfFirstCaja, indexOfLastCaja);
 
+    const handleChangePage = (newPage) => {
+        setCurrentPage(newPage);
+    };
+
     const renderPaginationButtons = () => {
         const buttons = [];
         if (totalPages <= 5) {
             for (let i = 1; i <= totalPages; i++) {
                 buttons.push(
-                    <button
-                        key={i}
-                        onClick={() => setCurrentPage(i)}
-                        className={`pagination-button ${currentPage === i ? 'active' : ''}`}
-                    >
-                        {i}
-                    </button>
+                    <li key={i} className={`page-item ${currentPage === i ? 'active' : ''}`}>
+                        <button
+                            className="page-link"
+                            onClick={() => handleChangePage(i)}
+                        >
+                            {i}
+                        </button>
+                    </li>
                 );
             }
         } else {
             buttons.push(
-                <button
-                    key={1}
-                    onClick={() => setCurrentPage(1)}
-                    className={`pagination-button ${currentPage === 1 ? 'active' : ''}`}
-                >
-                    1
-                </button>
+                <li key={1} className={`page-item ${currentPage === 1 ? 'active' : ''}`}>
+                    <button
+                        className="page-link"
+                        onClick={() => handleChangePage(1)}
+                    >
+                        1
+                    </button>
+                </li>
             );
             buttons.push(
-                <button
-                    key={2}
-                    onClick={() => setCurrentPage(2)}
-                    className={`pagination-button ${currentPage === 2 ? 'active' : ''}`}
-                >
-                    2
-                </button>
+                <li key={2} className={`page-item ${currentPage === 2 ? 'active' : ''}`}>
+                    <button
+                        className="page-link"
+                        onClick={() => handleChangePage(2)}
+                    >
+                        2
+                    </button>
+                </li>
             );
 
             if (currentPage > 3) {
-                buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
+                buttons.push(<li key="ellipsis1" className="page-item disabled"><span className="page-link"><FaEllipsisH /></span></li>);
             }
 
             if (currentPage !== 1 && currentPage !== 2 && currentPage !== totalPages) {
                 buttons.push(
-                    <button
-                        key={currentPage}
-                        onClick={() => setCurrentPage(currentPage)}
-                        className="pagination-button active"
-                    >
-                        {currentPage}
-                    </button>
+                    <li key={currentPage} className="page-item active">
+                        <button
+                            className="page-link"
+                            onClick={() => handleChangePage(currentPage)}
+                        >
+                            {currentPage}
+                        </button>
+                    </li>
                 );
             }
 
             if (currentPage < totalPages - 2) {
-                buttons.push(<span key="ellipsis2" className="pagination-ellipsis"><FaEllipsisH /></span>);
+                buttons.push(<li key="ellipsis2" className="page-item disabled"><span className="page-link"><FaEllipsisH /></span></li>);
             }
 
             buttons.push(
-                <button
-                    key={totalPages}
-                    onClick={() => setCurrentPage(totalPages)}
-                    className={`pagination-button ${currentPage === totalPages ? 'active' : ''}`}
-                >
-                    {totalPages}
-                </button>
+                <li key={totalPages} className={`page-item ${currentPage === totalPages ? 'active' : ''}`}>
+                    <button
+                        className="page-link"
+                        onClick={() => handleChangePage(totalPages)}
+                    >
+                        {totalPages}
+                    </button>
+                </li>
             );
         }
         return buttons;
@@ -392,7 +401,8 @@ const CajaComponent = () => {
                                     <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
                                         <button
                                             className="page-link"
-                                            onClick={() => setCurrentPage(currentPage - 1)}
+                                            aria-label="Previous page"
+                                            onClick={() => handleChangePage(currentPage - 1)}
                                             disabled={currentPage === 1}
                                             style={{
                                                 backgroundColor: 'transparent',
@@ -407,7 +417,8 @@ const CajaComponent = () => {
                                     <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
                                         <button
                                             className="page-link"
-                                            onClick={() => setCurrentPage(currentPage + 1)}
+                                            aria-label="Next page"
+                                            onClick={() => handleChangePage(currentPage + 1)}
                                             disabled={currentPage === totalPages}
                                             style={{
                                                 backgroundColor: 'transparent',

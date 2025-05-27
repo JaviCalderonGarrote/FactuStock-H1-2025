@@ -294,8 +294,10 @@ const NuevaFacturaComponent = () => {
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">Fecha</label>
+                            equired
+                            <label htmlFor="fecha" className="form-label">Fecha</label>
                             <input
+                                id="fecha"
                                 type="date"
                                 className="form-control"
                                 name="fecha"
@@ -303,6 +305,7 @@ const NuevaFacturaComponent = () => {
                                 onChange={(e) => handleChange("fecha", e.target.value)}
                                 required
                             />
+
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">

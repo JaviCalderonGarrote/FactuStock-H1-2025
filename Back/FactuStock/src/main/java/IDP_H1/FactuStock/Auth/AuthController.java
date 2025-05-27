@@ -45,5 +45,18 @@ public class AuthController {
     public String getMessage() {
         return this.message;
     }
+
+    @GetMapping("/check-username")
+    public ResponseEntity<Boolean> checkUsername(@RequestParam String username) {
+        boolean exists = authService.checkUsernameExists(username);
+        return ResponseEntity.ok(exists);
+    }
+
+    // Endpoint para verificar si un email ya existe
+    @GetMapping("/check-email")
+    public ResponseEntity<Boolean> checkEmail(@RequestParam String email) {
+        boolean exists = authService.checkEmailExists(email);
+        return ResponseEntity.ok(exists);
+    }
 }
 

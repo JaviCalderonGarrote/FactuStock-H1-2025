@@ -484,8 +484,9 @@ const FacturaComponent = () => {
                                 {editingFactura && (
                                     <Form>
                                         <Form.Group className="mb-3">
-                                            <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Estado</Form.Label>
+                                            <Form.Label htmlFor="estado" style={{fontWeight: 'bold', color: '#34495e'}}>Estado</Form.Label>
                                             <Form.Control
+                                                id="estado"
                                                 as="select"
                                                 value={editingFactura.tempEstado}
                                                 onChange={handleEstadoChange}
@@ -497,8 +498,9 @@ const FacturaComponent = () => {
                                             </Form.Control>
                                         </Form.Group>
                                         <Form.Group className="mb-3">
-                                            <Form.Label style={{fontWeight: 'bold', color: '#34495e'}}>Forma de Pago</Form.Label>
+                                            <Form.Label htmlFor="formaPago" style={{fontWeight: 'bold', color: '#34495e'}}>Forma de Pago</Form.Label>
                                             <Form.Control
+                                                id="formaPago"
                                                 as="select"
                                                 value={editingFactura.tempFormaPago}
                                                 onChange={handleFormaPagoChange}

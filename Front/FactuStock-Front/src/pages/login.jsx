@@ -11,7 +11,7 @@ const Login = () => {
   const [error, setError] = useState("");
 
   const [showModal, setShowModal] = useState(false);
-  const [recoveryInput, setRecoveryInput] = useState("");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const [recoveryError, setRecoveryError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -35,12 +35,12 @@ const Login = () => {
     setIsSubmitting(true);
 
     try {
-      await authService.sendPasswordResetEmail(recoveryInput);
+      await authService.sendPasswordResetEmail(recoveryEmail);
       setRecoveryMessage("Correo de recuperación enviado con éxito.");
       setRecoveryError("");
       setTimeout(() => setShowModal(false), 2500);
     } catch (err) {
-      setRecoveryError("No se pudo enviar el correo. Verifica tu correo o nombre de usuario.");
+      setRecoveryError("No se pudo enviar el correo. Verifica tu correo electrónico.");
       setRecoveryMessage("");
     } finally {
       setIsSubmitting(false);
@@ -54,14 +54,23 @@ const Login = () => {
             <img src="/LOGO-Letras.png" alt="Logo" style={{ height: "100px" }} />
           </div>
 
-          <h3 className="text-center mb-4" style={{ color: "#2c3e50", borderBottom: "2px solid #a7c5eb", paddingBottom: "10px" }}>Iniciar Sesión</h3>
+          <h3
+              className="text-center mb-4"
+              style={{ color: "#2c3e50", borderBottom: "2px solid #a7c5eb", paddingBottom: "10px" }}
+          >
+            Iniciar Sesión
+          </h3>
           <form onSubmit={handleSubmit}>
             {error && <div className="alert alert-danger">{error}</div>}
 
             <div className="mb-3">
-              <label htmlFor="username" className="form-label">Username</label>
+              <label htmlFor="username" className="form-label">
+                Username
+              </label>
               <div className="input-group">
-                <span className="input-group-text"><FaUser /></span>
+              <span className="input-group-text">
+                <FaUser />
+              </span>
                 <input
                     type="text"
                     className="form-control"
@@ -75,9 +84,13 @@ const Login = () => {
             </div>
 
             <div className="mb-3">
-              <label htmlFor="password" className="form-label">Contraseña</label>
+              <label htmlFor="password" className="form-label">
+                Contraseña
+              </label>
               <div className="input-group">
-                <span className="input-group-text"><FaLock /></span>
+              <span className="input-group-text">
+                <FaLock />
+              </span>
                 <input
                     type="password"
                     className="form-control"
@@ -128,34 +141,33 @@ const Login = () => {
             <div className="modal fade show d-block" tabIndex="-1" role="dialog">
               <div className="modal-dialog modal-dialog-centered" role="document">
                 <div className="modal-content" style={{ borderRadius: "15px" }}>
-                  <div className="modal-header" style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
+                  <div className="modal-header" style={{ backgroundColor: "#a7c5eb", color: "#fff" }}>
                     <h5 className="modal-title">Recuperar Contraseña</h5>
                     <button
                         type="button"
                         className="btn-close"
+                        aria-label="Cerrar"
                         onClick={() => setShowModal(false)}
                     ></button>
                   </div>
                   <div className="modal-body">
-                    {recoveryMessage && (
-                        <div className="alert alert-success">{recoveryMessage}</div>
-                    )}
-                    {recoveryError && (
-                        <div className="alert alert-danger">{recoveryError}</div>
-                    )}
+                    {recoveryMessage && <div className="alert alert-success">{recoveryMessage}</div>}
+                    {recoveryError && <div className="alert alert-danger">{recoveryError}</div>}
                     <form onSubmit={handlePasswordReset}>
                       <div className="mb-3">
-                        <label htmlFor="recoveryInput" className="form-label">
-                          Correo o nombre de usuario
+                        <label htmlFor="recoveryEmail" className="form-label">
+                          Correo electrónico
                         </label>
                         <div className="input-group">
-                          <span className="input-group-text"><FaPaperPlane /></span>
+                      <span className="input-group-text">
+                        <FaPaperPlane />
+                      </span>
                           <input
-                              type="text"
+                              type="email"
                               className="form-control"
-                              id="recoveryInput"
-                              value={recoveryInput}
-                              onChange={(e) => setRecoveryInput(e.target.value)}
+                              id="recoveryEmail"
+                              value={recoveryEmail}
+                              onChange={(e) => setRecoveryEmail(e.target.value)}
                               required
                               style={{ borderRadius: "0 8px 8px 0" }}
                           />

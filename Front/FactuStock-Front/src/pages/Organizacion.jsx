@@ -2,7 +2,7 @@ import Sidebar from "../components/Sidebar";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaSave, FaUpload } from "react-icons/fa";
+import { FaSave } from "react-icons/fa";
 
 const Organizacion = () => {
     const [organizacion, setOrganizacion] = useState({
@@ -84,10 +84,20 @@ const Organizacion = () => {
     // Manejo del cambio de archivo
     const handleFileChange = (e) => {
         const selectedFile = e.target.files[0];
-        if (selectedFile && (selectedFile.type === "image/png" || selectedFile.type === "image/jpeg")) {
-            setFile(selectedFile);
-        } else {
-            Swal.fire("Error", "Solo se permiten archivos PNG o JPG.", "error");
+        if (selectedFile) {
+            const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+            if (validTypes.includes(selectedFile.type)) {
+                setFile(selectedFile);
+            } else {
+                setFile(null);
+                e.target.value = ''; // Limpiar el input
+                Swal.fire({
+                    title: "Error",
+                    text: "Solo se permiten archivos JPG, JPEG o PNG.",
+                    icon: "error",
+                    confirmButtonText: "OK"
+                });
+            }
         }
     };
 
@@ -152,28 +162,28 @@ const Organizacion = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="row justify-content-center">
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">Nombre</label>
-                            <input type="text" className="form-control" name="nombre" value={organizacion.nombre || ""} onChange={handleChange} required />
+                            <label htmlFor="nombre" className="form-label">Nombre</label>
+                            <input id="nombre" type="text" className="form-control" name="nombre" value={organizacion.nombre || ""} onChange={handleChange} required />
                         </div>
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">Dirección</label>
-                            <input type="text" className="form-control" name="direccion" value={organizacion.direccion || ""} onChange={handleChange} required />
+                            <label htmlFor="direccion" className="form-label">Dirección</label>
+                            <input id="direccion" type="text" className="form-control" name="direccion" value={organizacion.direccion || ""} onChange={handleChange} required />
                         </div>
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">Teléfono</label>
-                            <input type="text" className="form-control" name="telefono" value={organizacion.telefono || ""} onChange={handleChange} required />
+                            <label htmlFor="telefono" className="form-label">Teléfono</label>
+                            <input id="telefono" type="text" className="form-control" name="telefono" value={organizacion.telefono || ""} onChange={handleChange} required />
                         </div>
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">NIF/CIF</label>
-                            <input type="text" className="form-control" name="nifCif" value={organizacion.nifCif || ""} onChange={handleChange} required />
+                            <label htmlFor="nifCif" className="form-label">NIF/CIF</label>
+                            <input id="nifCif" type="text" className="form-control" name="nifCif" value={organizacion.nifCif || ""} onChange={handleChange} required />
                         </div>
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">Email</label>
-                            <input type="email" className="form-control" name="email" value={organizacion.email || ""} onChange={handleChange} required />
+                            <label htmlFor="email" className="form-label">Email</label>
+                            <input id="email" type="email" className="form-control" name="email" value={organizacion.email || ""} onChange={handleChange} required />
                         </div>
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">Sitio Web</label>
-                            <input type="url" className="form-control" name="web" value={organizacion.web || ""} onChange={handleChange} />
+                            <label htmlFor="web" className="form-label">Sitio Web</label>
+                            <input id="web" type="url" className="form-control" name="web" value={organizacion.web || ""} onChange={handleChange} />
                         </div>
 
                         {/* Vista previa del logo */}
@@ -186,8 +196,8 @@ const Organizacion = () => {
 
                         {/* Subir nuevo logo */}
                         <div className="col-12 col-md-6 mb-3">
-                            <label className="form-label">Subir nuevo logo</label>
-                            <input type="file" className="form-control" accept="image/png, image/jpeg" onChange={handleFileChange} />
+                            <label htmlFor="logo" className="form-label">Subir nuevo logo</label>
+                            <input id="logo" type="file" className="form-control" accept="image/png, image/jpeg, image/jpg" onChange={handleFileChange} />
                         </div>
 
                         <div className="col-12 mb-3">

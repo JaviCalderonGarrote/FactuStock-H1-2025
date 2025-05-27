@@ -117,7 +117,15 @@ const IngresosComponent = () => {
             );
 
             if (currentPage > 3) {
-                buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
+                buttons.push(
+                    <span
+                        key="ellipsis1"
+                        className="pagination-ellipsis"
+                        aria-label="ellipsis"
+                    >
+                        <FaEllipsisH />
+                    </span>
+                );
             }
 
             if (currentPage !== 1 && currentPage !== 2 && currentPage !== totalPages) {
@@ -133,7 +141,15 @@ const IngresosComponent = () => {
             }
 
             if (currentPage < totalPages - 2) {
-                buttons.push(<span key="ellipsis2" className="pagination-ellipsis"><FaEllipsisH /></span>);
+                buttons.push(
+                    <span
+                        key="ellipsis2"
+                        className="pagination-ellipsis"
+                        aria-label="ellipsis"
+                    >
+                        <FaEllipsisH />
+                    </span>
+                );
             }
 
             buttons.push(
@@ -153,7 +169,9 @@ const IngresosComponent = () => {
         <div className="d-flex">
             <Sidebar />
             <div className="container mt-4">
-                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>Registro de Ingresos</h2>
+                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>
+                    Registro de Ingresos
+                </h2>
 
                 {error && <div className="alert alert-danger text-center">{error}</div>}
 

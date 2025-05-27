@@ -1,5 +1,5 @@
+import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
-import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { FaSave, FaKey } from "react-icons/fa";
@@ -30,17 +30,14 @@ const Perfil = () => {
         try {
             const tokenParts = token.split(".");
             if (tokenParts.length !== 3) {
-                setError("Token JWT no es válido.");
-                return null;
+                throw new Error("Token JWT no es válido.");
             }
-
             const base64Url = tokenParts[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
             const decoded = atob(base64);
             return JSON.parse(decoded);
         } catch (error) {
-            setError("Error al decodificar el token.");
-            console.error(error);
+            setError(error.message);
             return null;
         }
     };
@@ -52,7 +49,9 @@ const Perfil = () => {
         }
 
         const decodedToken = decodeToken(token);
-        const userId = decodedToken?.idUsuario;
+        if (!decodedToken) return;
+
+        const userId = decodedToken.idUsuario;
 
         if (!userId) {
             setError("ID de usuario no encontrado en el token.");
@@ -71,8 +70,7 @@ const Perfil = () => {
                     setError("No se encontró la información del usuario.");
                 }
             } catch (err) {
-                setError("Error al obtener los datos.");
-                console.error(err);
+                setError("Error al obtener los datos: " + (err.response?.data?.message || err.message));
             }
         };
 
@@ -106,7 +104,6 @@ const Perfil = () => {
                 icon: "success",
                 confirmButtonText: "OK",
             });
-
         } catch (err) {
             setLoading(false);
             Swal.fire({
@@ -132,7 +129,9 @@ const Perfil = () => {
         }
 
         if (!validatePassword(newPassword)) {
-            setPasswordError("La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.");
+            setPasswordError(
+                "La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial."
+            );
             return;
         }
 
@@ -145,12 +144,16 @@ const Perfil = () => {
         setPasswordError("");
 
         try {
-            await axios.patch(`http://localhost:8080/usuarios/${usuario.id}/password`, {
-                oldPassword,
-                newPassword,
-            }, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            await axios.patch(
+                `http://localhost:8080/usuarios/${usuario.id}/password`,
+                {
+                    oldPassword,
+                    newPassword,
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
 
             setLoading(false);
             Swal.fire({
@@ -164,7 +167,6 @@ const Perfil = () => {
                 setNewPassword("");
                 setConfirmPassword("");
             });
-
         } catch (err) {
             setLoading(false);
             setPasswordError(err.response?.data?.message || "Hubo un error al actualizar la contraseña.");
@@ -184,87 +186,93 @@ const Perfil = () => {
                 <form onSubmit={handleSubmit}>
                     <div className="row justify-content-center">
                         <div className="col-12 col-md-6 mb-3">
-                            <div className="form-group">
-                                <label className="form-label">Usuario</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="username"
-                                    value={usuario.username || ""}
-                                    onChange={handleChange}
-                                    disabled
-                                />
-                            </div>
+                            <label htmlFor="username" className="form-label">
+                                Usuario
+                            </label>
+                            <input
+                                type="text"
+                                id="username"
+                                className="form-control"
+                                name="username"
+                                value={usuario.username || ""}
+                                onChange={handleChange}
+                                disabled
+                            />
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
-                            <div className="form-group">
-                                <label className="form-label">Email</label>
-                                <input
-                                    type="email"
-                                    className="form-control"
-                                    name="mail"
-                                    value={usuario.mail || ""}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
+                            <label htmlFor="mail" className="form-label">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                id="mail"
+                                className="form-control"
+                                name="mail"
+                                value={usuario.mail || ""}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
-                            <div className="form-group">
-                                <label className="form-label">Nombre</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="nombre"
-                                    value={usuario.nombre || ""}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
+                            <label htmlFor="nombre" className="form-label">
+                                Nombre
+                            </label>
+                            <input
+                                type="text"
+                                id="nombre"
+                                className="form-control"
+                                name="nombre"
+                                value={usuario.nombre || ""}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
-                            <div className="form-group">
-                                <label className="form-label">Apellido</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="apellido"
-                                    value={usuario.apellido || ""}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
+                            <label htmlFor="apellido" className="form-label">
+                                Apellido
+                            </label>
+                            <input
+                                type="text"
+                                id="apellido"
+                                className="form-control"
+                                name="apellido"
+                                value={usuario.apellido || ""}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
-                            <div className="form-group">
-                                <label className="form-label">Teléfono</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="telefono"
-                                    value={usuario.telefono || ""}
-                                    onChange={handleChange}
-                                    required
-                                />
-                            </div>
+                            <label htmlFor="telefono" className="form-label">
+                                Teléfono
+                            </label>
+                            <input
+                                type="text"
+                                id="telefono"
+                                className="form-control"
+                                name="telefono"
+                                value={usuario.telefono || ""}
+                                onChange={handleChange}
+                                required
+                            />
                         </div>
 
                         <div className="col-12 col-md-6 mb-3">
-                            <div className="form-group">
-                                <label className="form-label">Rol</label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    name="rol"
-                                    value={usuario.rol || ""}
-                                    onChange={handleChange}
-                                    disabled
-                                />
-                            </div>
+                            <label htmlFor="rol" className="form-label">
+                                Rol
+                            </label>
+                            <input
+                                type="text"
+                                id="rol"
+                                className="form-control"
+                                name="rol"
+                                value={usuario.rol || ""}
+                                onChange={handleChange}
+                                disabled
+                            />
                         </div>
 
                         <div className="col-12 mb-3">
@@ -291,13 +299,15 @@ const Perfil = () => {
                 </form>
 
                 <Modal show={showPasswordModal} onHide={() => setShowPasswordModal(false)} centered>
-                    <Modal.Header closeButton style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
+                    <Modal.Header closeButton style={{ backgroundColor: "#a7c5eb", color: "#fff" }}>
                         <Modal.Title>Cambiar Contraseña</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
                         <form onSubmit={handleChangePassword}>
                             <div className="mb-3">
-                                <label htmlFor="oldPassword" className="form-label">Contraseña Actual</label>
+                                <label htmlFor="oldPassword" className="form-label">
+                                    Contraseña Actual
+                                </label>
                                 <input
                                     type="password"
                                     id="oldPassword"
@@ -309,7 +319,9 @@ const Perfil = () => {
                             </div>
 
                             <div className="mb-3">
-                                <label htmlFor="newPassword" className="form-label">Nueva Contraseña</label>
+                                <label htmlFor="newPassword" className="form-label">
+                                    Nueva Contraseña
+                                </label>
                                 <input
                                     type="password"
                                     id="newPassword"
@@ -321,7 +333,9 @@ const Perfil = () => {
                             </div>
 
                             <div className="mb-3">
-                                <label htmlFor="confirmPassword" className="form-label">Confirmar Nueva Contraseña</label>
+                                <label htmlFor="confirmPassword" className="form-label">
+                                    Confirmar Nueva Contraseña
+                                </label>
                                 <input
                                     type="password"
                                     id="confirmPassword"
@@ -334,11 +348,21 @@ const Perfil = () => {
 
                             {passwordError && <div className="alert alert-danger">{passwordError}</div>}
 
-                            <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }}>
+                            <button
+                                type="submit"
+                                className="btn"
+                                style={{ backgroundColor: "#a7c5eb", width: "100%", color: "#fff" }}
+                                disabled={loading}
+                            >
                                 {loading ? "Actualizando..." : "Actualizar Contraseña"}
                             </button>
                         </form>
-                        <button type="button" className="btn btn-secondary mt-3" onClick={() => setShowPasswordModal(false)} style={{ width: '100%' }}>
+                        <button
+                            type="button"
+                            className="btn btn-secondary mt-3"
+                            onClick={() => setShowPasswordModal(false)}
+                            style={{ width: "100%" }}
+                        >
                             Cerrar
                         </button>
                     </Modal.Body>

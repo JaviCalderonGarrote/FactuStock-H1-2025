@@ -19,6 +19,9 @@ import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -68,6 +71,18 @@ public class AuthService {
             logger.error("Error de inicio de sesión para el usuario {}: {}", normalizedUsername, e.getMessage(), e);
             throw new IllegalArgumentException("Error en el inicio de sesión");
         }
+    }
+
+    // Método para verificar si el username ya existe
+    public boolean checkUsernameExists(String username) {
+        String normalizedUsername = username.toLowerCase();
+        return userRepository.findByUsernameIgnoreCase(normalizedUsername).isPresent();
+    }
+
+    // Método para verificar si el email ya existe
+    public boolean checkEmailExists(String email) {
+        String normalizedEmail = email.toLowerCase();
+        return userRepository.findByMailIgnoreCase(normalizedEmail).isPresent();
     }
 
     public AuthResponse register(RegisterRequest request) {

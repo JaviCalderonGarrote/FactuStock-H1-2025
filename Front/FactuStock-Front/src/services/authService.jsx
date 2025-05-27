@@ -90,6 +90,50 @@ const register = async (formData) => {
   }
 };
 
+// ✅ NUEVA: Verificar si un username ya existe
+const checkUsernameExists = async (username) => {
+  try {
+    const response = await fetch(`${API_URL}/check-username?username=${encodeURIComponent(username)}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al verificar username: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data; // Devuelve true/false
+  } catch (error) {
+    console.error("Error al verificar username:", error.message);
+    throw error;
+  }
+};
+
+// ✅ NUEVA: Verificar si un email ya existe
+const checkEmailExists = async (email) => {
+  try {
+    const response = await fetch(`${API_URL}/check-email?email=${encodeURIComponent(email)}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error al verificar email: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data; // Devuelve true/false
+  } catch (error) {
+    console.error("Error al verificar email:", error.message);
+    throw error;
+  }
+};
+
 // Verificar si el usuario está autenticado
 const isAuthenticated = () => {
   const token = localStorage.getItem("authToken");
@@ -135,12 +179,41 @@ const getAuthenticatedData = async () => {
   }
 };
 
+// Decodificar el token JWT (sin verificación)
+const decodeToken = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error("Error al decodificar token:", error);
+    return null;
+  }
+};
+
+// Obtener información del usuario actual del token
+const getCurrentUser = () => {
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    return decodeToken(token);
+  }
+  return null;
+};
+
 // Exportamos todas las funciones
 export default {
   login,
-  register, // ✅ ya incluida aquí
+  register,
+  checkUsernameExists,
+  checkEmailExists,
   isAuthenticated,
   logout,
   getAuthenticatedData,
   sendPasswordResetEmail,
+  getAuthToken,
+  decodeToken,
+  getCurrentUser,
 };

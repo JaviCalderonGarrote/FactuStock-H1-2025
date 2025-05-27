@@ -45,7 +45,6 @@ const CategoriaGastoComponent = () => {
                     { headers: { Authorization: `Bearer ${token}` } }
                 );
 
-                // Ordenar las categorías por ID de mayor a menor
                 const categoriasOrdenadas = categoriasResponse.data.sort((a, b) => b.id - a.id);
                 setCategoriasGasto(categoriasOrdenadas.length ? categoriasOrdenadas : []);
             } catch (err) {
@@ -323,8 +322,9 @@ const CategoriaGastoComponent = () => {
                                 <div className="modal-body">
                                     <form onSubmit={handleSubmit}>
                                         <div className="form-group mb-3">
-                                            <label className="form-label">Nombre</label>
+                                            <label htmlFor="nombre" className="form-label">Nombre</label>
                                             <input
+                                                id="nombre"
                                                 type="text"
                                                 className="form-control"
                                                 name="nombre"

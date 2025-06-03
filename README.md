@@ -96,3 +96,57 @@ Asegúrate de tener instalados:
 ```bash
 git clone https://github.com/JaviCalderonGarrote/FactuStock-H1-2025.git
 cd FactuStock-H1-2025
+🚀 Configuración del Backend
+Ve a la carpeta del backend:
+
+bash
+Copiar
+Editar
+cd Back/Factustock
+Crea una base de datos PostgreSQL llamada factustock_db.
+
+Configura el archivo application.properties en src/main/resources/:
+
+properties
+Copiar
+Editar
+spring.datasource.url=jdbc:postgresql://localhost:5432/factustock_db
+spring.datasource.username=tu_usuario
+spring.datasource.password=tu_contraseña
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+
+spring.mail.host=smtp.tu-servidor.com
+spring.mail.port=587
+spring.mail.username=correo@ejemplo.com
+spring.mail.password=clave
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
+Ejecuta el backend:
+
+bash
+Copiar
+Editar
+mvn spring-boot:run
+La API estará disponible en: http://localhost:8080
+
+🎨 Configuración del Frontend
+Abre una nueva terminal y navega al frontend:
+
+bash
+Copiar
+Editar
+cd ../../Front/FactuStock-Front
+Instala las dependencias:
+
+bash
+Copiar
+Editar
+npm install
+Ejecuta el servidor:
+
+bash
+Copiar
+Editar
+npm run dev
+La aplicación estará disponible en: http://localhost:5173

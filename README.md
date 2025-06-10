@@ -1,4 +1,4 @@
-# 📊 FactoStock
+# 📊 FactuStock
 
 **FactoStock** es una aplicación moderna diseñada para ayudar a pequeñas empresas a gestionar de forma eficiente sus **ingresos, gastos, facturación** y **stock de productos**. Su interfaz intuitiva y automatizada permite tener el control total del negocio desde un solo lugar.
 

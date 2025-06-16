@@ -1,8 +1,11 @@
 package IDP_H1.FactuStock.Controllers;
 
 import IDP_H1.FactuStock.Entities.Gasto;
+import IDP_H1.FactuStock.Entities.Organizacion;
 import IDP_H1.FactuStock.Services.GastoService;
+import IDP_H1.FactuStock.Repositories.OrganizacionRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +35,9 @@ public class GastoController {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private OrganizacionRepository organizacionRepository;
+
     @GetMapping("/organizacion/{organizacionId}")
     public ResponseEntity<List<Gasto>> obtenerPorOrganizacion(@PathVariable Long organizacionId) {
         logger.info("Obteniendo gastos para la organización con ID: {}", organizacionId);
@@ -59,6 +65,27 @@ public class GastoController {
         try {
             logger.info("Recibiendo solicitud para guardar nuevo gasto: {}", gastoJson);
             Gasto gasto = objectMapper.readValue(gastoJson, Gasto.class);
+
+            // Extraer el idOrganizacion o id_Organizacion del JSON
+            JsonNode node = objectMapper.readTree(gastoJson);
+            Long idOrganizacion = null;
+            if (node.has("idOrganizacion")) {
+                idOrganizacion = node.get("idOrganizacion").asLong();
+            } else if (node.has("id_Organizacion")) {
+                idOrganizacion = node.get("id_Organizacion").asLong();
+            }
+
+            if (idOrganizacion == null) {
+                logger.error("No se recibió idOrganizacion en el JSON");
+                return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            }
+            Organizacion org = organizacionRepository.findById(idOrganizacion)
+                    .orElse(null);
+            if (org == null) {
+                logger.error("No existe la organización con id: {}", idOrganizacion);
+                return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+            }
+            gasto.setOrganizacion(org);
 
             if (archivo != null && !archivo.isEmpty()) {
                 logger.info("Archivo adjunto recibido: {}", archivo.getOriginalFilename());
@@ -150,5 +177,4 @@ public class GastoController {
         logger.info("Se obtuvieron los gastos mensuales: {}", gastosMensuales);
         return ResponseEntity.ok(gastosMensuales);
     }
-
 }

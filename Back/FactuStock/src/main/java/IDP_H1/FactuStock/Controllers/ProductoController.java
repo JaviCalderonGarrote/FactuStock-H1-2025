@@ -55,6 +55,18 @@ public class ProductoController {
         if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {
             return new ResponseEntity<>("El nombre del producto no puede estar vacío", HttpStatus.BAD_REQUEST);
         }
+        if (producto.getCategoria() == null || producto.getCategoria().getId() == null) {
+            return new ResponseEntity<>("La categoría es obligatoria", HttpStatus.BAD_REQUEST);
+        }
+        if (producto.getOrganizacion() == null || producto.getOrganizacion().getId() == null) {
+            return new ResponseEntity<>("La organización es obligatoria", HttpStatus.BAD_REQUEST);
+        }
+        if (producto.getPrecio() == null) {
+            return new ResponseEntity<>("El precio es obligatorio", HttpStatus.BAD_REQUEST);
+        }
+        if (producto.getCantidadStock() == null) {
+            return new ResponseEntity<>("El stock es obligatorio", HttpStatus.BAD_REQUEST);
+        }
         if (producto.getIva() == null) {
             producto.setIva(BigDecimal.valueOf(21.00));
         }
@@ -62,6 +74,7 @@ public class ProductoController {
             Producto nuevoProducto = productoService.guardar(producto);
             return new ResponseEntity<>(nuevoProducto, HttpStatus.CREATED);
         } catch (Exception e) {
+            e.printStackTrace();
             return new ResponseEntity<>("Error al guardar el producto: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -94,17 +107,31 @@ public class ProductoController {
             if (producto.getNombre() == null || producto.getNombre().trim().isEmpty()) {
                 return new ResponseEntity<>("El nombre del producto no puede estar vacío", HttpStatus.BAD_REQUEST);
             }
+            if (producto.getCategoria() == null || producto.getCategoria().getId() == null) {
+                return new ResponseEntity<>("La categoría es obligatoria", HttpStatus.BAD_REQUEST);
+            }
+            if (producto.getOrganizacion() == null || producto.getOrganizacion().getId() == null) {
+                return new ResponseEntity<>("La organización es obligatoria", HttpStatus.BAD_REQUEST);
+            }
+            if (producto.getPrecio() == null) {
+                return new ResponseEntity<>("El precio es obligatorio", HttpStatus.BAD_REQUEST);
+            }
+            if (producto.getCantidadStock() == null) {
+                return new ResponseEntity<>("El stock es obligatorio", HttpStatus.BAD_REQUEST);
+            }
 
             productoActualizado.setNombre(producto.getNombre());
             productoActualizado.setPrecio(producto.getPrecio());
             productoActualizado.setCantidadStock(producto.getCantidadStock());
             productoActualizado.setIva(producto.getIva());
             productoActualizado.setCategoria(producto.getCategoria());
+            productoActualizado.setOrganizacion(producto.getOrganizacion());
 
             try {
                 Producto guardado = productoService.guardar(productoActualizado);
                 return new ResponseEntity<>(guardado, HttpStatus.OK);
             } catch (Exception e) {
+                e.printStackTrace();
                 return new ResponseEntity<>("Error al actualizar el producto: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } else {
@@ -123,6 +150,7 @@ public class ProductoController {
             List<Producto> guardados = productoService.guardarTodos(productos);
             return new ResponseEntity<>(guardados, HttpStatus.CREATED);
         } catch (Exception e) {
+            e.printStackTrace();
             return new ResponseEntity<>("Error al guardar productos: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

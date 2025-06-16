@@ -72,21 +72,23 @@ public class DetalleService {
         logger.info("Obteniendo top 5 productos más vendidos para la organización: {}", organizacionId);
         List<Object[]> resultados = detalleRepository.findTop5ProductosMasVendidos(organizacionId);
 
-        if (resultados == null) {
-            logger.warn("La consulta de top 5 productos más vendidos devolvió null");
-            return Map.of();  // Retorna un mapa vacío si no hay resultados
+        if (resultados == null || resultados.isEmpty()) {
+            logger.warn("La consulta de top 5 productos más vendidos devolvió null o vacío");
+            return Map.of();
         }
 
-        logger.info("Se encontraron {} resultados para el top 5", resultados.size());
+        // Encuentra el valor del 5º producto (si hay al menos 5)
+        long limite = resultados.size() >= 5 ? (Long) resultados.get(4)[1] : Long.MIN_VALUE;
 
+        // Devuelve todos los productos cuyo totalVendido sea mayor o igual al 5º
         Map<String, Long> top5 = resultados.stream()
-                .limit(5)
+                .filter(row -> (Long) row[1] >= limite)
                 .collect(Collectors.toMap(
                         row -> (String) row[0],
                         row -> (Long) row[1]
                 ));
 
-        logger.info("Top 5 productos más vendidos: {}", top5);
+        logger.info("Top 5 productos más vendidos (incluyendo empates): {}", top5);
         return top5;
     }
 }

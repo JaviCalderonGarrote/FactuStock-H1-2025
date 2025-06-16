@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface OrganizacionRepository extends JpaRepository<Organizacion, Long> {
     boolean existsByNifCif(String nifCif); // Evita duplicados
+
 }

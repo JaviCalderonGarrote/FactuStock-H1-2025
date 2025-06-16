@@ -22,38 +22,20 @@ const TPV = () => {
     const [clientes, setClientes] = useState([]);
     const [selectedCliente, setSelectedCliente] = useState(null);
     const [clienteOptions, setClienteOptions] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalProducts, setTotalProducts] = useState(0);
-    const [windowSize, setWindowSize] = useState({
-        width: window.innerWidth,
-        height: window.innerHeight,
-    });
+    const [clienteSeleccionadoModal, setClienteSeleccionadoModal] = useState(null);
+
+    const [usuarioIncompleto, setUsuarioIncompleto] = useState(false);
+    const [usuarioCamposFaltantes, setUsuarioCamposFaltantes] = useState([]);
+
     const navigate = useNavigate();
     const token = localStorage.getItem("authToken");
 
-    const handleResize = useCallback(() => {
-        setWindowSize({
-            width: window.innerWidth,
-            height: window.innerHeight,
-        });
-    }, []);
+    const handleResize = useCallback(() => {}, []);
 
     useEffect(() => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [handleResize]);
-
-    const calculateProductsPerPage = useCallback(() => {
-        const gridWidth = windowSize.width > 768 ? windowSize.width / 2 : windowSize.width;
-        const gridHeight = windowSize.height * 0.6;
-        const productWidth = 200;
-        const productHeight = 200;
-        const columns = Math.floor(gridWidth / productWidth);
-        const rows = Math.floor(gridHeight / productHeight);
-        return columns * rows;
-    }, [windowSize]);
-
-    const productsPerPage = calculateProductsPerPage();
 
     useEffect(() => {
         if (!token) {
@@ -79,6 +61,29 @@ const TPV = () => {
                 setUsuario(userResponse.data);
                 setOrganizacion(userResponse.data.organizacion);
 
+                // Validación de campos obligatorios del usuario
+                const camposObligatorios = [
+                    { campo: "nombre", label: "Nombre" },
+                    { campo: "email", label: "Email" },
+                ];
+                const camposFaltantes = [];
+                camposObligatorios.forEach(({ campo, label }) => {
+                    if (!userResponse.data[campo] || (typeof userResponse.data[campo] === "string" && userResponse.data[campo].trim() === "")) {
+                        camposFaltantes.push(label);
+                    }
+                });
+                if (!userResponse.data.organizacion || !userResponse.data.organizacion.id) {
+                    if (!camposFaltantes.includes("Organización")) camposFaltantes.push("Organización");
+                }
+
+                if (camposFaltantes.length > 0) {
+                    setUsuarioIncompleto(true);
+                    setUsuarioCamposFaltantes(camposFaltantes);
+                } else {
+                    setUsuarioIncompleto(false);
+                    setUsuarioCamposFaltantes([]);
+                }
+
                 const cajasResponse = await axios.get('http://localhost:8080/cajas', {
                     headers: { Authorization: `Bearer ${token}` }
                 });
@@ -88,16 +93,14 @@ const TPV = () => {
                 if (!cajaAbiertaFound) {
                     Swal.fire({
                         title: "No hay caja abierta",
-                        text: "Es necesario abrir una caja para usar el TPV",
+                        text: "¿Desea abrir una caja ahora?",
                         icon: "warning",
-                        confirmButtonText: "Ir a Gestión de Cajas",
                         showCancelButton: true,
+                        confirmButtonText: "Abrir caja",
                         cancelButtonText: "Cancelar"
                     }).then((result) => {
                         if (result.isConfirmed) {
                             navigate('/caja');
-                        } else {
-                            navigate('/dashboard');
                         }
                     });
                     return;
@@ -130,8 +133,13 @@ const TPV = () => {
                     Swal.fire("Error de autenticación", "Por favor, inicie sesión nuevamente.", "error");
                     navigate('/login');
                 } else {
-                    setError("Hubo un problema al cargar los datos.");
-                    Swal.fire("Error", "Hubo un problema al cargar los datos.", "error");
+                    let mensaje = "Hubo un problema al cargar los datos.";
+                    if (error.response && error.response.data) {
+                        mensaje += ` Detalle: ${JSON.stringify(error.response.data)}`;
+                    } else if (error.message) {
+                        mensaje += ` Detalle: ${error.message}`;
+                    }
+                    setError(mensaje);
                 }
             } finally {
                 setLoading(false);
@@ -141,9 +149,56 @@ const TPV = () => {
         fetchData();
     }, [token, navigate]);
 
+    // --- ADVERTENCIAS TPV ---
+    useEffect(() => {
+        if (!loading) {
+            if (!categories.length) {
+                Swal.fire({
+                    title: "Sin categorías",
+                    text: "No hay categorías creadas. ¿Desea crear una ahora?",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonText: "Crear categoría",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/category-product');
+                    }
+                });
+            } else if (selectedCategory && !products.length) {
+                Swal.fire({
+                    title: "Sin productos",
+                    text: "No hay productos en esta categoría. ¿Desea crear uno ahora?",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonText: "Crear producto",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/category-product');
+                    }
+                });
+            }
+            // Eliminado el alert de clientes aquí
+        }
+    }, [loading, categories, products, selectedCategory, navigate]);
+
+    // Mostrar error con Swal
+    useEffect(() => {
+        if (error) {
+            Swal.fire({
+                title: "Error",
+                text: error,
+                icon: "error",
+                confirmButtonText: "Aceptar"
+            });
+        }
+    }, [error]);
+
+    // Mostrar advertencia de usuario incompleto con Swal
+
     const handleCategorySelect = async (categoryId) => {
         setSelectedCategory(categoryId);
-        setCurrentPage(1);
         try {
             const productosResponse = await axios.get(
                 `http://localhost:8080/productos/organizacion/${organizacion.id}`,
@@ -151,7 +206,8 @@ const TPV = () => {
             );
 
             const filteredProducts = productosResponse.data
-                .filter(product => product.categoria.id === categoryId && product.cantidadStock > 0);
+                .filter(product => product.categoria.id === categoryId && product.cantidadStock > 0)
+                .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
             if (filteredProducts.length === 0) {
                 Swal.fire({
@@ -169,7 +225,6 @@ const TPV = () => {
             }
 
             setProducts(filteredProducts);
-            setTotalProducts(filteredProducts.length);
         } catch (error) {
             console.error('Error al cargar productos:', error);
             Swal.fire({
@@ -235,6 +290,11 @@ const TPV = () => {
         setKeypadDisplay(prevDisplay => prevDisplay + value);
     };
 
+    const handleAbrirModalCliente = () => {
+        setClienteSeleccionadoModal(selectedCliente);
+        setShowClienteModal(true);
+    };
+
     const handleAction = async (action) => {
         if (action === 'cobrar') {
             if (selectedProducts.length === 0) {
@@ -249,9 +309,25 @@ const TPV = () => {
                 return;
             }
 
-            handleFinalizarVenta(totalCarrito, cantidadPagada);
+            await handleFinalizarVenta(totalCarrito, isNaN(cantidadPagada) ? null : cantidadPagada);
         } else if (action === 'añadir-cliente') {
-            setShowClienteModal(true);
+            // Solo mostrar alert si no hay clientes al pulsar añadir cliente
+            if (!clientes.length) {
+                Swal.fire({
+                    title: "Sin clientes",
+                    text: "No hay clientes creados. ¿Desea crear uno ahora?",
+                    icon: "info",
+                    showCancelButton: true,
+                    confirmButtonText: "Crear cliente",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigate('/clients');
+                    }
+                });
+                return;
+            }
+            handleAbrirModalCliente();
         } else if (action === 'cancelar') {
             setSelectedProducts([]);
             setKeypadDisplay('');
@@ -287,16 +363,13 @@ const TPV = () => {
                 }))
             };
 
-            const response = await axios.post('http://localhost:8080/ventas', ventaData, {
+            await axios.post('http://localhost:8080/ventas', ventaData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 }
             });
 
-            console.log("Respuesta del servidor:", response.data);
-
-            // Actualizar stock
             for (const product of selectedProducts) {
                 await axios.put(`http://localhost:8080/productos/${product.id}`, {
                     id: product.id,
@@ -311,7 +384,6 @@ const TPV = () => {
                 });
             }
 
-            // Actualizar caja
             const cajaActualizada = {
                 id: cajaAbierta.id,
                 totalIngresado: cajaAbierta.totalIngresado + totalCarrito,
@@ -324,30 +396,28 @@ const TPV = () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            let mensaje = `Total: ${totalCarrito.toFixed(2)}€`;
             if (cantidadPagada) {
+                let mensaje = `Total: ${totalCarrito.toFixed(2)}€`;
                 const cambio = cantidadPagada - totalCarrito;
                 mensaje += `<br>Pagado: ${cantidadPagada.toFixed(2)}€<br>Cambio: ${cambio.toFixed(2)}€`;
-            }
 
-            Swal.fire({
-                title: "Venta realizada",
-                html: mensaje,
-                icon: "success"
-            });
+                Swal.fire({
+                    title: "Venta realizada",
+                    html: mensaje,
+                    icon: "success"
+                });
+            }
 
             setSelectedProducts([]);
             setSelectedCliente(null);
             setKeypadDisplay('');
 
-            // Actualizar el estado de la caja abierta
             setCajaAbierta(prevCaja => ({
                 ...prevCaja,
                 totalIngresado: prevCaja.totalIngresado + totalCarrito,
                 cantidadVentas: prevCaja.cantidadVentas + 1
             }));
 
-            // Actualizar la lista de productos
             if (selectedCategory) {
                 handleCategorySelect(selectedCategory);
             }
@@ -379,6 +449,7 @@ const TPV = () => {
         }
     };
 
+    // --- COMPONENTES INTERNOS ---
     const ProductList = ({ products, onRemove }) => (
         <div className="product-list">
             <div className="total-section">
@@ -425,45 +496,77 @@ const TPV = () => {
         );
     };
 
+    // --- CARD ESPECIAL SI NO HAY CATEGORÍAS ---
     const CategoryGrid = ({ categories, onCategorySelect }) => (
         <div className="category-grid">
-            {categories.map(category => (
-                <button key={category.id} onClick={() => onCategorySelect(category.id)} className="category-button">
-                    {category.nombre}
+            {categories.length === 0 ? (
+                <button
+                    className="category-button category-empty"
+                    onClick={() => {
+                        Swal.fire({
+                            title: "No hay categorías",
+                            text: "¿Desea crear una categoría ahora?",
+                            icon: "info",
+                            showCancelButton: true,
+                            confirmButtonText: "Crear categoría",
+                            cancelButtonText: "Cancelar"
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                navigate('/category-product');
+                            }
+                        });
+                    }}
+                >
+                    <span style={{ fontSize: "2em" }}>+</span>
+                    <div>Crear Categoría</div>
                 </button>
-            ))}
+            ) : (
+                categories.map(category => (
+                    <button key={category.id} onClick={() => onCategorySelect(category.id)} className="category-button">
+                        {category.nombre}
+                    </button>
+                ))
+            )}
         </div>
     );
 
-    const MIN_COLUMNS_SMALL = 5;
-    const MIN_COLUMNS_LARGE = 6;
-    const MIN_ROWS = 2;
-
+    // --- EFECTO HOVER AMPLIADO EN PRODUCTOS ---
     const ProductGrid = ({ products, onProductSelect, onBackToCategories }) => {
         const gridRef = useRef(null);
-        const [gridSize, setGridSize] = useState({ columns: MIN_COLUMNS_SMALL, rows: MIN_ROWS });
+        const [gridSize, setGridSize] = useState({ columns: 5, rows: 2 });
         const [currentPage, setCurrentPage] = useState(1);
-        const [productsPerPage, setProductsPerPage] = useState(MIN_COLUMNS_SMALL * MIN_ROWS);
+        const [productsPerPage, setProductsPerPage] = useState(10);
+
+        const [hoveredProductId, setHoveredProductId] = useState(null);
+        const [showInfoProductId, setShowInfoProductId] = useState(null);
+        const hoverTimeout = useRef(null);
+
+        const handleMouseEnter = (productId) => {
+            setHoveredProductId(productId);
+            hoverTimeout.current = setTimeout(() => {
+                setShowInfoProductId(productId);
+            }, 2000);
+        };
+
+        const handleMouseLeave = () => {
+            setHoveredProductId(null);
+            setShowInfoProductId(null);
+            clearTimeout(hoverTimeout.current);
+        };
 
         useEffect(() => {
             const updateGridSize = () => {
                 if (gridRef.current) {
                     const rect = gridRef.current.getBoundingClientRect();
-                    const isLargeScreen = rect.width >= 1200;
-                    const minColumns = isLargeScreen ? MIN_COLUMNS_LARGE : MIN_COLUMNS_SMALL;
-
-                    const maxProductWidth = Math.floor(rect.width / minColumns);
-                    const maxProductHeight = Math.floor(rect.height / MIN_ROWS);
-                    const productSize = Math.min(maxProductWidth, maxProductHeight, 150);
-
-                    const columns = Math.max(minColumns, Math.floor(rect.width / productSize));
-                    const rows = Math.max(MIN_ROWS, Math.floor(rect.height / productSize));
-
-                    setGridSize({ columns, rows });
-                    setProductsPerPage(columns * rows);
+                    if (rect.width >= 1400) {
+                        setGridSize({ columns: 6, rows: 3 });
+                        setProductsPerPage(18);
+                    } else {
+                        setGridSize({ columns: 5, rows: 2 });
+                        setProductsPerPage(10);
+                    }
                 }
             };
-
             updateGridSize();
             window.addEventListener('resize', updateGridSize);
             return () => window.removeEventListener('resize', updateGridSize);
@@ -474,68 +577,79 @@ const TPV = () => {
         const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
         const currentProducts = products.slice(indexOfFirstProduct, indexOfLastProduct);
 
-        const paginate = (pageNumber) => {
-            setCurrentPage(pageNumber);
-        };
+        const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
         return (
             <div className="product-grid-container">
                 <button onClick={onBackToCategories} className="back-button">
                     <FaChevronLeft /> Volver a Categorías
                 </button>
-                <div className="product-grid" ref={gridRef} style={{
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(${gridSize.columns}, 1fr)`,
-                    gridTemplateRows: `repeat(${gridSize.rows}, 1fr)`,
-                    gap: '5px',
-                    justifyContent: 'center',
-                    alignContent: 'center',
-                    height: 'calc(100% - 60px)',
-                }}>
+                <div
+                    className="product-grid"
+                    ref={gridRef}
+                    style={{
+                        display: 'grid',
+                        gridTemplateColumns: `repeat(${gridSize.columns}, 1fr)`,
+                        gridTemplateRows: `repeat(${gridSize.rows}, 1fr)`,
+                        gap: '5px',
+                        justifyContent: 'center',
+                        alignContent: 'center',
+                        height: 'calc(100% - 60px)',
+                    }}
+                >
                     {currentProducts.map(product => (
-                        <button key={product.id} onClick={() => onProductSelect(product)} className="product-button" style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            padding: '5px',
-                            height: '100%',
-                            width: '100%',
-                            minHeight: '100px',
-                            maxHeight: '150px',
-                            overflow: 'hidden',
-                        }}>
-                            <h3 style={{ fontSize: '1em', marginBottom: '5px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', width: '100%' }}>{product.nombre}</h3>
-                            <p style={{ fontSize: '1em', fontWeight: 'bold', marginBottom: '5px' }}>{product.precio.toFixed(2)}€</p>
-                            <p style={{ fontSize: '0.8em' }}>Stock: {product.cantidadStock}</p>
+                        <button
+                            key={product.id}
+                            onClick={() => onProductSelect(product)}
+                            className={`product-button${showInfoProductId === product.id ? ' product-button-expanded' : ''}`}
+                            style={{ overflow: 'hidden', position: 'relative' }}
+                            onMouseEnter={() => handleMouseEnter(product.id)}
+                            onMouseLeave={handleMouseLeave}
+                        >
+                            <h3>{product.nombre}</h3>
+                            <p>{product.precio.toFixed(2)}€</p>
+                            <span style={{ fontSize: '0.8em', color: '#888' }}>Stock: {product.cantidadStock}</span>
+                            {showInfoProductId === product.id && (
+                                <div className="product-info-tooltip">
+                                    {/* Aquí puedes mostrar más info del producto */}
+                                </div>
+                            )}
                         </button>
                     ))}
                 </div>
-                <div className="paginationtpv" style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '10px' }}>
+                <div className="paginationtpv">
                     <button
                         onClick={() => paginate(currentPage - 1)}
                         disabled={currentPage === 1}
+                        aria-label="Página anterior"
                     >
-                        <FaChevronLeft />
+                        <FaChevronLeft size={20} />
                     </button>
+                    <span className="paginationtpv-page">
+                        {currentPage} / {totalPages}
+                    </span>
                     <button
                         onClick={() => paginate(currentPage + 1)}
                         disabled={currentPage === totalPages}
+                        aria-label="Página siguiente"
                     >
-                        <FaChevronRight />
+                        <FaChevronRight size={20} />
                     </button>
                 </div>
             </div>
         );
     };
 
-    const ActionButtons = ({ onAction }) => (
+    const ActionButtons = ({ onAction, selectedCliente }) => (
         <div className="action-buttons">
             <button onClick={() => onAction('cobrar')} className="action-button cobrar">
                 <FaShoppingCart /> Cobrar
             </button>
-            <button onClick={() => onAction('añadir-cliente')} className="action-button cliente">
-                <FaUser /> Añadir Cliente
+            <button
+                onClick={() => onAction('añadir-cliente')}
+                className={`action-button cliente${selectedCliente ? ' cliente-seleccionado' : ''}`}
+            >
+                <FaUser /> {selectedCliente ? selectedCliente.nombre : 'Añadir Cliente'}
             </button>
             <button onClick={() => onAction('cancelar')} className="action-button cancelar">
                 <FaTrash /> Cancelar Venta
@@ -548,15 +662,6 @@ const TPV = () => {
 
     if (loading) {
         return <div className="loading">Cargando...</div>;
-    }
-
-    if (error) {
-        return (
-            <div className="error-container">
-                <div className="error">{error}</div>
-                <ActionButtons onAction={handleAction} />
-            </div>
-        );
     }
 
     if (!cajaAbierta) {
@@ -597,7 +702,7 @@ const TPV = () => {
                         <NumericKeypad onInput={handleKeypadInput} display={keypadDisplay} />
                     </div>
                     <div className="action-buttons-section">
-                        <ActionButtons onAction={handleAction} />
+                        <ActionButtons onAction={handleAction} selectedCliente={selectedCliente} />
                     </div>
                 </div>
             </div>
@@ -616,10 +721,10 @@ const TPV = () => {
                                         <label htmlFor="cliente" className="form-label">Cliente</label>
                                         <Select
                                             options={clienteOptions}
-                                            value={selectedCliente ? { value: selectedCliente.id, label: selectedCliente.nombre } : null}
+                                            value={clienteSeleccionadoModal ? { value: clienteSeleccionadoModal.id, label: clienteSeleccionadoModal.nombre } : null}
                                             onChange={(selectedOption) => {
-                                                const cliente = clientes.find(c => c.id === selectedOption.value);
-                                                setSelectedCliente(cliente);
+                                                const cliente = clientes.find(c => c.id === selectedOption?.value);
+                                                setClienteSeleccionadoModal(cliente || null);
                                             }}
                                             placeholder="Buscar cliente..."
                                             isClearable
@@ -631,9 +736,10 @@ const TPV = () => {
                                         className="btn"
                                         style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }}
                                         onClick={() => {
+                                            setSelectedCliente(clienteSeleccionadoModal || null);
                                             setShowClienteModal(false);
-                                            if (selectedCliente) {
-                                                Swal.fire("Cliente seleccionado", `Se ha asignado el cliente: ${selectedCliente.nombre}`, "success");
+                                            if (clienteSeleccionadoModal) {
+                                                Swal.fire("Cliente seleccionado", `Se ha asignado el cliente: ${clienteSeleccionadoModal.nombre}`, "success");
                                             } else {
                                                 Swal.fire("Sin cliente", "No se ha asignado ningún cliente a la venta", "info");
                                             }

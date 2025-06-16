@@ -1,11 +1,10 @@
-import React, { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import Sidebar from "../components/Sidebar";
-import {FaSearch, FaPlusCircle, FaPencilAlt, FaSave, FaDownload, FaChevronLeft, FaChevronRight, FaEllipsisH} from "react-icons/fa";
+import { FaSearch, FaPlusCircle, FaFileDownload, FaChevronLeft, FaChevronRight, FaFilter, FaTimes } from "react-icons/fa";
 import { Modal, Button, Form, Row, Col } from "react-bootstrap";
 import Select from "react-select";
-import Home from "./Home.jsx";
 
 const EstadoGasto = {
     RECIBIDO: "RECIBIDO",
@@ -14,746 +13,1044 @@ const EstadoGasto = {
 };
 
 const FormaPagoGasto = {
+    NO_PAGADA: "NO_PAGADA",
     EFECTIVO: "EFECTIVO",
     TARJETA: "TARJETA",
-    TRANSFERENCIA: "TRANSFERENCIA",
-    NO_PAGADA: "NO_PAGADA"
+    TRANSFERENCIA: "TRANSFERENCIA"
+};
+
+const filtroTipos = [
+    { value: "empresaPersonaFisica", label: "Empresa/Persona" },
+    { value: "categoriaGasto", label: "Categoría" },
+    { value: "formaPagoGasto", label: "Forma de Pago" },
+    { value: "estado", label: "Estado" },
+    { value: "orden", label: "Ordenar" }
+];
+
+const ordenTipoOptions = [
+    { value: "fecha", label: "Por fecha" },
+    { value: "monto", label: "Por monto" }
+];
+
+const ordenSentidoOptions = [
+    { value: "desc", label: "Descendente" },
+    { value: "asc", label: "Ascendente" }
+];
+
+const estadoColors = {
+    RECIBIDO: { border: "#6f9fd7", bg: "#e3eefd", color: "#6f9fd7" },
+    COMPLETADO: { border: "#2ecc71", bg: "#eafaf1", color: "#27ae60" },
+    ERROR: { border: "#e74c3c", bg: "#fdecea", color: "#e74c3c" }
+};
+
+const formaPagoColors = {
+    NO_PAGADA: { border: "#b2bec3", bg: "#f5f6fa", color: "#636e72" },
+    EFECTIVO: { border: "#27ae60", bg: "#eafaf1", color: "#27ae60" },
+    TARJETA: { border: "#2980b9", bg: "#eaf1fb", color: "#2980b9" },
+    TRANSFERENCIA: { border: "#8e44ad", bg: "#f5eaf7", color: "#8e44ad" }
+};
+
+const getTodayLocalDateTime = () => {
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}T00:00:00`;
+};
+
+const toLocalDateTime = (dateStr) => {
+    if (!dateStr) return "";
+    if (dateStr.includes("T")) return dateStr;
+    return `${dateStr}T00:00:00`;
 };
 
 const GastosComponent = () => {
     const [gastos, setGastos] = useState([]);
-    const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [gastosPorPagina] = useState(9);
-    const [searchQuery, setSearchQuery] = useState("");
-    const [inputFocused, setInputFocused] = useState(false);
+    const [gastosPorPagina] = useState(8);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showNewGastoModal, setShowNewGastoModal] = useState(false);
     const [editingGasto, setEditingGasto] = useState(null);
     const [newGasto, setNewGasto] = useState({
-        monto: "",
         numFactura: "",
+        monto: "",
+        empresaPersonaFisica: null,
+        fecha: getTodayLocalDateTime(),
         estado: EstadoGasto.RECIBIDO,
         formaPagoGasto: FormaPagoGasto.NO_PAGADA,
         categoriaGasto: null,
-        empresaPersonaFisica: null,
-        archivo: null,
-        fecha: new Date().toISOString().split('T')[0] // Fecha actual por defecto
+        archivo: null
     });
     const [categorias, setCategorias] = useState([]);
     const [empresasPersonasFisicas, setEmpresasPersonasFisicas] = useState([]);
     const [organizacion, setOrganizacion] = useState(null);
-    const token = localStorage.getItem("authToken");
 
+    // Filtros
+    const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+    const [filtrosActivos, setFiltrosActivos] = useState([]);
+    const [nuevoFiltro, setNuevoFiltro] = useState(null);
+    const [nuevoValorFiltro, setNuevoValorFiltro] = useState([]);
+    const [ordenTipo, setOrdenTipo] = useState(null);
+    const [ordenSentido, setOrdenSentido] = useState(null);
+    const [searchQuery, setSearchQuery] = useState("");
+    const filterTimeout = useRef(null);
+    const filterRef = useRef(null);
+
+    const token = localStorage.getItem("authToken");
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
+    // Opciones para filtros
+    const formaPagoOptions = Object.keys(FormaPagoGasto).map(key => ({
+        value: FormaPagoGasto[key],
+        label: FormaPagoGasto[key]
+    }));
+    const estadoOptions = Object.keys(EstadoGasto).map(key => ({
+        value: EstadoGasto[key],
+        label: EstadoGasto[key]
+    }));
+
+    // Cargar datos
     const fetchData = useCallback(async () => {
         if (!token) {
-            setError("No se encontró un token de autenticación.");
+            setGastos([]);
+            setCategorias([]);
+            setEmpresasPersonasFisicas([]);
             return;
         }
-
         try {
             const decodedToken = JSON.parse(atob(token.split(".")[1]));
             const userId = decodedToken?.idUsuario;
-
-            if (!userId) {
-                setError("ID de usuario no encontrado en el token.");
-                return;
-            }
-
-            const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`);
+            if (!userId) return;
+            const userResponse = await axios.get(`http://localhost:8080/usuarios/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const organizacionId = userResponse.data.organizacion.id;
             setOrganizacion(userResponse.data.organizacion);
 
             const gastosResponse = await axios.get(
-                `http://localhost:8080/gastos/organizacion/${userResponse.data.organizacion.id}`
+                `http://localhost:8080/gastos/organizacion/${organizacionId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            if (gastosResponse.data && Array.isArray(gastosResponse.data)) {
-                setGastos(gastosResponse.data);
-            } else {
-                setGastos([]);
-            }
+            setGastos(Array.isArray(gastosResponse.data) ? gastosResponse.data : []);
 
             const categoriasResponse = await axios.get(
-                `http://localhost:8080/categoriasgasto/organizacion/${userResponse.data.organizacion.id}`
+                `http://localhost:8080/categoriasgasto/organizacion/${organizacionId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            if (categoriasResponse.data && Array.isArray(categoriasResponse.data)) {
-                setCategorias(categoriasResponse.data.map(cat => ({
-                    value: cat.id,
-                    label: cat.nombre
-                })));
-            } else {
-                setCategorias([]);
-            }
+            setCategorias(Array.isArray(categoriasResponse.data) ? categoriasResponse.data : []);
 
             const empresasResponse = await axios.get(
-                `http://localhost:8080/EmpresaPersonaFisica/organizacion/${userResponse.data.organizacion.id}`
+                `http://localhost:8080/empresaspersonasfisicas/organizacion/${organizacionId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            if (empresasResponse.data && Array.isArray(empresasResponse.data)) {
-                setEmpresasPersonasFisicas(empresasResponse.data.map(emp => ({
-                    value: emp.id,
-                    label: emp.nombre
-                })));
-            } else {
-                setEmpresasPersonasFisicas([]);
-            }
-
-        } catch (err) {
-            console.error("Error al obtener los datos:", err.response ? err.response.data : err.message);
-            setError("Error al obtener los datos. Por favor, intente de nuevo más tarde.");
+            setEmpresasPersonasFisicas(Array.isArray(empresasResponse.data) ? empresasResponse.data : []);
+        } catch {
+            setGastos([]);
+            setCategorias([]);
+            setEmpresasPersonasFisicas([]);
         }
     }, [token]);
 
+    useEffect(() => { fetchData(); }, [fetchData]);
+
     useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        if (showFilterDropdown) {
+            filterTimeout.current = setTimeout(() => setShowFilterDropdown(false), 10000);
+        }
+        return () => clearTimeout(filterTimeout.current);
+    }, [showFilterDropdown]);
 
-    const getBadgeStyle = (borderColor, backgroundColor, textColor) => ({
-        padding: '6px 12px',
-        borderRadius: '4px',
-        fontWeight: 'bold',
-        textTransform: 'uppercase',
-        fontSize: '0.75em',
-        display: 'inline-block',
-        width: '120px',
-        textAlign: 'center',
-        color: textColor,
-        backgroundColor: backgroundColor,
-        border: `2px solid ${borderColor}`,
-    });
+    useEffect(() => {
+        if (!showFilterDropdown) return;
+        const handleClickOutside = (event) => {
+            if (filterRef.current && !filterRef.current.contains(event.target)) {
+                setShowFilterDropdown(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [showFilterDropdown]);
 
-    const getEstadoBadge = (estado) => {
-        switch (estado) {
-            case EstadoGasto.RECIBIDO:
-                return <span style={getBadgeStyle('#FFA500', '#FFF3E0', '#FFA500')}>Recibido</span>;
-            case EstadoGasto.COMPLETADO:
-                return <span style={getBadgeStyle('#32CD32', '#E8F5E9', '#32CD32')}>Completado</span>;
-            case EstadoGasto.ERROR:
-                return <span style={getBadgeStyle('#FF0000', '#FFEBEE', '#FF0000')}>Error</span>;
-            default:
-                return null;
+    const handleAddFiltro = () => {
+        if (!nuevoFiltro) return;
+        if (nuevoFiltro.value === "orden") {
+            if (!ordenTipo || !ordenSentido) return;
+            setFiltrosActivos([
+                ...filtrosActivos.filter(f => f.tipo !== "orden"),
+                { tipo: "orden", valor: { tipo: ordenTipo.value, sentido: ordenSentido.value } }
+            ]);
+            setNuevoFiltro(null);
+            setOrdenTipo(null);
+            setOrdenSentido(null);
+            setNuevoValorFiltro([]);
+        } else {
+            if (!nuevoValorFiltro.length) return;
+            const nuevos = nuevoValorFiltro
+                .filter(val => !filtrosActivos.some(f => f.tipo === nuevoFiltro.value && f.valor.value === val.value))
+                .map(val => ({ tipo: nuevoFiltro.value, valor: val }));
+            setFiltrosActivos([...filtrosActivos, ...nuevos]);
+            setNuevoFiltro(null);
+            setNuevoValorFiltro([]);
         }
     };
 
-    const getFormaPagoBadge = (formaPagoGasto) => {
-        switch (formaPagoGasto) {
-            case FormaPagoGasto.EFECTIVO:
-                return <span style={getBadgeStyle('#DAA520', '#FFFDE7', '#DAA520')}>Efectivo</span>;
-            case FormaPagoGasto.TARJETA:
-                return <span style={getBadgeStyle('#4169E1', '#E8EAF6', '#4169E1')}>Tarjeta</span>;
-            case FormaPagoGasto.TRANSFERENCIA:
-                return <span style={getBadgeStyle('#2E8B57', '#E0F2F1', '#2E8B57')}>Transferencia</span>;
-            case FormaPagoGasto.NO_PAGADA:
-                return <span style={getBadgeStyle('#FF0000', '#FFEBEE', '#FF0000')}>No Pagada</span>;
-            default:
-                return null;
-        }
-    };
-
-    const handleEdit = (gasto) => {
-        setEditingGasto({...gasto, tempEstado: gasto.estado, tempFormaPago: gasto.formaPagoGasto});
-        setShowEditModal(true);
-    };
-
-    const handleCloseEditModal = () => {
-        setShowEditModal(false);
-        setEditingGasto(null);
-    };
-
-    const handleEstadoChange = (e) => {
-        const newEstado = e.target.value;
-        setEditingGasto(prev => ({
-            ...prev,
-            tempEstado: newEstado,
-            tempFormaPago: newEstado === EstadoGasto.RECIBIDO ? FormaPagoGasto.NO_PAGADA : prev.tempFormaPago
+    const handleRemoveFiltro = (tipo, valor) => {
+        setFiltrosActivos(filtrosActivos.filter(f => {
+            if (tipo === "orden") return f.tipo !== "orden";
+            return !(f.tipo === tipo && f.valor.value === valor);
         }));
     };
 
+    const handleRemoveAllFiltros = () => setFiltrosActivos([]);
+
+    let gastosFiltrados = gastos.filter(gasto => {
+        let match = true;
+        for (const filtro of filtrosActivos) {
+            if (filtro.tipo === "empresaPersonaFisica" && gasto.empresaPersonaFisica?.id !== filtro.valor.value.id) match = false;
+            if (filtro.tipo === "categoriaGasto" && gasto.categoriaGasto?.id !== filtro.valor.value.id) match = false;
+            if (filtro.tipo === "formaPagoGasto" && gasto.formaPagoGasto !== filtro.valor.value) match = false;
+            if (filtro.tipo === "estado" && gasto.estado !== filtro.valor.value) match = false;
+        }
+        const valoresGasto = [
+            gasto.numFactura,
+            gasto.empresaPersonaFisica?.nombre,
+            gasto.monto,
+            gasto.fecha ? new Date(gasto.fecha).toLocaleDateString() : "",
+            gasto.estado,
+            gasto.formaPagoGasto,
+            gasto.categoriaGasto?.nombre
+        ];
+        const matchSearch = searchQuery.trim() === "" || valoresGasto.some(valor =>
+            valor?.toString().toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        return match && matchSearch;
+    });
+
+    const filtroOrden = filtrosActivos.find(f => f.tipo === "orden");
+    if (filtroOrden && filtroOrden.valor) {
+        const { tipo, sentido } = filtroOrden.valor;
+        if (tipo === "fecha") {
+            gastosFiltrados.sort((a, b) =>
+                sentido === "desc"
+                    ? new Date(b.fecha) - new Date(a.fecha)
+                    : new Date(a.fecha) - new Date(b.fecha)
+            );
+        } else if (tipo === "monto") {
+            gastosFiltrados.sort((a, b) =>
+                sentido === "desc"
+                    ? parseFloat(b.monto) - parseFloat(a.monto)
+                    : parseFloat(a.monto) - parseFloat(b.monto)
+            );
+        }
+    } else {
+        gastosFiltrados.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    }
+
+    const totalPages = Math.ceil(gastosFiltrados.length / gastosPorPagina);
+    const gastosPaginados = gastosFiltrados.slice(
+        (currentPage - 1) * gastosPorPagina,
+        currentPage * gastosPorPagina
+    );
+
+    const renderPaginationButtons = () => {
+        let buttons = [];
+        if (totalPages <= 1) return buttons;
+        buttons.push(
+            <li key={1} className={`page-item ${currentPage === 1 ? 'active' : ''}`}>
+                <button
+                    className="page-link"
+                    onClick={() => setCurrentPage(1)}
+                    style={{
+                        backgroundColor: currentPage === 1 ? '#6f9fd7' : 'transparent',
+                        color: currentPage === 1 ? '#fff' : '#6f9fd7',
+                        border: 'none'
+                    }}
+                >1</button>
+            </li>
+        );
+        if (currentPage > 3) {
+            buttons.push(
+                <li key="start-ellipsis" className="page-item">
+                    <span className="page-link" style={{ background: "transparent", color: "#6f9fd7", border: "none", cursor: "default" }}>...</span>
+                </li>
+            );
+        }
+        if (currentPage - 1 > 1) {
+            buttons.push(
+                <li key={currentPage - 1} className="page-item">
+                    <button
+                        className="page-link"
+                        onClick={() => setCurrentPage(currentPage - 1)}
+                        style={{
+                            backgroundColor: 'transparent',
+                            color: '#6f9fd7',
+                            border: 'none'
+                        }}
+                    >{currentPage - 1}</button>
+                </li>
+            );
+        }
+        if (currentPage !== 1 && currentPage !== totalPages) {
+            buttons.push(
+                <li key={currentPage} className="page-item active">
+                    <button
+                        className="page-link"
+                        onClick={() => setCurrentPage(currentPage)}
+                        style={{
+                            backgroundColor: '#6f9fd7',
+                            color: '#fff',
+                            border: 'none'
+                        }}
+                    >{currentPage}</button>
+                </li>
+            );
+        }
+        if (currentPage + 1 < totalPages) {
+            buttons.push(
+                <li key={currentPage + 1} className="page-item">
+                    <button
+                        className="page-link"
+                        onClick={() => setCurrentPage(currentPage + 1)}
+                        style={{
+                            backgroundColor: 'transparent',
+                            color: '#6f9fd7',
+                            border: 'none'
+                        }}
+                    >{currentPage + 1}</button>
+                </li>
+            );
+        }
+        if (currentPage < totalPages - 2) {
+            buttons.push(
+                <li key="end-ellipsis" className="page-item">
+                    <span className="page-link" style={{ background: "transparent", color: "#6f9fd7", border: "none", cursor: "default" }}>...</span>
+                </li>
+            );
+        }
+        if (totalPages > 1) {
+            buttons.push(
+                <li key={totalPages} className={`page-item ${currentPage === totalPages ? 'active' : ''}`}>
+                    <button
+                        className="page-link"
+                        onClick={() => setCurrentPage(totalPages)}
+                        style={{
+                            backgroundColor: currentPage === totalPages ? '#6f9fd7' : 'transparent',
+                            color: currentPage === totalPages ? '#fff' : '#6f9fd7',
+                            border: 'none'
+                        }}
+                    >{totalPages}</button>
+                </li>
+            );
+        }
+        return buttons;
+    };
+
+    const renderFiltroChip = (filtro) => (
+        <span key={filtro.tipo + (filtro.tipo === "orden" ? filtro.valor.tipo + filtro.valor.sentido : filtro.valor.value)}
+              style={{
+                  background: "#e3eefd",
+                  color: "#6f9fd7",
+                  border: "1px solid #6f9fd7",
+                  borderRadius: 16,
+                  padding: "4px 12px",
+                  marginRight: 8,
+                  fontSize: 13,
+                  display: "inline-flex",
+                  alignItems: "center"
+              }}>
+            {filtro.tipo === "orden"
+                ? `Orden: ${filtro.valor.tipo} (${filtro.valor.sentido})`
+                : `${filtro.tipo}: ${filtro.valor.label || filtro.valor.value}`
+            }
+            <FaTimes
+                style={{ marginLeft: 6, cursor: "pointer" }}
+                onClick={() => handleRemoveFiltro(filtro.tipo, filtro.valor.value)}
+            />
+        </span>
+    );
+
+    const renderValorFiltro = () => {
+        if (!nuevoFiltro) return null;
+        if (nuevoFiltro.value === "orden") {
+            return (
+                <div className="mt-2">
+                    <Select
+                        options={ordenTipoOptions}
+                        value={ordenTipo}
+                        onChange={setOrdenTipo}
+                        placeholder="Tipo de orden"
+                        className="mb-2"
+                    />
+                    <Select
+                        options={ordenSentidoOptions}
+                        value={ordenSentido}
+                        onChange={setOrdenSentido}
+                        placeholder="Sentido"
+                    />
+                </div>
+            );
+        }
+        let options = [];
+        if (nuevoFiltro.value === "empresaPersonaFisica") options = empresasPersonasFisicas.map(e => ({ value: e, label: e.nombre }));
+        if (nuevoFiltro.value === "categoriaGasto") options = categorias.map(c => ({ value: c, label: c.nombre }));
+        if (nuevoFiltro.value === "formaPagoGasto") options = formaPagoOptions;
+        if (nuevoFiltro.value === "estado") options = estadoOptions;
+        return (
+            <Select
+                isMulti
+                options={options}
+                value={nuevoValorFiltro}
+                onChange={setNuevoValorFiltro}
+                placeholder="Selecciona valor..."
+                className="mt-2"
+            />
+        );
+    };
+
+    const getEstadoBadge = (estado) => {
+        const c = estadoColors[estado] || estadoColors.RECIBIDO;
+        return (
+            <span style={{
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                fontSize: '0.75em',
+                display: 'inline-block',
+                width: '120px',
+                textAlign: 'center',
+                color: c.color,
+                backgroundColor: c.bg,
+                border: `2px solid ${c.border}`,
+            }}>{estado}</span>
+        );
+    };
+    const getFormaPagoBadge = (formaPagoGasto) => {
+        const c = formaPagoColors[formaPagoGasto] || formaPagoColors.NO_PAGADA;
+        return (
+            <span style={{
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                fontSize: '0.75em',
+                display: 'inline-block',
+                width: '120px',
+                textAlign: 'center',
+                color: c.color,
+                backgroundColor: c.bg,
+                border: `2px solid ${c.border}`,
+            }}>{formaPagoGasto}</span>
+        );
+    };
+
+    const handleDownload = async (gasto) => {
+        if (!gasto.archivo && !gasto.tieneArchivoFactura) {
+            Swal.fire("Sin PDF", "Este gasto no tiene PDF asignado.", "info");
+            return;
+        }
+        try {
+            const response = await axios.get(`http://localhost:8080/gastos/${gasto.id}/archivo`, {
+                responseType: "blob",
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            let filename = `Gasto_${gasto.id}.pdf`;
+            const disposition = response.headers['content-disposition'];
+            if (disposition && disposition.indexOf('filename=') !== -1) {
+                filename = disposition.split('filename=')[1].replace(/"/g, '');
+            }
+            const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch {
+            Swal.fire("Error", "Ocurrió un problema al descargar el archivo.", "error");
+        }
+    };
+
+    const getFormasPagoDisponibles = (estado) => {
+        if (estado === EstadoGasto.COMPLETADO) {
+            return [FormaPagoGasto.EFECTIVO, FormaPagoGasto.TARJETA, FormaPagoGasto.TRANSFERENCIA];
+        }
+        if (estado === EstadoGasto.ERROR || estado === EstadoGasto.RECIBIDO) {
+            return [FormaPagoGasto.NO_PAGADA];
+        }
+        return Object.values(FormaPagoGasto);
+    };
+
+    const handleEdit = (gasto) => {
+        setEditingGasto({ ...gasto, tempEstado: gasto.estado, tempFormaPago: gasto.formaPagoGasto });
+        setShowEditModal(true);
+    };
+    const handleCloseEditModal = () => { setShowEditModal(false); setEditingGasto(null); };
+    const handleEstadoChange = (e) => {
+        const newEstado = e.target.value;
+        let newFormaPago = editingGasto.tempFormaPago;
+        const disponibles = getFormasPagoDisponibles(newEstado);
+        if (!disponibles.includes(newFormaPago)) {
+            newFormaPago = disponibles[0];
+        }
+        setEditingGasto(prev => ({
+            ...prev,
+            tempEstado: newEstado,
+            tempFormaPago: newFormaPago
+        }));
+    };
     const handleFormaPagoChange = (e) => {
         const newFormaPago = e.target.value;
         setEditingGasto(prev => ({
             ...prev,
-            tempFormaPago: newFormaPago,
-            tempEstado: newFormaPago === FormaPagoGasto.NO_PAGADA ? EstadoGasto.RECIBIDO : EstadoGasto.COMPLETADO
+            tempFormaPago: newFormaPago
         }));
     };
-
     const handleSaveChanges = async () => {
         try {
-            let updatedGasto = {
+            const updatedGasto = {
                 ...editingGasto,
                 estado: editingGasto.tempEstado,
                 formaPagoGasto: editingGasto.tempFormaPago
             };
-
-            await axios.put(`http://localhost:8080/gastos/${editingGasto.id}`, updatedGasto);
-
-            setGastos(prev => prev.map(g => g.id === editingGasto.id ? updatedGasto : g));
-
+            if (!Object.values(EstadoGasto).includes(updatedGasto.estado)) return;
+            if (!Object.values(FormaPagoGasto).includes(updatedGasto.formaPagoGasto)) return;
+            if (updatedGasto.estado === EstadoGasto.COMPLETADO && updatedGasto.formaPagoGasto === FormaPagoGasto.NO_PAGADA) return;
+            if ((updatedGasto.estado === EstadoGasto.ERROR || updatedGasto.estado === EstadoGasto.RECIBIDO) && updatedGasto.formaPagoGasto !== FormaPagoGasto.NO_PAGADA) return;
+            await axios.put(`http://localhost:8080/gastos/${editingGasto.id}`, updatedGasto, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const updatedGastos = gastos.map(f =>
+                f.id === editingGasto.id ? { ...f, ...updatedGasto } : f
+            );
+            setGastos(updatedGastos);
             handleCloseEditModal();
             Swal.fire({
-                icon: 'success',
-                title: 'Éxito',
-                text: 'Gasto actualizado correctamente',
-                timer: 1500,
-                showConfirmButton: false
+                icon: "success",
+                title: "Gasto actualizado",
+                showConfirmButton: false,
+                timer: 1200
             });
-        } catch (error) {
-            console.error("Error al actualizar el gasto:", error);
+        } catch {
             Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Ocurrió un problema al actualizar el gasto.',
+                icon: "error",
+                title: "Error al actualizar el gasto",
+                showConfirmButton: false,
+                timer: 1500
             });
         }
     };
 
     const handleNewGastoChange = (e) => {
         const { name, value, type, files } = e.target;
-        setNewGasto(prev => {
-            let updatedGasto = { ...prev };
-
-            if (type === 'file') {
-                updatedGasto.archivo = files[0];
-            } else {
-                updatedGasto[name] = value;
-            }
-
-            if (name === 'estado') {
-                if (value === EstadoGasto.RECIBIDO) {
-                    updatedGasto.formaPagoGasto = FormaPagoGasto.NO_PAGADA;
-                } else if (value === EstadoGasto.COMPLETADO) {
-                    updatedGasto.formaPagoGasto = FormaPagoGasto.EFECTIVO;
-                } else if (value === EstadoGasto.ERROR) {
-                    updatedGasto.formaPagoGasto = FormaPagoGasto.NO_PAGADA;
-                }
-            } else if (name === 'formaPagoGasto') {
-                if (value === FormaPagoGasto.NO_PAGADA) {
-                    updatedGasto.estado = EstadoGasto.RECIBIDO;
-                } else {
-                    updatedGasto.estado = EstadoGasto.COMPLETADO;
-                }
-            }
-
-            return updatedGasto;
-        });
+        if (name === "fecha") {
+            setNewGasto(prev => ({
+                ...prev,
+                fecha: toLocalDateTime(value)
+            }));
+        } else if (type === "file") {
+            setNewGasto(prev => ({
+                ...prev,
+                archivo: files[0] || null
+            }));
+        } else {
+            setNewGasto(prev => ({
+                ...prev,
+                [name]: value
+            }));
+        }
     };
-
     const handleSelectChange = (selectedOption, actionMeta) => {
         setNewGasto(prev => ({
             ...prev,
             [actionMeta.name]: selectedOption
         }));
     };
-
-    const handleSaveNewGasto = async () => {
-        if (!newGasto.empresaPersonaFisica || !newGasto.formaPagoGasto) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Debes seleccionar una empresa o persona física y una forma de pago.',
-            });
+    const handleSaveNewGasto = async (e) => {
+        e.preventDefault();
+        if (newGasto.estado === EstadoGasto.COMPLETADO &&
+            newGasto.formaPagoGasto === FormaPagoGasto.NO_PAGADA) {
+            Swal.fire("Error", "Si el estado es COMPLETADO, la forma de pago no puede ser NO_PAGADA.", "error");
             return;
         }
-
+        if ((newGasto.estado === EstadoGasto.ERROR || newGasto.estado === EstadoGasto.RECIBIDO) &&
+            newGasto.formaPagoGasto !== FormaPagoGasto.NO_PAGADA) {
+            Swal.fire("Error", "Si el estado es ERROR o RECIBIDO, la forma de pago debe ser NO_PAGADA.", "error");
+            return;
+        }
+        if (!newGasto.empresaPersonaFisica || !newGasto.formaPagoGasto) {
+            Swal.fire("Error", "Empresa/Persona y Forma de Pago son obligatorios.", "error");
+            return;
+        }
+        if (!organizacion || !organizacion.id) {
+            Swal.fire("Error", "No se ha podido obtener la organización.", "error");
+            return;
+        }
         try {
-            const formData = new FormData();
-            formData.append('gasto', JSON.stringify({
-                monto: parseFloat(newGasto.monto),
+            const gastoData = {
                 numFactura: newGasto.numFactura,
+                monto: newGasto.monto,
+                empresaPersonaFisica: newGasto.empresaPersonaFisica.value,
+                fecha: newGasto.fecha,
                 estado: newGasto.estado,
                 formaPagoGasto: newGasto.formaPagoGasto,
-                categoriaGasto: newGasto.categoriaGasto ? { id: newGasto.categoriaGasto.value } : null,
-                empresaPersonaFisica: { id: newGasto.empresaPersonaFisica.value },
-                organizacion: { id: organizacion.id },
-                fecha: new Date(newGasto.fecha).toISOString()
+                categoriaGasto: newGasto.categoriaGasto ? newGasto.categoriaGasto.value : null,
+                organizacion: { id: organizacion.id }
+            };
 
-            }));
+            const formData = new FormData();
+            formData.append("gasto", JSON.stringify(gastoData));
             if (newGasto.archivo) {
-                formData.append('archivo', newGasto.archivo);
+                formData.append("archivo", newGasto.archivo);
             }
 
-            const response = await axios.post(`http://localhost:8080/gastos`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data'
-                }
+            await axios.post(`http://localhost:8080/gastos`, formData, {
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" }
             });
-
-            setGastos(prev => [response.data, ...prev]);
             setShowNewGastoModal(false);
+            fetchData();
             setNewGasto({
-                monto: "",
                 numFactura: "",
+                monto: "",
+                empresaPersonaFisica: null,
+                fecha: getTodayLocalDateTime(),
                 estado: EstadoGasto.RECIBIDO,
                 formaPagoGasto: FormaPagoGasto.NO_PAGADA,
                 categoriaGasto: null,
-                empresaPersonaFisica: null,
-                archivo: null,
-                fecha: new Date().toISOString().split('T')[0]
-
+                archivo: null
             });
-
             Swal.fire({
-                icon: 'success',
-                title: 'Éxito',
-                text: 'Nuevo gasto añadido correctamente',
-                timer: 1500,
-                showConfirmButton: false
+                icon: "success",
+                title: "Gasto creado correctamente",
+                showConfirmButton: false,
+                timer: 1200
             });
-        } catch (error) {
-            console.error("Error al añadir nuevo gasto:", error);
+        } catch {
             Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Ocurrió un problema al añadir el nuevo gasto.',
+                icon: "error",
+                title: "Error al crear el gasto",
+                showConfirmButton: false,
+                timer: 1500
             });
         }
     };
 
-    const handleDownload = async (gastoId) => {
-        try {
-            const response = await axios.get(`http://localhost:8080/gastos/${gastoId}/archivo`, {
-                responseType: 'blob'
-            });
-            const blob = new Blob([response.data], { type: 'application/pdf' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `factura_${gastoId}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error("Error al descargar el archivo:", error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: 'Ocurrió un problema al descargar el archivo.',
-            });
+    useEffect(() => {
+        const style = document.createElement("style");
+        style.innerHTML = `
+        @keyframes fadeInDown {
+          from { opacity: 0; transform: translateY(-20px);}
+          to { opacity: 1; transform: translateY(0);}
         }
-    };
-
-    const gastosFiltrados = gastos.filter(gasto => {
-        const valoresGasto = [
-            gasto.numFactura,
-            gasto.categoriaGasto?.nombre,
-            gasto.usuario?.username,
-            gasto.monto?.toFixed(2),
-            gasto.estado,
-            gasto.formaPagoGasto,
-            gasto.empresaPersonaFisica?.nombre
-        ];
-
-        return valoresGasto.some(valor =>
-            valor?.toString().toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    });
-
-    gastosFiltrados.sort((a, b) => b.id - a.id);
-
-    const totalPages = Math.ceil(gastosFiltrados.length / gastosPorPagina);
-    const indexOfLastGasto = currentPage * gastosPorPagina;
-    const indexOfFirstGasto = indexOfLastGasto - gastosPorPagina;
-    const gastosPaginados = gastosFiltrados.slice(indexOfFirstGasto, indexOfLastGasto);
-
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-    const renderPaginationButtons = () => {
-        const buttons = [];
-        if (totalPages <= 5) {
-            for (let i = 1; i <= totalPages; i++) {
-                buttons.push(
-                    <button
-                        key={i}
-                        onClick={() => paginate(i)}
-                        className={`pagination-button ${currentPage === i ? 'active' : ''}`}
-                    >
-                        {i}
-                    </button>
-                );
-            }
-        } else {
-            buttons.push(
-                <button
-                    key={1}
-                    onClick={() => paginate(1)}
-                    className={`pagination-button ${currentPage === 1 ? 'active' : ''}`}
-                >
-                    1
-                </button>
-            );
-            buttons.push(
-                <button
-                    key={2}
-                    onClick={() => paginate(2)}
-                    className={`pagination-button ${currentPage === 2 ? 'active' : ''}`}
-                >
-                    2
-                </button>
-            );
-            if (currentPage > 3) {
-                buttons.push(<span key="ellipsis1" className="pagination-ellipsis"><FaEllipsisH /></span>);
-            }
-            if (currentPage !== 1 && currentPage !== 2 && currentPage !== totalPages) {
-                buttons.push(
-                    <button
-                        key={currentPage}
-                        onClick={() => paginate(currentPage)}
-                        className="pagination-button active"
-                    >
-                        {currentPage}
-                    </button>
-                );
-            }
-
-            if (currentPage < totalPages - 2) {
-                buttons.push(<span key="ellipsis2" className="pagination-ellipsis"><FaEllipsisH /></span>);
-            }
-
-            buttons.push(
-                <button
-                    key={totalPages}
-                    onClick={() => paginate(totalPages)}
-                    className={`pagination-button ${currentPage === totalPages ? 'active' : ''}`}
-                >
-                    {totalPages}
-                </button>
-            );
-        }
-        return buttons;
-    };
+        `;
+        document.head.appendChild(style);
+        return () => { document.head.removeChild(style); };
+    }, []);
 
     return (
-        <div className="d-flex">
+        <div className="d-flex" style={{ height: "100vh", overflow: "hidden" }}>
             <Sidebar />
-            <div className="container mt-4">
-                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>
-                    Registro de Gastos
+            <div className="container mt-4" style={{ overflow: "hidden" }}>
+                <h2 className="text-center mb-4" style={{ borderBottom: "2px solid #a7c5eb", paddingBottom: "10px" }}>
+                    Gastos
                 </h2>
-
-                {error ? (
-                    <div className="alert alert-danger text-center">{error}</div>
-                ) : (
-                    <>
-                        <div className="d-flex justify-content-between mb-3">
-                            <button
-                                className="btn d-flex align-items-center"
-                                style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
-                                onClick={() => setShowNewGastoModal(true)}
+                <div className="d-flex justify-content-between mb-3" style={{ position: "relative" }}>
+                    <button
+                        className="btn"
+                        style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
+                        onClick={() => setShowNewGastoModal(true)}
+                    >
+                        <FaPlusCircle className="me-2" />
+                        Nuevo Gasto
+                    </button>
+                    <div style={{ position: "relative" }}>
+                        <button
+                            className="btn"
+                            style={{ backgroundColor: "#a7c5eb", color: "#fff", borderRadius: "8px", padding: "8px 16px", border: "none" }}
+                            onClick={() => setShowFilterDropdown((prev) => !prev)}
+                        >
+                            <FaFilter className="me-2" />
+                            Filtro
+                        </button>
+                        {showFilterDropdown && (
+                            <div
+                                ref={filterRef}
+                                style={{
+                                    position: "absolute",
+                                    right: 0,
+                                    top: "110%",
+                                    zIndex: 1000,
+                                    background: "#fff",
+                                    border: "1.5px solid #a7c5eb",
+                                    borderRadius: "18px",
+                                    padding: "28px 24px 20px 24px",
+                                    minWidth: "340px",
+                                    boxShadow: "0 8px 32px rgba(103, 144, 215, 0.18)",
+                                    transition: "all 0.25s cubic-bezier(.4,2,.6,1)",
+                                    animation: "fadeInDown 0.3s",
+                                }}
                             >
-                                <FaPlusCircle className="me-2" />
-                                Añadir nuevo Gasto
-                            </button>
-
-                            <div className="position-relative" style={{ width: "250px" }}>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Buscar..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onFocus={() => setInputFocused(true)}
-                                    onBlur={() => setInputFocused(false)}
+                                <button
+                                    className="btn btn-sm"
                                     style={{
-                                        paddingLeft: "35px",
-                                        borderRadius: "8px",
-                                        border: "1px solid #ccc",
-                                        backgroundColor: inputFocused || searchQuery ? "#ffffff" : "#6f9fd7",
-                                        color: inputFocused || searchQuery ? "#000" : "#fff",
+                                        position: "absolute",
+                                        top: 8,
+                                        right: 8,
+                                        background: "transparent",
+                                        color: "#6f9fd7",
+                                        border: "none"
                                     }}
-                                />
-                                <FaSearch
-                                    className="position-absolute"
-                                    style={{
-                                        left: "10px",
-                                        top: "25%",
-                                        color: inputFocused || searchQuery ? "#6f9fd7" : "#fff",
-                                        fontSize: "18px"
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="table-responsive">
-                            <table className="table table-hover">
-                                <thead className="table-dark" style={{ backgroundColor: '#a7c5eb' }}>
-                                <tr>
-                                    <th>Fecha</th>
-                                    <th>Número de Factura</th>
-                                    <th>Empresa/Persona</th>
-                                    <th>Categoría</th>
-                                    <th>Monto</th>
-                                    <th>Estado</th>
-                                    <th>Forma de Pago</th>
-                                    <th>Acción</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {gastosPaginados.map((gasto, index) => (
-                                    <tr key={gasto.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
-                                        <td>{new Date(gasto.fecha).toLocaleDateString()}</td>
-                                        <td>{gasto.numFactura}</td>
-                                        <td>{gasto.empresaPersonaFisica?.nombre || 'N/A'}</td>
-                                        <td>{gasto.categoriaGasto?.nombre || 'N/A'}</td>
-                                        <td>{gasto.monto?.toFixed(2) || '0.00'}€</td>
-                                        <td>{getEstadoBadge(gasto.estado)}</td>
-                                        <td>{getFormaPagoBadge(gasto.formaPagoGasto)}</td>
-                                        <td>
+                                    onClick={() => setShowFilterDropdown(false)}
+                                    tabIndex={0}
+                                >
+                                    <FaTimes />
+                                </button>
+                                <div className="mb-4" style={{ marginTop: 10 }}>
+                                    <label style={{ fontWeight: 600, color: "#6f9fd7", marginBottom: 6, display: "block" }}>
+                                        Buscar
+                                    </label>
+                                    <div className="position-relative" style={{ width: "100%" }}>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="Buscar gasto..."
+                                            value={searchQuery}
+                                            onChange={e => setSearchQuery(e.target.value)}
+                                            style={{ paddingLeft: 32 }}
+                                        />
+                                        <FaSearch style={{ position: "absolute", left: 8, top: 10, color: "#a7c5eb" }} />
+                                    </div>
+                                </div>
+                                <div className="mb-4">
+                                    <label style={{ fontWeight: 600, color: "#6f9fd7", marginBottom: 6, display: "block" }}>
+                                        Añadir filtro
+                                    </label>
+                                    <Select
+                                        options={filtroTipos.filter(f => !filtrosActivos.some(a => a.tipo === f.value))}
+                                        value={nuevoFiltro}
+                                        onChange={setNuevoFiltro}
+                                        placeholder="Selecciona filtro..."
+                                    />
+                                    {renderValorFiltro()}
+                                    <button
+                                        className="btn mt-3"
+                                        style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: "8px", width: "100%" }}
+                                        onClick={handleAddFiltro}
+                                    >
+                                        Añadir
+                                    </button>
+                                </div>
+                                {filtrosActivos.length > 0 && (
+                                    <div className="mb-2">
+                                        <label style={{ fontWeight: 600, color: "#6f9fd7", marginBottom: 6, display: "block" }}>
+                                            Filtros activos
+                                        </label>
+                                        <div>
+                                            {filtrosActivos.map(renderFiltroChip)}
                                             <button
-                                                className="btn btn-sm btn-outline-primary me-2"
-                                                title="Editar Gasto"
-                                                onClick={() => handleEdit(gasto)}
+                                                className="btn btn-sm ms-2"
+                                                style={{ backgroundColor: "#fdecea", color: "#e74c3c", border: "none", borderRadius: 8 }}
+                                                onClick={handleRemoveAllFiltros}
                                             >
-                                                <FaPencilAlt />
+                                                Limpiar
                                             </button>
-                                            {gasto.nombreArchivoFactura && (
-                                                <button
-                                                    className="btn btn-sm btn-outline-success"
-                                                    title="Descargar Factura"
-                                                    onClick={() => handleDownload(gasto.id)}
-                                                >
-                                                    <FaDownload />
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {totalPages > 1 && (
-                            <nav aria-label="Page navigation" className="mt-4">
-                                <ul className="pagination justify-content-center">
-                                    <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                        <button
-                                            className="page-link"
-                                            onClick={() => paginate(currentPage - 1)}
-                                            disabled={currentPage === 1}
-                                            style={{
-                                                backgroundColor: 'transparent',
-                                                color: '#6f9fd7',
-                                                border: 'none'
-                                            }}
-                                        >
-                                            <FaChevronLeft />
-                                        </button>
-                                    </li>
-                                    {renderPaginationButtons()}
-                                    <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                                        <button
-                                            className="page-link"
-                                            onClick={() => paginate(currentPage + 1)}
-                                            disabled={currentPage === totalPages}
-                                            style={{
-                                                backgroundColor: 'transparent',
-                                                color: '#6f9fd7',
-                                                border: 'none'
-                                            }}
-                                        >
-                                            <FaChevronRight />
-                                        </button>
-                                    </li>
-                                </ul>
-                            </nav>
-                        )}
-
-                        {/* Modal para editar gasto */}
-                        <Modal show={showEditModal} onHide={handleCloseEditModal} size="lg">
-                            <Modal.Header closeButton style={{backgroundColor: '#f0f8ff'}}>
-                                <Modal.Title style={{color: '#2c3e50'}}>Editar Gasto</Modal.Title>
-                            </Modal.Header>
-                            <Modal.Body style={{backgroundColor: '#f9f9f9'}}>
-                                {editingGasto && (
-                                    <Form>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label htmlFor="estado-select" style={{fontWeight: 'bold', color: '#34495e'}}>Estado</Form.Label>
-                                            <Form.Control
-                                                id="estado-select"
-                                                as="select"
-                                                value={editingGasto.tempEstado}
-                                                onChange={handleEstadoChange}
-                                                style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
-                                            >
-                                                {Object.values(EstadoGasto).map(estado => (
-                                                    <option key={estado} value={estado}>{estado}</option>
-                                                ))}
-                                            </Form.Control>
-                                        </Form.Group>
-                                        <Form.Group className="mb-3">
-                                            <Form.Label htmlFor="forma-pago-select" style={{fontWeight: 'bold', color: '#34495e'}}>Forma de Pago</Form.Label>
-                                            <Form.Control
-                                                id="forma-pago-select"
-                                                as="select"
-                                                value={editingGasto.tempFormaPago}
-                                                onChange={handleFormaPagoChange}
-                                                style={{borderColor: '#bdc3c7', borderRadius: '8px'}}
-                                                disabled={!editingGasto.tempEstado}
-                                            >
-                                                {editingGasto.tempEstado === EstadoGasto.RECIBIDO && (
-                                                    <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
-                                                )}
-                                                {editingGasto.tempEstado === EstadoGasto.COMPLETADO && (
-                                                    <>
-                                                        <option value={FormaPagoGasto.EFECTIVO}>Efectivo</option>
-                                                        <option value={FormaPagoGasto.TARJETA}>Tarjeta</option>
-                                                        <option value={FormaPagoGasto.TRANSFERENCIA}>Transferencia</option>
-                                                    </>
-                                                )}
-                                                {editingGasto.tempEstado === EstadoGasto.ERROR && (
-                                                    <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
-                                                )}
-                                            </Form.Control>
-                                        </Form.Group>
-                                    </Form>
+                                        </div>
+                                    </div>
                                 )}
-                            </Modal.Body>
-                            <Modal.Footer style={{backgroundColor: '#f0f8ff'}}>
-                                <Button variant="secondary" onClick={handleCloseEditModal}>
-                                    Cerrar
-                                </Button>
-                                <Button variant="primary" onClick={handleSaveChanges}>
-                                    Guardar Cambios
-                                </Button>
-                            </Modal.Footer>
-                        </Modal>
-
-                        {/* Modal para nuevo gasto */}
-                        <Modal show={showNewGastoModal} onHide={() => setShowNewGastoModal(false)} size="lg">
-                            <Modal.Header closeButton style={{backgroundColor: '#a7c5eb', color: '#fff'}}>
-                                <Modal.Title>Nuevo Gasto</Modal.Title>
-                            </Modal.Header>
-                            <Modal.Body>
-                                <Form onSubmit={handleSaveNewGasto}>
-                                    <Row>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Fecha</Form.Label>
-                                                <Form.Control
-                                                    type="date"
-                                                    name="fecha"
-                                                    value={newGasto.fecha}
-                                                    onChange={handleNewGastoChange}
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Monto</Form.Label>
-                                                <Form.Control
-                                                    type="number"
-                                                    name="monto"
-                                                    value={newGasto.monto}
-                                                    onChange={handleNewGastoChange}
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Número de Factura</Form.Label>
-                                                <Form.Control
-                                                    type="text"
-                                                    name="numFactura"
-                                                    value={newGasto.numFactura}
-                                                    onChange={handleNewGastoChange}
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Estado</Form.Label>
-                                                <Form.Control
-                                                    as="select"
-                                                    name="estado"
-                                                    value={newGasto.estado}
-                                                    onChange={handleNewGastoChange}
-                                                >
-                                                    <option value="">Seleccione un estado</option>
-                                                    {Object.values(EstadoGasto).map(estado => (
-                                                        <option key={estado} value={estado}>{estado}</option>
-                                                    ))}
-                                                </Form.Control>
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Forma de Pago</Form.Label>
-                                                <Form.Control
-                                                    as="select"
-                                                    name="formaPagoGasto"
-                                                    value={newGasto.formaPagoGasto}
-                                                    onChange={handleNewGastoChange}
-                                                    disabled={!newGasto.estado}
-                                                >
-                                                    <option value="">Seleccione una forma de pago</option>
-                                                    {newGasto.estado === EstadoGasto.RECIBIDO && (
-                                                        <option value={FormaPagoGasto.NO_PAGADA}>No Pagada</option>
-                                                    )}
-                                                </Form.Control>
-                                            </Form.Group>
-                                        </Col>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Categoría</Form.Label>
-                                                <Select
-                                                    options={categorias}
-                                                    value={newGasto.categoriaGasto}
-                                                    onChange={(selectedOption) => handleSelectChange(selectedOption, { name: "categoriaGasto" })}
-                                                    placeholder="Seleccione una categoría"
-                                                    isClearable
-                                                    isSearchable
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                    <Row>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Empresa o Persona Física</Form.Label>
-                                                <Select
-                                                    options={empresasPersonasFisicas}
-                                                    value={newGasto.empresaPersonaFisica}
-                                                    onChange={(selectedOption) => handleSelectChange(selectedOption, { name: "empresaPersonaFisica" })}
-                                                    placeholder="Seleccione una empresa o persona física"
-                                                    isClearable
-                                                    isSearchable
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                        <Col md={6}>
-                                            <Form.Group className="mb-3">
-                                                <Form.Label>Archivo de Factura</Form.Label>
-                                                <Form.Control
-                                                    type="file"
-                                                    onChange={handleNewGastoChange}
-                                                    name="archivo"
-                                                />
-                                            </Form.Group>
-                                        </Col>
-                                    </Row>
-                                    <Button type="submit" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff', border: 'none' }}>
-                                        Guardar Gasto
-                                    </Button>
-                                </Form>
-                                <Button variant="secondary" onClick={() => setShowNewGastoModal(false)} className="mt-3" style={{ width: '100%' }}>
-                                    Cerrar
-                                </Button>
-                            </Modal.Body>
-                        </Modal>
-                    </>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <div className="table-responsive" style={{ overflow: "hidden", maxHeight: "none" }}>
+                    <table className="table" style={{ marginBottom: 0 }}>
+                        <thead className="table-dark" style={{ backgroundColor: "#a7c5eb" }}>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nº Factura</th>
+                            <th>Monto</th>
+                            <th>Empresa/Persona</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Forma de Pago</th>
+                            <th>Categoría</th>
+                            <th>Archivo</th>
+                            <th>Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {gastosPaginados.length === 0 ? (
+                            <tr>
+                                <td colSpan={10} className="text-center">Aún no hay datos en la Base de Datos.</td>
+                            </tr>
+                        ) : (
+                            gastosPaginados.map((gasto, index) => (
+                                <tr key={gasto.id} style={{ backgroundColor: index % 2 === 0 ? "#f8f9fa" : "#ffffff" }}>
+                                    <td>{gasto.id}</td>
+                                    <td>{gasto.numFactura || 'N/A'}</td>
+                                    <td>{gasto.monto || 'N/A'}</td>
+                                    <td>{gasto.empresaPersonaFisica?.nombre || 'N/A'}</td>
+                                    <td>{gasto.fecha ? new Date(gasto.fecha).toLocaleDateString() : 'N/A'}</td>
+                                    <td>{getEstadoBadge(gasto.estado)}</td>
+                                    <td>{getFormaPagoBadge(gasto.formaPagoGasto)}</td>
+                                    <td>{gasto.categoriaGasto?.nombre || 'N/A'}</td>
+                                    <td>
+                                        <button
+                                            className="btn btn-sm"
+                                            style={{ backgroundColor: "#a7c5eb", color: "#fff" }}
+                                            onClick={() => handleDownload(gasto)}
+                                        >
+                                            <FaFileDownload />
+                                        </button>
+                                    </td>
+                                    <td>
+                                        <button
+                                            className="btn btn-sm"
+                                            style={{ backgroundColor: "#6f9fd7", color: "#fff" }}
+                                            onClick={() => handleEdit(gasto)}
+                                        >
+                                            Editar
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                        </tbody>
+                    </table>
+                </div>
+                {totalPages > 1 && (
+                    <nav aria-label="Page navigation" className="mt-4">
+                        <ul className="pagination justify-content-center">
+                            <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button
+                                    className="page-link"
+                                    onClick={() => setCurrentPage(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: '#6f9fd7',
+                                        border: 'none'
+                                    }}
+                                >
+                                    <FaChevronLeft />
+                                </button>
+                            </li>
+                            {renderPaginationButtons()}
+                            <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button
+                                    className="page-link"
+                                    onClick={() => setCurrentPage(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    style={{
+                                        backgroundColor: 'transparent',
+                                        color: '#6f9fd7',
+                                        border: 'none'
+                                    }}
+                                >
+                                    <FaChevronRight />
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
                 )}
+
+                {/* MODAL NUEVO GASTO */}
+                <Modal show={showNewGastoModal} onHide={() => setShowNewGastoModal(false)} size="lg" centered>
+                    <Modal.Header closeButton style={{ backgroundColor: '#a7c5eb', color: '#fff' }}>
+                        <Modal.Title>Agregar Nuevo Gasto</Modal.Title>
+                    </Modal.Header>
+                    <Form onSubmit={handleSaveNewGasto}>
+                        <Modal.Body style={{ backgroundColor: '#f9f9f9' }}>
+                            <Row className="mb-3">
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Nº Factura</Form.Label>
+                                        <Form.Control
+                                            type="text"
+                                            name="numFactura"
+                                            value={newGasto.numFactura}
+                                            onChange={handleNewGastoChange}
+                                            placeholder="Ej: 12345"
+                                            style={{ borderRadius: 8, borderColor: "#a7c5eb" }}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Monto</Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            name="monto"
+                                            value={newGasto.monto}
+                                            onChange={handleNewGastoChange}
+                                            placeholder="Ej: 100.00"
+                                            style={{ borderRadius: 8, borderColor: "#a7c5eb" }}
+                                            min="0"
+                                            step="0.01"
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row className="mb-3">
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Empresa/Persona</Form.Label>
+                                        <Select
+                                            name="empresaPersonaFisica"
+                                            options={empresasPersonasFisicas.map(e => ({ value: e, label: e.nombre }))}
+                                            value={newGasto.empresaPersonaFisica}
+                                            onChange={handleSelectChange}
+                                            placeholder="Selecciona..."
+                                            styles={{
+                                                control: (base) => ({
+                                                    ...base,
+                                                    borderRadius: 8,
+                                                    borderColor: "#a7c5eb"
+                                                })
+                                            }}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Categoría</Form.Label>
+                                        <Select
+                                            name="categoriaGasto"
+                                            options={categorias.map(c => ({ value: c, label: c.nombre }))}
+                                            value={newGasto.categoriaGasto}
+                                            onChange={handleSelectChange}
+                                            placeholder="Selecciona..."
+                                            styles={{
+                                                control: (base) => ({
+                                                    ...base,
+                                                    borderRadius: 8,
+                                                    borderColor: "#a7c5eb"
+                                                })
+                                            }}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row className="mb-3">
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Fecha</Form.Label>
+                                        <Form.Control
+                                            type="date"
+                                            name="fecha"
+                                            value={newGasto.fecha.split("T")[0]}
+                                            onChange={handleNewGastoChange}
+                                            style={{ borderRadius: 8, borderColor: "#a7c5eb" }}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Estado</Form.Label>
+                                        <Form.Select
+                                            name="estado"
+                                            value={newGasto.estado}
+                                            onChange={handleNewGastoChange}
+                                            style={{ borderRadius: 8, borderColor: "#a7c5eb" }}
+                                            required
+                                        >
+                                            {Object.values(EstadoGasto).map(e => (
+                                                <option key={e} value={e}>{e}</option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                            <Row className="mb-3">
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Forma de Pago</Form.Label>
+                                        <Form.Select
+                                            name="formaPagoGasto"
+                                            value={newGasto.formaPagoGasto}
+                                            onChange={handleNewGastoChange}
+                                            style={{ borderRadius: 8, borderColor: "#a7c5eb" }}
+                                            required
+                                        >
+                                            {getFormasPagoDisponibles(newGasto.estado).map(f => (
+                                                <option key={f} value={f}>{f}</option>
+                                            ))}
+                                        </Form.Select>
+                                    </Form.Group>
+                                </Col>
+                                <Col md={6}>
+                                    <Form.Group>
+                                        <Form.Label>Archivo (PDF)</Form.Label>
+                                        <Form.Control
+                                            type="file"
+                                            name="archivo"
+                                            accept="application/pdf"
+                                            onChange={handleNewGastoChange}
+                                            style={{ borderRadius: 8, borderColor: "#a7c5eb" }}
+                                        />
+                                    </Form.Group>
+                                </Col>
+                            </Row>
+                        </Modal.Body>
+                        <Modal.Footer style={{ backgroundColor: '#f0f8ff' }}>
+                            <Button variant="secondary" onClick={() => setShowNewGastoModal(false)} style={{ borderRadius: 8 }}>
+                                Cancelar
+                            </Button>
+                            <Button type="submit" style={{ backgroundColor: "#6f9fd7", color: "#fff", borderRadius: 8, border: "none" }}>
+                                Guardar Gasto
+                            </Button>
+                        </Modal.Footer>
+                    </Form>
+                </Modal>
+
+                {/* MODAL EDITAR GASTO */}
+                <Modal show={showEditModal} onHide={handleCloseEditModal}>
+                    <Modal.Header closeButton style={{ backgroundColor: '#f0f8ff' }}>
+                        <Modal.Title>Editar Estado y Forma de Pago</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body style={{ backgroundColor: '#f9f9f9' }}>
+                        {editingGasto && (
+                            <Form>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Estado</Form.Label>
+                                    <Form.Select
+                                        value={editingGasto.tempEstado}
+                                        onChange={handleEstadoChange}
+                                    >
+                                        {Object.values(EstadoGasto).map(e => (
+                                            <option key={e} value={e}>{e}</option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                                <Form.Group className="mb-3">
+                                    <Form.Label>Forma de Pago</Form.Label>
+                                    <Form.Select
+                                        value={editingGasto.tempFormaPago}
+                                        onChange={handleFormaPagoChange}
+                                    >
+                                        {getFormasPagoDisponibles(editingGasto.tempEstado).map(f => (
+                                            <option key={f} value={f}>{f}</option>
+                                        ))}
+                                    </Form.Select>
+                                </Form.Group>
+                            </Form>
+                        )}
+                    </Modal.Body>
+                    <Modal.Footer style={{ backgroundColor: '#f0f8ff' }}>
+                        <Button variant="secondary" onClick={handleCloseEditModal}>
+                            Cancelar
+                        </Button>
+                        <Button variant="primary" onClick={handleSaveChanges}>
+                            Guardar Cambios
+                        </Button>
+                    </Modal.Footer>
+                </Modal>
             </div>
         </div>
     );
 };
 
 export default GastosComponent;
-

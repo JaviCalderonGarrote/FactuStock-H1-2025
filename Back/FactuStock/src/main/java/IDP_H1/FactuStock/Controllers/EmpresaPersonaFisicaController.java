@@ -19,14 +19,12 @@ public class EmpresaPersonaFisicaController {
     @Autowired
     private EmpresaPersonaFisicaService service;
 
-    // Obtener todas las empresas/personas físicas
     @GetMapping
     public ResponseEntity<List<EmpresaPersonaFisica>> obtenerTodos() {
         List<EmpresaPersonaFisica> empresas = service.obtenerTodos();
         return ResponseEntity.ok(empresas);
     }
 
-    // Obtener una empresa/persona física por su ID
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaPersonaFisica> obtenerPorId(@PathVariable Long id) {
         Optional<EmpresaPersonaFisica> empresaPersonaFisica = service.obtenerPorId(id);
@@ -34,7 +32,6 @@ public class EmpresaPersonaFisicaController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // Crear una nueva empresa/persona física
     @PostMapping
     public ResponseEntity<EmpresaPersonaFisica> guardar(@RequestBody EmpresaPersonaFisica empresaPersonaFisica) {
         try {
@@ -45,7 +42,6 @@ public class EmpresaPersonaFisicaController {
         }
     }
 
-    // Actualizar una empresa/persona física existente
     @PutMapping("/{id}")
     public ResponseEntity<EmpresaPersonaFisica> editar(@PathVariable Long id, @RequestBody EmpresaPersonaFisica empresaPersonaFisica) {
         Optional<EmpresaPersonaFisica> empresaExistente = service.obtenerPorId(id);
@@ -68,7 +64,6 @@ public class EmpresaPersonaFisicaController {
         return ResponseEntity.ok(empresaGuardada);
     }
 
-    // Eliminar una empresa/persona física por ID
     @DeleteMapping("/{id}")
     public ResponseEntity<String> eliminar(@PathVariable Long id) {
         Optional<EmpresaPersonaFisica> empresaPersonaFisica = service.obtenerPorId(id);
@@ -84,21 +79,16 @@ public class EmpresaPersonaFisicaController {
         }
     }
 
-    // Obtener empresas/personas físicas por idOrganizacion
+    // CORREGIDO: siempre devuelve un array, nunca un objeto
     @GetMapping("/organizacion/{idOrganizacion}")
-    public ResponseEntity<?> getEmpresasByOrganizacion(@PathVariable Long idOrganizacion) {
+    public ResponseEntity<List<EmpresaPersonaFisica>> getEmpresasByOrganizacion(@PathVariable Long idOrganizacion) {
         List<EmpresaPersonaFisica> empresas = service.findByOrganizacion(idOrganizacion);
-        if (empresas.isEmpty()) {
-            return ResponseEntity.ok().body(Map.of("message", "No hay datos en la base de datos para esta organización"));
-        }
-        return ResponseEntity.ok(empresas);
+        return ResponseEntity.ok(empresas != null ? empresas : List.of());
     }
-
 
     @GetMapping("/top6-facturas/{organizacionId}")
     public ResponseEntity<List<Map<String, Object>>> obtenerTop6EmpresasFacturas(@PathVariable Long organizacionId) {
         List<Map<String, Object>> top6Empresas = service.obtenerTop6EmpresasConConteos(organizacionId);
         return ResponseEntity.ok(top6Empresas);
     }
-
 }

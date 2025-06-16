@@ -15,6 +15,11 @@ public class EmailService {
     private JavaMailSender mailSender;
 
     public void enviarCorreoConAdjunto(String to, String subject, String body, MultipartFile adjunto) {
+        // No enviar si el destinatario es nulo o vacío
+        if (to == null || to.trim().isEmpty()) {
+            System.out.println("No se envía correo: destinatario nulo o vacío.");
+            return;
+        }
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true);

@@ -24,16 +24,23 @@ const ResetPassword = () => {
         }
     }, [location.search, navigate]); // Dependemos de location.search para cuando la URL cambie
 
+    // Función para validar la contraseña
+    const validatePassword = (password) => {
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        return regex.test(password);
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
+        // Validaciones de las contraseñas
         if (newPassword !== confirmPassword) {
             Swal.fire("Error", "Las contraseñas no coinciden.", "error");
             return;
         }
 
-        if (newPassword.length < 6) {
-            Swal.fire("Error", "La contraseña debe tener al menos 6 caracteres.", "error");
+        if (!validatePassword(newPassword)) {
+            Swal.fire("Error", "La contraseña debe tener al menos 8 caracteres, incluyendo al menos una mayúscula, una minúscula, un número y un carácter especial.", "error");
             return;
         }
 
@@ -66,42 +73,46 @@ const ResetPassword = () => {
     };
 
     return (
-        <div className="container mt-4">
-            <h2 className="text-center mb-4">Restablecer Contraseña</h2>
+        <div className="d-flex">
+            <div className="container mt-4">
+                <h2 className="text-center mb-4" style={{ borderBottom: '2px solid #a7c5eb', paddingBottom: '10px' }}>
+                    Restablecer Contraseña
+                </h2>
 
-            <form onSubmit={handleSubmit} className="col-md-6 offset-md-3">
-                <div className="mb-3">
-                    <label htmlFor="newPassword" className="form-label">
-                        Nueva Contraseña
-                    </label>
-                    <input
-                        type="password"
-                        id="newPassword"
-                        className="form-control"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        required
-                    />
-                </div>
+                <form onSubmit={handleSubmit} className="col-md-6 offset-md-3">
+                    <div className="mb-3">
+                        <label htmlFor="newPassword" className="form-label">
+                            Nueva Contraseña
+                        </label>
+                        <input
+                            type="password"
+                            id="newPassword"
+                            className="form-control"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required
+                        />
+                    </div>
 
-                <div className="mb-3">
-                    <label htmlFor="confirmPassword" className="form-label">
-                        Confirmar Contraseña
-                    </label>
-                    <input
-                        type="password"
-                        id="confirmPassword"
-                        className="form-control"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
-                    />
-                </div>
+                    <div className="mb-3">
+                        <label htmlFor="confirmPassword" className="form-label">
+                            Confirmar Contraseña
+                        </label>
+                        <input
+                            type="password"
+                            id="confirmPassword"
+                            className="form-control"
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            required
+                        />
+                    </div>
 
-                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                    {loading ? "Cargando..." : "Restablecer Contraseña"}
-                </button>
-            </form>
+                    <button type="submit" className="btn" style={{ backgroundColor: '#a7c5eb', width: '100%', color: '#fff' }} disabled={loading}>
+                        {loading ? "Cargando..." : "Restablecer Contraseña"}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 };

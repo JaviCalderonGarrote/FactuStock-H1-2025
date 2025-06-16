@@ -51,8 +51,13 @@ public class DetalleController {
     }
 
     @PostMapping
-    public ResponseEntity<Detalle> guardar(@RequestBody Detalle detalle) {
+    public ResponseEntity<?> guardar(@RequestBody Detalle detalle) {
         logger.info("Solicitud para guardar nuevo detalle");
+        // Validación: el detalle debe tener una venta asociada obligatoriamente
+        if (detalle.getVenta() == null || detalle.getVenta().getId() == null) {
+            logger.warn("Intento de guardar un detalle sin venta asociada");
+            return new ResponseEntity<>("El detalle debe estar asociado a una venta", HttpStatus.BAD_REQUEST);
+        }
         Detalle nuevoDetalle = detalleService.guardar(detalle);
         logger.info("Nuevo detalle guardado con ID: {}", nuevoDetalle.getId());
         return new ResponseEntity<>(nuevoDetalle, HttpStatus.CREATED);
@@ -61,6 +66,11 @@ public class DetalleController {
     @PutMapping("/{id}")
     public ResponseEntity<Detalle> actualizar(@PathVariable Long id, @RequestBody Detalle detalle) {
         logger.info("Solicitud para actualizar detalle con ID: {}", id);
+        // Validación: el detalle debe tener una venta asociada obligatoriamente
+        if (detalle.getVenta() == null || detalle.getVenta().getId() == null) {
+            logger.warn("Intento de actualizar un detalle sin venta asociada");
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
         Detalle detalleActualizado = detalleService.actualizar(id, detalle);
         if (detalleActualizado != null) {
             logger.info("Detalle actualizado con ID: {}", id);

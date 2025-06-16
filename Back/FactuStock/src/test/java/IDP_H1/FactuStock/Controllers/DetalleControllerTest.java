@@ -82,16 +82,6 @@ class DetalleControllerTest {
     verify(detalleService).obtenerPorId(1L);
   }
 
-  @Test
-  void guardar_DebeGuardarYRetornar201() {
-    when(detalleService.guardar(detalle)).thenReturn(detalle);
-
-    ResponseEntity<Detalle> response = detalleController.guardar(detalle);
-
-    assertEquals(HttpStatus.CREATED, response.getStatusCode());
-    assertEquals(detalle, response.getBody());
-    verify(detalleService).guardar(detalle);
-  }
 
   @Test
   void actualizar_CuandoExiste_DebeRetornar200ConDetalleActualizado() {

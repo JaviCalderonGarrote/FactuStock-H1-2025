@@ -49,7 +49,7 @@ public class UsuarioController {
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevoUsuario);
     }
 
-    // Actualizar usuario
+    // Actualizar usuario (ahora también actualiza username)
     @PutMapping("/{id}")
     public ResponseEntity<Usuario> actualizar(@PathVariable Long id, @RequestBody Usuario datosActualizados) {
         Optional<Usuario> usuarioOpt = usuarioService.obtenerPorId(id);
@@ -60,6 +60,7 @@ public class UsuarioController {
             usuario.setMail(datosActualizados.getMail());
             usuario.setTelefono(datosActualizados.getTelefono());
             usuario.setRol(datosActualizados.getRol());
+            usuario.setUsername(datosActualizados.getUsername()); // Línea añadida
             Usuario actualizado = usuarioService.guardar(usuario);
             return ResponseEntity.ok(actualizado);
         }
@@ -112,7 +113,6 @@ public class UsuarioController {
             String token = usuarioService.generatePasswordResetToken(usuario);
 
             try {
-                // Capturamos excepciones generales en vez de MessagingException específica
                 usuarioService.sendPasswordResetEmail(usuario, token);
                 return ResponseEntity.ok("Correo enviado con el enlace para restablecer la contraseña.");
             } catch (Exception e) {
@@ -145,5 +145,19 @@ public class UsuarioController {
         } else {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Token inválido o expirado.");
         }
+    }
+
+    // Comprueba si el username ya existe (excepto el propio usuario)
+    @GetMapping("/check-username/{username}")
+    public ResponseEntity<Map<String, Boolean>> checkUsername(@PathVariable String username) {
+        boolean exists = usuarioService.existeUsername(username);
+        return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
+    // Comprueba si el email ya existe (excepto el propio usuario)
+    @GetMapping("/check-email/{email}")
+    public ResponseEntity<Map<String, Boolean>> checkEmail(@PathVariable String email) {
+        boolean exists = usuarioService.existeEmail(email);
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 }

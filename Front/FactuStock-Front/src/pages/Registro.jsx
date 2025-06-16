@@ -2,6 +2,42 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import authService from "../services/authService";
 import Swal from "sweetalert2";
+import PropTypes from "prop-types";
+
+// Patrón IBAN básico (puedes ajustarlo según país)
+const IBAN_PATTERN = "^[A-Z]{2}\\d{2}[A-Z0-9]{1,30}$";
+
+const InputField = ({ label, name, value, onChange, required = false, type = "text", pattern, title }) => (
+    <div className="mb-3">
+        <label htmlFor={name} className="form-label" style={{ color: "#6f9fd7" }}>
+            {label} {required && <span className="text-danger">*</span>}
+        </label>
+        <input
+            id={name}
+            type={type}
+            name={name}
+            className="form-control"
+            value={value}
+            onChange={onChange}
+            required={required}
+            style={{ borderRadius: "8px", borderColor: "#a7c5eb" }}
+            pattern={pattern}
+            title={title}
+            autoComplete="off"
+        />
+    </div>
+);
+
+InputField.propTypes = {
+    label: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    value: PropTypes.string.isRequired,
+    onChange: PropTypes.func.isRequired,
+    required: PropTypes.bool,
+    type: PropTypes.string,
+    pattern: PropTypes.string,
+    title: PropTypes.string,
+};
 
 const Registro = () => {
     const navigate = useNavigate();
@@ -21,7 +57,6 @@ const Registro = () => {
             nifCif: "",
             email: "",
             web: "",
-            logo: "",
             IBAN: "",
         },
     });
@@ -42,9 +77,24 @@ const Registro = () => {
         }
     };
 
+    // Contraseña: 8+ caracteres, mayúscula, minúscula, número y especial
     const validarContraseña = (password) => {
-        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
         return regex.test(password);
+    };
+
+    // URL simple (http(s)://...)
+    const validarWeb = (web) => {
+        if (!web) return true;
+        const regex = /^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-._~:/?#[\]@!$&'()*+,;=]*)?$/i;
+        return regex.test(web);
+    };
+
+    // IBAN básico
+    const validarIBAN = (iban) => {
+        if (!iban) return true;
+        const regex = /^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/;
+        return regex.test(iban);
     };
 
     const validarUsuario = async () => {
@@ -75,7 +125,7 @@ const Registro = () => {
         if (!validarContraseña(password)) {
             await Swal.fire({
                 title: "Contraseña inválida",
-                text: "La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula y un número.",
+                text: "La contraseña debe tener al menos 8 caracteres, incluir una mayúscula, una minúscula, un número y un carácter especial.",
                 icon: "warning",
                 confirmButtonText: "Entendido",
                 confirmButtonColor: "#3085d6"
@@ -122,12 +172,32 @@ const Registro = () => {
         return true;
     };
 
-    const validarOrganizacion = () => {
-        const { nombre, direccion, telefono, nifCif, email } = formData.organizacion;
+    const validarOrganizacion = async () => {
+        const { nombre, direccion, telefono, nifCif, email, web, IBAN } = formData.organizacion;
         if (!nombre || !direccion || !telefono || !nifCif || !email) {
-            Swal.fire({
+            await Swal.fire({
                 title: "Datos incompletos",
                 text: "Por favor completa todos los campos obligatorios de la organización.",
+                icon: "warning",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#3085d6"
+            });
+            return false;
+        }
+        if (web && !validarWeb(web)) {
+            await Swal.fire({
+                title: "Sitio web inválido",
+                text: "Introduce una URL válida (ejemplo: https://www.ejemplo.com).",
+                icon: "warning",
+                confirmButtonText: "Entendido",
+                confirmButtonColor: "#3085d6"
+            });
+            return false;
+        }
+        if (IBAN && !validarIBAN(IBAN)) {
+            await Swal.fire({
+                title: "IBAN inválido",
+                text: "Introduce un IBAN válido (ejemplo: ES9121000418450200051332).",
                 icon: "warning",
                 confirmButtonText: "Entendido",
                 confirmButtonColor: "#3085d6"
@@ -148,7 +218,8 @@ const Registro = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
-        if (!validarOrganizacion()) {
+        const orgValid = await validarOrganizacion();
+        if (!orgValid) {
             setIsSubmitting(false);
             return;
         }
@@ -177,24 +248,6 @@ const Registro = () => {
         }
     };
 
-    const InputField = ({ label, name, value, onChange, required = false, type = "text" }) => (
-        <div className="mb-3">
-            <label htmlFor={name} className="form-label" style={{ color: "#6f9fd7" }}>
-                {label} {required && <span className="text-danger">*</span>}
-            </label>
-            <input
-                id={name}
-                type={type}
-                name={name}
-                className="form-control"
-                value={value}
-                onChange={onChange}
-                required={required}
-                style={{ borderRadius: "8px", borderColor: "#a7c5eb" }}
-            />
-        </div>
-    );
-
     return (
         <div className="d-flex vh-100 justify-content-center align-items-center bg-light">
             <div className="card p-4 shadow" style={{ width: "50rem", borderRadius: "15px" }}>
@@ -217,8 +270,26 @@ const Registro = () => {
                                 </div>
                                 <div className="col-md-6">
                                     <InputField label="Correo electrónico" name="mail" type="email" value={formData.mail} onChange={handleChange} required />
-                                    <InputField label="Contraseña" name="password" type="password" value={formData.password} onChange={handleChange} required />
-                                    <InputField label="Confirmar Contraseña" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
+                                    <InputField
+                                        label="Contraseña"
+                                        name="password"
+                                        type="password"
+                                        value={formData.password}
+                                        onChange={handleChange}
+                                        required
+                                        pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"
+                                        title="Mínimo 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial"
+                                    />
+                                    <InputField
+                                        label="Confirmar Contraseña"
+                                        name="confirmPassword"
+                                        type="password"
+                                        value={formData.confirmPassword}
+                                        onChange={handleChange}
+                                        required
+                                        pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$"
+                                        title="Debe coincidir con la contraseña"
+                                    />
                                 </div>
                             </>
                         ) : (
@@ -231,9 +302,25 @@ const Registro = () => {
                                 </div>
                                 <div className="col-md-6">
                                     <InputField label="Email" name="organizacion.email" type="email" value={formData.organizacion.email} onChange={handleChange} required />
-                                    <InputField label="Sitio Web" name="organizacion.web" value={formData.organizacion.web} onChange={handleChange} />
-                                    <InputField label="Logo URL" name="organizacion.logo" value={formData.organizacion.logo} onChange={handleChange} />
-                                    <InputField label="IBAN" name="organizacion.IBAN" value={formData.organizacion.IBAN} onChange={handleChange} />
+                                    <InputField
+                                        label="Sitio Web"
+                                        name="organizacion.web"
+                                        value={formData.organizacion.web}
+                                        onChange={handleChange}
+                                        type="url"
+                                        pattern="^(https?:\/\/)?([\w\-]+\.)+[\w\-]+(\/[\w\-._~:/?#[\]@!$&'()*+,;=]*)?$"
+                                        title="Introduce una URL válida (ejemplo: https://www.ejemplo.com)"
+                                    />
+                                    <InputField
+                                        label="IBAN"
+                                        name="organizacion.IBAN"
+                                        value={formData.organizacion.IBAN}
+                                        onChange={handleChange}
+                                        required={false}
+                                        type="text"
+                                        pattern={IBAN_PATTERN}
+                                        title="Introduce un IBAN válido (ejemplo: ES9121000418450200051332)"
+                                    />
                                 </div>
                             </>
                         )}

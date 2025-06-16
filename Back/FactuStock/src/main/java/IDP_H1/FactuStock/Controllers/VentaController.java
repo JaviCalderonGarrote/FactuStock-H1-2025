@@ -83,6 +83,7 @@ public class VentaController {
                 }
                 producto.setCantidadStock(producto.getCantidadStock() - detalle.getCantidad());
                 productoService.guardar(producto);
+                detalle.setVenta(venta);
             }
 
             Venta nuevaVenta = ventaService.guardar(venta);
@@ -137,22 +138,14 @@ public class VentaController {
         }
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<String> handleException(Exception e) {
-        logger.error("Error no manejado en VentaController", e);
-        return new ResponseEntity<>("Error interno del servidor: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-
     @GetMapping("/por-mes/{organizacionId}/{year}")
     public ResponseEntity<List<Map<String, Object>>> obtenerVentasPorMes(
             @PathVariable Long organizacionId,
             @PathVariable int year) {
-        // Validación para año inválido
         if (year <= 0) {
             throw new IllegalArgumentException("El año debe ser un valor positivo.");
         }
         List<Map<String, Object>> ventas = ventaService.obtenerVentasPorMes(organizacionId, year);
         return ResponseEntity.ok(ventas);
     }
-
 }

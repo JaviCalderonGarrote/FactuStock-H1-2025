@@ -44,6 +44,9 @@ public class Gasto {
 
     @Column(nullable = false)
     private LocalDateTime fecha;
+
+    @Transient
+    public boolean isTieneArchivoFactura() {
+        return archivoFactura != null && archivoFactura.length > 0;
+    }
 }
-
-

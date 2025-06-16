@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { FaSave, FaKey } from "react-icons/fa";
+import { FaSave } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import Modal from "react-bootstrap/Modal";
 
 const Perfil = () => {
@@ -15,7 +16,7 @@ const Perfil = () => {
         telefono: "",
         rol: "",
     });
-
+    const [originalUsuario, setOriginalUsuario] = useState({});
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -23,6 +24,7 @@ const Perfil = () => {
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [passwordError, setPasswordError] = useState("");
+    const navigate = useNavigate();
 
     const token = localStorage.getItem("authToken");
 
@@ -66,6 +68,7 @@ const Perfil = () => {
 
                 if (response.data) {
                     setUsuario(response.data);
+                    setOriginalUsuario(response.data);
                 } else {
                     setError("No se encontró la información del usuario.");
                 }
@@ -82,15 +85,47 @@ const Perfil = () => {
         setUsuario({ ...usuario, [name]: value });
     };
 
+    const checkUsernameExists = async (username) => {
+        if (username === originalUsuario.username) return false;
+        try {
+            const res = await axios.get(`http://localhost:8080/usuarios/check-username/${username}`);
+            return res.data.exists;
+        } catch {
+            return false;
+        }
+    };
+
+    const checkEmailExists = async (mail) => {
+        if (mail === originalUsuario.mail) return false;
+        try {
+            const res = await axios.get(`http://localhost:8080/usuarios/check-email/${mail}`);
+            return res.data.exists;
+        } catch {
+            return false;
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!usuario.nombre || !usuario.apellido || !usuario.mail || !usuario.telefono) {
+        if (!usuario.nombre || !usuario.apellido || !usuario.mail || !usuario.telefono || !usuario.username) {
             Swal.fire("Error", "Por favor completa todos los campos correctamente.", "error");
             return;
         }
 
         setLoading(true);
+
+        if (await checkUsernameExists(usuario.username)) {
+            setLoading(false);
+            Swal.fire("Error", "El nombre de usuario ya está en uso en la base de datos.", "error");
+            return;
+        }
+
+        if (await checkEmailExists(usuario.mail)) {
+            setLoading(false);
+            Swal.fire("Error", "El correo electrónico ya está en uso en la base de datos.", "error");
+            return;
+        }
 
         try {
             await axios.put(`http://localhost:8080/usuarios/${usuario.id}`, usuario, {
@@ -98,12 +133,36 @@ const Perfil = () => {
             });
 
             setLoading(false);
-            Swal.fire({
-                title: "Éxito",
-                text: "Perfil actualizado correctamente.",
-                icon: "success",
-                confirmButtonText: "OK",
-            });
+
+            if (
+                usuario.mail !== originalUsuario.mail ||
+                usuario.username !== originalUsuario.username
+            ) {
+                await Swal.fire({
+                    title: "Datos actualizados",
+                    html: `<div style="font-size:1.1rem;">
+                            <b>Debes iniciar sesión de nuevo por seguridad.</b>
+                            <br/><br/>
+                            <span style="color:#3085d6;font-weight:bold;">Serás redirigido al login.</span>
+                        </div>`,
+                    icon: "info",
+                    confirmButtonText: "Ir al login",
+                    confirmButtonColor: "#3085d6",
+                    customClass: {
+                        popup: "swal2-border-radius"
+                    }
+                });
+                localStorage.removeItem("authToken");
+                navigate("/");
+            } else {
+                Swal.fire({
+                    title: "Éxito",
+                    text: "Perfil actualizado correctamente.",
+                    icon: "success",
+                    confirmButtonText: "OK",
+                });
+                setOriginalUsuario(usuario);
+            }
         } catch (err) {
             setLoading(false);
             Swal.fire({
@@ -156,17 +215,15 @@ const Perfil = () => {
             );
 
             setLoading(false);
-            Swal.fire({
+            await Swal.fire({
                 title: "Éxito",
-                text: "Contraseña actualizada correctamente.",
+                text: "Contraseña actualizada correctamente. Debes iniciar sesión de nuevo.",
                 icon: "success",
-                confirmButtonText: "OK",
-            }).then(() => {
-                setShowPasswordModal(false);
-                setOldPassword("");
-                setNewPassword("");
-                setConfirmPassword("");
+                confirmButtonText: "Ir al login",
+                confirmButtonColor: "#3085d6"
             });
+            localStorage.removeItem("authToken");
+            navigate("/");
         } catch (err) {
             setLoading(false);
             setPasswordError(err.response?.data?.message || "Hubo un error al actualizar la contraseña.");
@@ -196,7 +253,7 @@ const Perfil = () => {
                                 name="username"
                                 value={usuario.username || ""}
                                 onChange={handleChange}
-                                disabled
+                                required
                             />
                         </div>
 
@@ -292,7 +349,7 @@ const Perfil = () => {
                                 className="btn btn-secondary w-100"
                                 onClick={() => setShowPasswordModal(true)}
                             >
-                                <FaKey className="me-2" /> Cambiar Contraseña
+                                Cambiar Contraseña
                             </button>
                         </div>
                     </div>
@@ -368,6 +425,13 @@ const Perfil = () => {
                     </Modal.Body>
                 </Modal>
             </div>
+            <style>
+                {`
+                .swal2-border-radius {
+                    border-radius: 18px !important;
+                }
+                `}
+            </style>
         </div>
     );
 };

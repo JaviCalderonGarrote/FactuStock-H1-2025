@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
-import Select from "react-select";
+import CreatableSelect from "react-select/creatable";
 import axios from "axios";
 import Swal from "sweetalert2";
 import { FaPaperPlane } from "react-icons/fa";
@@ -14,7 +14,6 @@ const Mail = () => {
         mensaje: "",
         archivo: null,
     });
-    const [inputCorreo, setInputCorreo] = useState("");
     const [error, setError] = useState(null);
     const token = localStorage.getItem("authToken");
 
@@ -54,18 +53,25 @@ const Mail = () => {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                if (userResponse.data) {
+                if (userResponse.data && userResponse.data.organizacion) {
                     setCorreoOrganizacion(userResponse.data.organizacion.email);
-                    const empresaResponse = await axios.get(
-                        `http://localhost:8080/EmpresaPersonaFisica/organizacion/${userResponse.data.organizacion.id}`,
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    setClientes(empresaResponse.data);
+                    try {
+                        const empresaResponse = await axios.get(
+                            `http://localhost:8080/EmpresaPersonaFisica/organizacion/${userResponse.data.organizacion.id}`,
+                            { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        setClientes(Array.isArray(empresaResponse.data) ? empresaResponse.data : []);
+                    } catch {
+                        setClientes([]);
+                    }
                 } else {
-                    setError("No se encontró la información del usuario.");
+                    setCorreoOrganizacion("");
+                    setClientes([]);
                 }
             } catch (err) {
                 setError("Error al obtener los datos.");
+                setCorreoOrganizacion("");
+                setClientes([]);
                 console.error(err);
             }
         };
@@ -81,19 +87,15 @@ const Mail = () => {
         }));
     };
 
-    const handleSelectChange = (selectedOption) => {
-        setSelectedCliente(selectedOption);
-        if (selectedOption) {
-            setInputCorreo(selectedOption.value);
-        } else {
-            setInputCorreo("");
-        }
+    const handleClienteChange = (option) => {
+        setSelectedCliente(option);
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (!inputCorreo || !/\S+@\S+\.\S+/.test(inputCorreo)) {
+        const correo = selectedCliente?.value || "";
+        if (!correo || !/\S+@\S+\.\S+/.test(correo)) {
             Swal.fire({
                 icon: "warning",
                 title: "Correo inválido",
@@ -103,7 +105,7 @@ const Mail = () => {
         }
 
         const data = new FormData();
-        data.append("cliente", inputCorreo);
+        data.append("cliente", correo);
         data.append("asunto", formData.asunto);
         data.append("mensaje", formData.mensaje);
         data.append("correoOrganizacion", correoOrganizacion);
@@ -132,7 +134,6 @@ const Mail = () => {
 
                 setFormData({ asunto: "", mensaje: "", archivo: null });
                 setSelectedCliente(null);
-                setInputCorreo("");
             } else {
                 Swal.fire({
                     icon: "error",
@@ -150,10 +151,12 @@ const Mail = () => {
         }
     };
 
-    const clientOptions = clientes.map((cliente) => ({
-        value: cliente.mail,
-        label: `${cliente.nombre} - ${cliente.mail}`,
-    }));
+    const clientOptions = clientes.length > 0
+        ? clientes.map((cliente) => ({
+            value: cliente.mail,
+            label: `${cliente.nombre} - ${cliente.mail}`,
+        }))
+        : [];
 
     return (
         <div className="d-flex">
@@ -171,19 +174,15 @@ const Mail = () => {
                         <label htmlFor="select-cliente" className="form-label">
                             Seleccionar Cliente o Escribir Correo
                         </label>
-                        <Select
+                        <CreatableSelect
                             inputId="select-cliente"
                             options={clientOptions}
                             value={selectedCliente}
-                            onChange={handleSelectChange}
+                            onChange={handleClienteChange}
                             placeholder="Buscar cliente o escribir correo..."
                             isClearable
                             isSearchable
-                            onInputChange={(inputValue, { action }) => {
-                                if (action === "input-change") {
-                                    setInputCorreo(inputValue);
-                                }
-                            }}
+                            formatCreateLabel={(inputValue) => `Usar correo: "${inputValue}"`}
                             noOptionsMessage={() => "No se encontraron clientes"}
                         />
                     </div>
@@ -226,6 +225,11 @@ const Mail = () => {
                             className="form-control"
                             onChange={handleChange}
                         />
+                    </div>
+                    <div className="mb-3">
+                        <label className="form-label">
+                            El correo de la organización (<b>{correoOrganizacion}</b>) irá en copia (CC)
+                        </label>
                     </div>
                     <button
                         type="submit"

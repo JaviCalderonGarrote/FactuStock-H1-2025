@@ -28,6 +28,7 @@ public class EmailController {
             @RequestParam("cliente") String destinatario,
             @RequestParam("asunto") String asunto,
             @RequestParam("mensaje") String mensaje,
+            @RequestParam("correoOrganizacion") String correoOrganizacion,
             @RequestParam(value = "archivo", required = false) MultipartFile archivo) {
 
         try {
@@ -37,6 +38,9 @@ public class EmailController {
 
             helper.setFrom("factustock.idp@gmail.com");
             helper.setTo(destinatario);
+            if (correoOrganizacion != null && !correoOrganizacion.isEmpty()) {
+                helper.addCc(correoOrganizacion);
+            }
             helper.setSubject(asunto);
             helper.setText(mensaje, true);
 

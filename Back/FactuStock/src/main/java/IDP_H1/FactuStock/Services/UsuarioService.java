@@ -145,8 +145,16 @@ public class UsuarioService {
             mailSender.send(mimeMessage);
 
         } catch (MessagingException e) {
-            // Envolvemos en RuntimeException para que Mockito pueda simularla en tests
             throw new RuntimeException("Error al enviar correo", e);
         }
+    }
+
+    // --- Métodos para comprobar username y email únicos ---
+    public boolean existeUsername(String username) {
+        return repository.existsByUsername(username);
+    }
+
+    public boolean existeEmail(String email) {
+        return repository.existsByMail(email);
     }
 }

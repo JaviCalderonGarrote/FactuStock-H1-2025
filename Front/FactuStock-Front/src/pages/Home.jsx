@@ -30,15 +30,14 @@ const Home = () => {
         balance: null,
         facturasNoCompletadas: null,
         cajaAbierta: {
-            nombre: "Cargando...",
+            nombre: "",
             totalIngresado: 0
         }
     });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const currentYear = new Date().getFullYear();
-    const [organizacion, setOrganizacion] = useState(null);
-    const [top5Productos, setTop5Productos] = useState({});
+    const [top5Productos, setTop5Productos] = useState([]);
     const [ventasPorMes, setVentasPorMes] = useState([]);
     const [ingresosMensuales, setIngresosMensuales] = useState([]);
     const [gastosMensuales, setGastosMensuales] = useState([]);
@@ -65,7 +64,6 @@ const Home = () => {
 
                     const userResponse = await axios.get(`/usuarios/${userId}`);
                     setUsername(userResponse.data.username || "Invitado");
-                    setOrganizacion(userResponse.data.organizacion);
 
                     await fetchBalanceData(currentYear, userResponse.data.organizacion.id);
                     await fetchTop5Productos(userResponse.data.organizacion.id);
@@ -119,7 +117,10 @@ const Home = () => {
     const fetchTop5Productos = async (organizacionId) => {
         try {
             const response = await axios.get(`/detalles/top5-productos-vendidos/${organizacionId}`);
-            setTop5Productos(response.data);
+            const sortedProducts = Object.entries(response.data)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 5);
+            setTop5Productos(sortedProducts);
         } catch (error) {
             console.error('Error al obtener los 5 productos más vendidos:', error);
             Swal.fire('Error', 'No se pudieron cargar los datos de los productos más vendidos', 'error');
@@ -256,9 +257,9 @@ const Home = () => {
     };
 
     const top5ProductosData = {
-        labels: Object.keys(top5Productos),
+        labels: top5Productos.map(product => product[0]),
         datasets: [{
-            data: Object.values(top5Productos),
+            data: top5Productos.map(product => product[1]),
             backgroundColor: [
                 'rgba(255, 99, 132, 0.8)',
                 'rgba(54, 162, 235, 0.8)',
@@ -285,7 +286,21 @@ const Home = () => {
                 position: 'right',
                 labels: {
                     boxWidth: 15,
-                    font: { size: 10 }
+                    font: { size: 10 },
+                    generateLabels: function (chart) {
+                        const data = chart.data;
+                        return data.labels.map((label, index) => {
+                            const value = data.datasets[0].data[index];
+                            return {
+                                text: `${label}: ${value} `,
+                                fillStyle: data.datasets[0].backgroundColor[index],
+                                strokeStyle: data.datasets[0].borderColor[index],
+                                lineWidth: data.datasets[0].borderWidth,
+                                hidden: false,
+                                index: index
+                            };
+                        });
+                    }
                 }
             },
             title: {
@@ -295,7 +310,7 @@ const Home = () => {
             },
             tooltip: {
                 callbacks: {
-                    label: function(context) {
+                    label: function (context) {
                         let label = context.label || '';
                         if (label) {
                             label += ': ';
@@ -343,25 +358,28 @@ const Home = () => {
         };
     };
 
-    if (isLoading) {
-        return <div>Cargando...</div>;
-    }
-
     if (error) {
-        return <div>Error: {error}</div>;
+        return (
+            <div className="wrapper">
+                <Sidebar />
+                <div className="main d-flex flex-column justify-content-center align-items-center">
+                    <div>Error: {error}</div>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="d-flex" style={{ height: '100vh', overflow: 'hidden' }}>
+        <div className="wrapper" style={{ minHeight: '100vh' }}>
             <Sidebar />
-            <div className="flex-grow-1 d-flex flex-column" style={{ padding: '10px', backgroundColor: '#f0f2f5' }}>
+            <div className="main d-flex flex-column" style={{ padding: '10px', backgroundColor: '#f0f2f5' }}>
                 <h1 className="text-center mb-2" style={{ fontSize: '1.5rem', color: '#333' }}>Bienvenido a FactuStock</h1>
                 <p className="text-center mb-3" style={{ fontSize: '1rem', color: '#666' }}>¡Hola, <strong>{username}</strong>!</p>
                 <div className="d-flex justify-content-between mb-3">
                     {[
                         {
                             title: 'Balance',
-                            value: balanceData.balance !== null ? `$${balanceData.balance.toFixed(2)}` : 'N/A',
+                            value: balanceData.balance !== null ? `${balanceData.balance.toFixed(2)} €` : 'N/A',
                             color: getBalanceColor(balanceData.balance)
                         },
                         {
@@ -375,7 +393,7 @@ const Home = () => {
                             value: (
                                 <div>
                                     <div>{balanceData.cajaAbierta.nombre}</div>
-                                    <div>Total: ${balanceData.cajaAbierta.totalIngresado.toFixed(2)}</div>
+                                    <div>Total: {balanceData.cajaAbierta.totalIngresado.toFixed(2)} €</div>
                                 </div>
                             ),
                             style: getCajaAbiertaStyle(balanceData.cajaAbierta.nombre),
@@ -460,12 +478,43 @@ const Home = () => {
                 </div>
             )}
 
+            {isLoading && (
+                <div
+                    style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        background: 'rgba(255,255,255,0.8)',
+                        zIndex: 2000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <div className="loader"></div>
+                </div>
+            )}
+
             <style>
                 {`
         @keyframes blink {
           0% { opacity: 1; }
           50% { opacity: 0.5; }
           100% { opacity: 1; }
+        }
+        .loader {
+          border: 8px solid #f3f3f3;
+          border-top: 8px solid #3498db;
+          border-radius: 50%;
+          width: 60px;
+          height: 60px;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
         }
       `}
             </style>
